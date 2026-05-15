@@ -21,6 +21,7 @@ import { Route as AuthenticatedDocumentosRouteImport } from './routes/_authentic
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedAgendaRouteImport } from './routes/_authenticated/agenda'
 import { Route as AuthenticatedPacienteIdRouteImport } from './routes/_authenticated/paciente.$id'
+import { Route as AuthenticatedQuadroRouteImport } from './routes/_authenticated/quadro'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -82,6 +83,11 @@ const AuthenticatedPacienteIdRoute = AuthenticatedPacienteIdRouteImport.update({
   path: '/paciente/$id',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedQuadroRoute = AuthenticatedQuadroRouteImport.update({
+  id: '/quadro',
+  path: '/quadro',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -94,6 +100,7 @@ export interface FileRoutesByFullPath {
   '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/pacientes': typeof AuthenticatedPacientesRoute
   '/tarefas': typeof AuthenticatedTarefasRoute
+  '/quadro': typeof AuthenticatedQuadroRoute
   '/paciente/$id': typeof AuthenticatedPacienteIdRoute
 }
 export interface FileRoutesByTo {
@@ -106,6 +113,7 @@ export interface FileRoutesByTo {
   '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/pacientes': typeof AuthenticatedPacientesRoute
   '/tarefas': typeof AuthenticatedTarefasRoute
+  '/quadro': typeof AuthenticatedQuadroRoute
   '/': typeof AuthenticatedIndexRoute
   '/paciente/$id': typeof AuthenticatedPacienteIdRoute
 }
@@ -121,6 +129,7 @@ export interface FileRoutesById {
   '/_authenticated/financeiro': typeof AuthenticatedFinanceiroRoute
   '/_authenticated/pacientes': typeof AuthenticatedPacientesRoute
   '/_authenticated/tarefas': typeof AuthenticatedTarefasRoute
+  '/_authenticated/quadro': typeof AuthenticatedQuadroRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/paciente/$id': typeof AuthenticatedPacienteIdRoute
 }
@@ -137,6 +146,7 @@ export interface FileRouteTypes {
     | '/financeiro'
     | '/pacientes'
     | '/tarefas'
+    | '/quadro'
     | '/paciente/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -149,6 +159,7 @@ export interface FileRouteTypes {
     | '/financeiro'
     | '/pacientes'
     | '/tarefas'
+    | '/quadro'
     | '/'
     | '/paciente/$id'
   id:
@@ -163,6 +174,7 @@ export interface FileRouteTypes {
     | '/_authenticated/financeiro'
     | '/_authenticated/pacientes'
     | '/_authenticated/tarefas'
+    | '/_authenticated/quadro'
     | '/_authenticated/'
     | '/_authenticated/paciente/$id'
   fileRoutesById: FileRoutesById
@@ -259,6 +271,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPacienteIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/quadro': {
+      id: '/_authenticated/quadro'
+      path: '/quadro'
+      fullPath: '/quadro'
+      preLoaderRoute: typeof AuthenticatedQuadroRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
@@ -270,6 +289,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedFinanceiroRoute: typeof AuthenticatedFinanceiroRoute
   AuthenticatedPacientesRoute: typeof AuthenticatedPacientesRoute
   AuthenticatedTarefasRoute: typeof AuthenticatedTarefasRoute
+  AuthenticatedQuadroRoute: typeof AuthenticatedQuadroRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedPacienteIdRoute: typeof AuthenticatedPacienteIdRoute
 }
@@ -282,6 +302,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedFinanceiroRoute: AuthenticatedFinanceiroRoute,
   AuthenticatedPacientesRoute: AuthenticatedPacientesRoute,
   AuthenticatedTarefasRoute: AuthenticatedTarefasRoute,
+  AuthenticatedQuadroRoute: AuthenticatedQuadroRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedPacienteIdRoute: AuthenticatedPacienteIdRoute,
 }

@@ -14,6 +14,7 @@ import {
   Shield,
   X,
   ChevronLeft,
+  PenLine,
 } from "lucide-react";
 
 const navItems: { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean }[] = [
@@ -24,6 +25,7 @@ const navItems: { to: string; label: string; icon: typeof LayoutDashboard; exact
   { to: "/financeiro", label: "Financeiro", icon: DollarSign },
   { to: "/documentos", label: "Documentos", icon: FolderOpen },
   { to: "/tarefas", label: "Tarefas", icon: CheckSquare },
+  { to: "/quadro", label: "Quadro Clínico", icon: PenLine },
   { to: "/configuracoes", label: "Configurações", icon: Settings },
 ];
 
