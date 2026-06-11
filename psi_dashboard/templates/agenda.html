@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+{% block title %}Agenda{% endblock %}
+{% block topbar_title %}Agenda{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h2 class="page-title">Agenda</h2>
+    <p class="page-subtitle">Próximas 20 consultas</p>
+  </div>
+  <div class="page-actions">
+    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalConsulta">
+      <i class="bi bi-plus-lg me-1"></i>Nova Consulta
+    </button>
+  </div>
+</div>
+
+<!-- Search -->
+<div class="search-bar mb-3">
+  <form method="GET" action="{{ url_for('agenda') }}" class="d-flex gap-2">
+    <div class="input-group">
+      <span class="input-group-text"><i class="bi bi-search"></i></span>
+      <input type="text" class="form-control" name="q" value="{{ search }}"
+             placeholder="Buscar por nome do paciente..." />
+    </div>
+    <button type="submit" class="btn btn-primary">Buscar</button>
+    {% if search %}
+      <a href="{{ url_for('agenda') }}" class="btn btn-outline-secondary">Limpar</a>
+    {% endif %}
+  </form>
+</div>
+
+<div class="card-psi">
+  {% if appointments %}
+    <div class="table-responsive">
+      <table class="table table-psi mb-0">
+        <thead>
+          <tr>
+            <th>Paciente</th>
+            <th>Data</th>
+            <th>Hora</th>
+            <th>Tipo</th>
+            <th>Status</th>
+            <th class="text-end">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for appt in appointments %}
+          <tr>
+            <td>
+              <a href="{{ url_for('paciente', pid=appt.patient.id) }}" class="patient-link">
+                {{ appt.patient.name }}
+              </a>
+            </td>
+            <td>{{ appt.datetime_appt.strftime('%d/%m/%Y') }}</td>
+            <td>{{ appt.datetime_appt.strftime('%H:%M') }}</td>
+            <td>
+              {% if appt.appt_type == 'online' %}
+                <span class="badge-type online"><i class="bi bi-camera-video"></i> Online</span>
+              {% else %}
+                <span class="badge-type presencial"><i class="bi bi-building"></i> Presencial</span>
+              {% endif %}
+            </td>
+            <td><span class="badge-status {{ appt.status }}">{{ appt.status | capitalize }}</span></td>
+            <td class="text-end">
+              <button class="btn btn-sm btn-ghost" title="Editar"
+                onclick="editAppt({{ appt.id }}, {{ appt.patient_id }},
+                  '{{ appt.datetime_appt.strftime('%Y-%m-%d') }}',
+                  '{{ appt.datetime_appt.strftime('%H:%M') }}',
+                  '{{ appt.appt_type }}', '{{ appt.status }}')">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button class="btn btn-sm btn-ghost text-danger" title="Excluir"
+                onclick="deleteAppt({{ appt.id }})">
+                <i class="bi bi-trash"></i>
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <i class="bi bi-calendar-x"></i>
+      <p>{% if search %}Nenhuma consulta encontrada para "{{ search }}"{% else %}Nenhuma consulta agendada{% endif %}</p>
+    </div>
+  {% endif %}
+</div>
+
+<!-- Modal Nova/Editar Consulta -->
+<div class="modal fade" id="modalConsulta" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content modal-psi">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalConsultaTitle"><i class="bi bi-calendar-plus me-2"></i>Nova Consulta</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="{{ url_for('agenda') }}" id="formConsulta">
+        <div class="modal-body">
+          <input type="hidden" name="action" id="formAction" value="add" />
+          <input type="hidden" name="appt_id" id="formApptId" value="" />
+
+          <div class="mb-3">
+            <label class="form-label">Paciente</label>
+            <select class="form-select" name="patient_id" id="formPatientId" required>
+              <option value="">Selecionar paciente...</option>
+              {% for p in patients %}
+                <option value="{{ p.id }}">{{ p.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-7">
+              <label class="form-label">Data</label>
+              <input type="date" class="form-control" name="date" id="formDate" required />
+            </div>
+            <div class="col-5">
+              <label class="form-label">Hora</label>
+              <input type="time" class="form-control" name="time" id="formTime" required />
+            </div>
+          </div>
+          <div class="row g-2">
+            <div class="col-6">
+              <label class="form-label">Modalidade</label>
+              <select class="form-select" name="appt_type" id="formType">
+                <option value="presencial">Presencial</option>
+                <option value="online">Online</option>
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label">Status</label>
+              <select class="form-select" name="status" id="formStatus">
+                <option value="agendada">Agendada</option>
+                <option value="confirmada">Confirmada</option>
+                <option value="cancelada">Cancelada</option>
+                <option value="realizada">Realizada</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Excluir -->
+<form method="POST" action="{{ url_for('agenda') }}" id="formDelete">
+  <input type="hidden" name="action" value="delete" />
+  <input type="hidden" name="appt_id" id="deleteApptId" />
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function editAppt(id, patientId, date, time, type, status) {
+  document.getElementById('modalConsultaTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Consulta';
+  document.getElementById('formAction').value = 'edit';
+  document.getElementById('formApptId').value = id;
+  document.getElementById('formPatientId').value = patientId;
+  document.getElementById('formDate').value = date;
+  document.getElementById('formTime').value = time;
+  document.getElementById('formType').value = type;
+  document.getElementById('formStatus').value = status;
+  new bootstrap.Modal(document.getElementById('modalConsulta')).show();
+}
+
+function deleteAppt(id) {
+  if (confirm('Tem certeza que deseja excluir esta consulta?')) {
+    document.getElementById('deleteApptId').value = id;
+    document.getElementById('formDelete').submit();
+  }
+}
+
+document.getElementById('modalConsulta').addEventListener('hidden.bs.modal', function() {
+  document.getElementById('modalConsultaTitle').innerHTML = '<i class="bi bi-calendar-plus me-2"></i>Nova Consulta';
+  document.getElementById('formAction').value = 'add';
+  document.getElementById('formApptId').value = '';
+  document.getElementById('formConsulta').reset();
+});
+</script>
+{% endblock %}

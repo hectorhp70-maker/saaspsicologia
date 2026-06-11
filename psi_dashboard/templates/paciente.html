@@ -1,0 +1,255 @@
+{% extends 'base.html' %}
+{% block title %}{{ patient.name }}{% endblock %}
+{% block topbar_title %}Paciente{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="d-flex align-items-center gap-3">
+    <a href="{{ url_for('pacientes') }}" class="btn btn-ghost btn-sm">
+      <i class="bi bi-arrow-left"></i>
+    </a>
+    <div>
+      <h2 class="page-title mb-0">{{ patient.name }}</h2>
+      <p class="page-subtitle mb-0">Ficha do paciente</p>
+    </div>
+  </div>
+  <div class="page-actions">
+    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalSessao">
+      <i class="bi bi-journal-plus me-1"></i>Registrar Sessão
+    </button>
+    <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalNota">
+      <i class="bi bi-sticky me-1"></i>Nota Interna
+    </button>
+  </div>
+</div>
+
+<div class="row g-3">
+  <!-- Dados do paciente -->
+  <div class="col-lg-4">
+    <div class="card-psi">
+      <div class="card-psi-header">
+        <h5 class="card-psi-title"><i class="bi bi-person me-2"></i>Dados Pessoais</h5>
+      </div>
+      <div class="patient-detail-header">
+        <div class="patient-avatar lg">{{ patient.name[0] | upper }}</div>
+        <div>
+          <div class="fw-600 fs-5">{{ patient.name }}</div>
+          {% if patient.age %}
+            <div class="text-muted small">{{ patient.age }} anos</div>
+          {% endif %}
+        </div>
+      </div>
+      <ul class="detail-list">
+        {% if patient.phone %}
+        <li><i class="bi bi-telephone"></i><span>{{ patient.phone }}</span></li>
+        {% endif %}
+        {% if patient.email %}
+        <li><i class="bi bi-envelope"></i><span>{{ patient.email }}</span></li>
+        {% endif %}
+        {% if patient.birth_date %}
+        <li><i class="bi bi-cake"></i><span>{{ patient.birth_date.strftime('%d/%m/%Y') }}</span></li>
+        {% endif %}
+        {% if patient.cpf %}
+        <li><i class="bi bi-card-text"></i><span>{{ patient.cpf }}</span></li>
+        {% endif %}
+        {% if patient.address %}
+        <li><i class="bi bi-geo-alt"></i><span>{{ patient.address }}</span></li>
+        {% endif %}
+        <li><i class="bi bi-calendar3"></i><span>Cadastro: {{ patient.created_at.strftime('%d/%m/%Y') }}</span></li>
+      </ul>
+      {% if patient.notes %}
+      <div class="detail-notes">
+        <div class="detail-notes-label"><i class="bi bi-info-circle me-1"></i>Observações</div>
+        <p class="small mb-0">{{ patient.notes }}</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Notas internas -->
+    <div class="card-psi mt-3">
+      <div class="card-psi-header">
+        <h5 class="card-psi-title"><i class="bi bi-sticky me-2"></i>Notas Internas</h5>
+        <button class="btn btn-sm btn-ghost" data-bs-toggle="modal" data-bs-target="#modalNota">
+          <i class="bi bi-plus"></i>
+        </button>
+      </div>
+      {% if patient.internal_notes %}
+        <ul class="notes-list">
+          {% for note in patient.internal_notes %}
+          <li class="note-item">
+            <div class="note-header">
+              <span class="note-assunto">{{ note.assunto }}</span>
+              <span class="note-date">{{ note.created_at.strftime('%d/%m/%Y') }}</span>
+            </div>
+            <p class="note-text">{{ note.texto }}</p>
+          </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="empty-state sm">
+          <i class="bi bi-sticky"></i>
+          <p>Sem notas internas</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Prontuário / Timeline -->
+  <div class="col-lg-8">
+    <div class="card-psi">
+      <div class="card-psi-header">
+        <h5 class="card-psi-title"><i class="bi bi-journal-text me-2"></i>Prontuário — Sessões</h5>
+        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalSessao">
+          <i class="bi bi-plus-lg me-1"></i>Nova Sessão
+        </button>
+      </div>
+
+      {% if patient.sessions %}
+        <div class="timeline">
+          {% for s in patient.sessions %}
+          <div class="timeline-item">
+            <div class="timeline-marker"></div>
+            <div class="timeline-content">
+              <div class="timeline-header">
+                <div>
+                  <span class="timeline-date">{{ s.session_date.strftime('%d/%m/%Y') }}</span>
+                  <span class="timeline-tema">{{ s.tema }}</span>
+                </div>
+                <div class="humor-badge humor-{{ s.humor }}">
+                  <i class="bi bi-emoji-{% if s.humor <= 2 %}frown{% elif s.humor == 3 %}neutral{% else %}smile{% endif %}"></i>
+                  {{ s.humor }}/5
+                </div>
+              </div>
+              <div class="timeline-body">
+                <div class="timeline-section">
+                  <span class="timeline-section-label">Evolução</span>
+                  <p>{{ s.evolucao }}</p>
+                </div>
+                {% if s.objetivos %}
+                <div class="timeline-section">
+                  <span class="timeline-section-label">Objetivos para próxima sessão</span>
+                  <p>{{ s.objetivos }}</p>
+                </div>
+                {% endif %}
+              </div>
+              <div class="timeline-footer">
+                Registrado em {{ s.created_at.strftime('%d/%m/%Y às %H:%M') }}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <i class="bi bi-journal-x"></i>
+          <p>Nenhuma sessão registrada ainda</p>
+          <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalSessao">
+            <i class="bi bi-plus-lg me-1"></i>Registrar primeira sessão
+          </button>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Modal Registrar Sessão -->
+<div class="modal fade" id="modalSessao" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content modal-psi">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-journal-plus me-2"></i>Registrar Sessão</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="{{ url_for('add_sessao', pid=patient.id) }}">
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-sm-6">
+              <div class="form-floating">
+                <input type="date" class="form-control" id="session_date" name="session_date"
+                       placeholder=" " required />
+                <label for="session_date">Data da sessão *</label>
+              </div>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label">Humor do paciente (1–5)</label>
+              <div class="humor-selector">
+                {% for i in range(1, 6) %}
+                <input type="radio" class="btn-check" name="humor" id="h{{ i }}" value="{{ i }}"
+                       {% if i == 3 %}checked{% endif %} />
+                <label class="btn btn-outline-secondary humor-btn" for="h{{ i }}">{{ i }}</label>
+                {% endfor %}
+              </div>
+            </div>
+            <div class="col-12">
+              <div class="form-floating">
+                <input type="text" class="form-control" id="tema" name="tema"
+                       placeholder="Tema principal" required />
+                <label for="tema">Tema principal *</label>
+              </div>
+            </div>
+            <div class="col-12">
+              <div class="form-floating">
+                <textarea class="form-control" id="evolucao" name="evolucao"
+                          placeholder="Evolução" style="height:140px" required></textarea>
+                <label for="evolucao">Evolução / Registro clínico *</label>
+              </div>
+            </div>
+            <div class="col-12">
+              <div class="form-floating">
+                <textarea class="form-control" id="objetivos" name="objetivos"
+                          placeholder="Objetivos" style="height:90px"></textarea>
+                <label for="objetivos">Objetivos para a próxima sessão</label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar Sessão</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Nota Interna -->
+<div class="modal fade" id="modalNota" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content modal-psi">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-sticky me-2"></i>Nova Nota Interna</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="{{ url_for('add_nota', pid=patient.id) }}">
+        <div class="modal-body">
+          <div class="form-floating mb-3">
+            <input type="text" class="form-control" id="assunto" name="assunto"
+                   placeholder="Assunto" required />
+            <label for="assunto">Assunto *</label>
+          </div>
+          <div class="form-floating">
+            <textarea class="form-control" id="texto" name="texto"
+                      placeholder="Texto da nota" style="height:120px" required></textarea>
+            <label for="texto">Nota *</label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar Nota</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% block scripts %}
+<script>
+// Set today as default session date
+document.addEventListener('DOMContentLoaded', function() {
+  const today = new Date().toISOString().split('T')[0];
+  const dateInput = document.getElementById('session_date');
+  if (dateInput) dateInput.value = today;
+});
+</script>
+{% endblock %}
+{% endblock %}

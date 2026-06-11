@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block topbar_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h2 class="page-title">Dashboard</h2>
+    <p class="page-subtitle">Bem-vindo(a), {{ current_user.name.split()[0] }}.</p>
+  </div>
+  <div class="page-actions">
+    <a href="{{ url_for('agenda') }}" class="btn btn-primary btn-sm">
+      <i class="bi bi-calendar-plus me-1"></i>Nova consulta
+    </a>
+  </div>
+</div>
+
+<!-- Cards KPI -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3">
+    <div class="kpi-card">
+      <div class="kpi-icon kpi-blue"><i class="bi bi-people-fill"></i></div>
+      <div class="kpi-body">
+        <div class="kpi-value">{{ total_patients }}</div>
+        <div class="kpi-label">Total de Pacientes</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="kpi-card">
+      <div class="kpi-icon kpi-teal"><i class="bi bi-calendar-check"></i></div>
+      <div class="kpi-body">
+        <div class="kpi-value">{{ appts_today }}</div>
+        <div class="kpi-label">Consultas Hoje</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="kpi-card">
+      <div class="kpi-icon kpi-indigo"><i class="bi bi-calendar-week"></i></div>
+      <div class="kpi-body">
+        <div class="kpi-value">{{ appts_week }}</div>
+        <div class="kpi-label">Consultas na Semana</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="kpi-card">
+      <div class="kpi-icon kpi-green"><i class="bi bi-cash-stack"></i></div>
+      <div class="kpi-body">
+        <div class="kpi-value">R$ {{ '{:,.0f}'.format(receita_mes).replace(',', '.') }}</div>
+        <div class="kpi-label">Receita do Mês</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <!-- Próximas consultas -->
+  <div class="col-lg-7">
+    <div class="card-psi h-100">
+      <div class="card-psi-header">
+        <h5 class="card-psi-title"><i class="bi bi-clock me-2"></i>Próximas Consultas</h5>
+        <a href="{{ url_for('agenda') }}" class="btn btn-sm btn-outline-primary">Ver agenda</a>
+      </div>
+      {% if upcoming %}
+        <div class="table-responsive">
+          <table class="table table-psi mb-0">
+            <thead>
+              <tr>
+                <th>Paciente</th>
+                <th>Data &amp; Hora</th>
+                <th>Tipo</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for appt in upcoming %}
+              <tr>
+                <td>
+                  <a href="{{ url_for('paciente', pid=appt.patient.id) }}" class="patient-link">
+                    {{ appt.patient.name }}
+                  </a>
+                </td>
+                <td>
+                  <span class="text-nowrap">
+                    {{ appt.datetime_appt.strftime('%d/%m/%Y') }}
+                    <span class="text-muted">{{ appt.datetime_appt.strftime('%H:%M') }}</span>
+                  </span>
+                </td>
+                <td>
+                  {% if appt.appt_type == 'online' %}
+                    <span class="badge-type online"><i class="bi bi-camera-video"></i> Online</span>
+                  {% else %}
+                    <span class="badge-type presencial"><i class="bi bi-building"></i> Presencial</span>
+                  {% endif %}
+                </td>
+                <td><span class="badge-status {{ appt.status }}">{{ appt.status | capitalize }}</span></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <i class="bi bi-calendar-x"></i>
+          <p>Nenhuma consulta agendada</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Últimos pacientes -->
+  <div class="col-lg-5">
+    <div class="card-psi h-100">
+      <div class="card-psi-header">
+        <h5 class="card-psi-title"><i class="bi bi-person-plus me-2"></i>Últimos Pacientes</h5>
+        <a href="{{ url_for('pacientes') }}" class="btn btn-sm btn-outline-primary">Ver todos</a>
+      </div>
+      {% if recent_patients %}
+        <ul class="patient-list">
+          {% for p in recent_patients %}
+          <li class="patient-list-item">
+            <div class="patient-avatar">{{ p.name[0] | upper }}</div>
+            <div class="patient-info">
+              <div class="patient-name">{{ p.name }}</div>
+              <div class="patient-meta">
+                {% if p.phone %}<span><i class="bi bi-telephone"></i> {{ p.phone }}</span>{% endif %}
+                {% if p.age %}<span><i class="bi bi-person"></i> {{ p.age }} anos</span>{% endif %}
+              </div>
+            </div>
+            <a href="{{ url_for('paciente', pid=p.id) }}" class="btn btn-sm btn-ghost">
+              <i class="bi bi-chevron-right"></i>
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="empty-state">
+          <i class="bi bi-people"></i>
+          <p>Nenhum paciente cadastrado</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

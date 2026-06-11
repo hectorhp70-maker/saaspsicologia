@@ -1,0 +1,183 @@
+{% extends 'base.html' %}
+{% block title %}Pacientes{% endblock %}
+{% block topbar_title %}Pacientes{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h2 class="page-title">Pacientes</h2>
+    <p class="page-subtitle">{{ pagination.total }} paciente(s) cadastrado(s)</p>
+  </div>
+  <div class="page-actions">
+    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalPaciente">
+      <i class="bi bi-person-plus me-1"></i>Novo Paciente
+    </button>
+  </div>
+</div>
+
+<!-- Search -->
+<div class="search-bar mb-3">
+  <form method="GET" action="{{ url_for('pacientes') }}" class="d-flex gap-2">
+    <div class="input-group">
+      <span class="input-group-text"><i class="bi bi-search"></i></span>
+      <input type="text" class="form-control" name="q" value="{{ search }}"
+             placeholder="Buscar por nome..." />
+    </div>
+    <button type="submit" class="btn btn-primary">Buscar</button>
+    {% if search %}
+      <a href="{{ url_for('pacientes') }}" class="btn btn-outline-secondary">Limpar</a>
+    {% endif %}
+  </form>
+</div>
+
+<div class="card-psi">
+  {% if pagination.items %}
+    <div class="table-responsive">
+      <table class="table table-psi mb-0">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Telefone</th>
+            <th>E-mail</th>
+            <th>Idade</th>
+            <th>Cadastro</th>
+            <th class="text-end">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in pagination.items %}
+          <tr>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="patient-avatar sm">{{ p.name[0] | upper }}</div>
+                <span class="fw-500">{{ p.name }}</span>
+              </div>
+            </td>
+            <td>{{ p.phone or '—' }}</td>
+            <td>{{ p.email or '—' }}</td>
+            <td>{{ p.age ~ ' anos' if p.age else '—' }}</td>
+            <td>{{ p.created_at.strftime('%d/%m/%Y') }}</td>
+            <td class="text-end">
+              <a href="{{ url_for('paciente', pid=p.id) }}" class="btn btn-sm btn-primary">
+                <i class="bi bi-person-lines-fill me-1"></i>Ver
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if pagination.pages > 1 %}
+    <div class="pagination-wrapper">
+      <nav>
+        <ul class="pagination pagination-sm mb-0">
+          {% if pagination.has_prev %}
+            <li class="page-item">
+              <a class="page-link" href="{{ url_for('pacientes', page=pagination.prev_num, q=search) }}">
+                <i class="bi bi-chevron-left"></i>
+              </a>
+            </li>
+          {% endif %}
+          {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if p %}
+              <li class="page-item {% if p == pagination.page %}active{% endif %}">
+                <a class="page-link" href="{{ url_for('pacientes', page=p, q=search) }}">{{ p }}</a>
+              </li>
+            {% else %}
+              <li class="page-item disabled"><span class="page-link">…</span></li>
+            {% endif %}
+          {% endfor %}
+          {% if pagination.has_next %}
+            <li class="page-item">
+              <a class="page-link" href="{{ url_for('pacientes', page=pagination.next_num, q=search) }}">
+                <i class="bi bi-chevron-right"></i>
+              </a>
+            </li>
+          {% endif %}
+        </ul>
+      </nav>
+      <small class="text-muted">
+        Página {{ pagination.page }} de {{ pagination.pages }}
+      </small>
+    </div>
+    {% endif %}
+  {% else %}
+    <div class="empty-state">
+      <i class="bi bi-people"></i>
+      <p>{% if search %}Nenhum paciente encontrado para "{{ search }}"{% else %}Nenhum paciente cadastrado{% endif %}</p>
+    </div>
+  {% endif %}
+</div>
+
+<!-- Modal Cadastrar Paciente -->
+<div class="modal fade" id="modalPaciente" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content modal-psi">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-person-plus me-2"></i>Novo Paciente</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="{{ url_for('pacientes') }}">
+        <input type="hidden" name="action" value="add" />
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <div class="form-floating">
+                <input type="text" class="form-control" id="nome" name="name"
+                       placeholder="Nome completo" required />
+                <label for="nome">Nome completo *</label>
+              </div>
+            </div>
+            <div class="col-sm-6">
+              <div class="form-floating">
+                <input type="tel" class="form-control" id="telefone" name="phone"
+                       placeholder="(00) 00000-0000" />
+                <label for="telefone">Telefone</label>
+              </div>
+            </div>
+            <div class="col-sm-6">
+              <div class="form-floating">
+                <input type="email" class="form-control" id="email" name="email"
+                       placeholder="email@exemplo.com" />
+                <label for="email">E-mail</label>
+              </div>
+            </div>
+            <div class="col-sm-6">
+              <div class="form-floating">
+                <input type="date" class="form-control" id="birth_date" name="birth_date" placeholder=" " />
+                <label for="birth_date">Data de nascimento</label>
+              </div>
+            </div>
+            <div class="col-sm-6">
+              <div class="form-floating">
+                <input type="text" class="form-control" id="cpf" name="cpf"
+                       placeholder="000.000.000-00" maxlength="14" />
+                <label for="cpf">CPF</label>
+              </div>
+            </div>
+            <div class="col-12">
+              <div class="form-floating">
+                <input type="text" class="form-control" id="address" name="address"
+                       placeholder="Endereço completo" />
+                <label for="address">Endereço</label>
+              </div>
+            </div>
+            <div class="col-12">
+              <div class="form-floating">
+                <textarea class="form-control" id="notes" name="notes"
+                          placeholder="Observações" style="height:90px"></textarea>
+                <label for="notes">Observações</label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Cadastrar Paciente</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
