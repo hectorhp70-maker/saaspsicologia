@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "windsor": {
+      "type": "http",
+      "url": "https://mcp.windsor.ai/",
+      "headers": {
+        "Authorization": "Bearer ${WINDSOR_API_KEY}"
+      }
+    }
+  }
+}
