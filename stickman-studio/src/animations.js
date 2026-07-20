@@ -78,6 +78,21 @@ export const defaultAnimations = [
     ],
   },
   {
+    id: 'festa',
+    nome: 'Festa (combo)',
+    keyframes: [
+      { angles: { spineLean: 0, shoulderL: -150, elbowL: -15, shoulderR: 150, elbowR: 15, hipL: -12, kneeL: 12, hipR: 12, kneeR: 12 }, expression: 'feliz', frames: 6 },
+      { angles: { spineLean: -12, shoulderL: -160, elbowL: -10, shoulderR: 35, elbowR: -25, hipL: -20, kneeL: 8, hipR: 4, kneeR: 16 }, expression: 'feliz', frames: 6 },
+      { angles: { spineLean: 0, shoulderL: -135, elbowL: -45, shoulderR: 135, elbowR: 45, hipL: -10, kneeL: 18, hipR: 10, kneeR: 6 }, expression: 'feliz', frames: 6 },
+      { angles: { spineLean: 12, shoulderL: -35, elbowL: 25, shoulderR: 160, elbowR: 10, hipL: -4, kneeL: 16, hipR: 20, kneeR: 8 }, expression: 'feliz', frames: 6 },
+      { angles: { spineLean: 4, shoulderL: 45, elbowL: 65, shoulderR: -45, elbowR: 65, hipL: -10, kneeL: 10, hipR: 10, kneeR: 10 }, expression: 'surpreso', frames: 6 },
+      { angles: { spineLean: 0, shoulderL: -150, elbowL: -20, shoulderR: 150, elbowR: 20, hipL: -22, kneeL: 50, hipR: 22, kneeR: 50 }, expression: 'feliz', frames: 6 },
+      { angles: { spineLean: -8, shoulderL: 60, elbowL: 30, shoulderR: 20, elbowR: 40, hipL: -16, kneeL: 10, hipR: 6, kneeR: 14 }, expression: 'feliz', frames: 6 },
+      { angles: { spineLean: 0, shoulderL: -110, elbowL: -30, shoulderR: 110, elbowR: 30, hipL: -14, kneeL: 10, hipR: 14, kneeR: 10 }, expression: 'feliz', frames: 6 },
+      { angles: { spineLean: 0, shoulderL: -150, elbowL: -15, shoulderR: 150, elbowR: 15, hipL: -12, kneeL: 12, hipR: 12, kneeR: 12 }, expression: 'feliz', frames: 6 },
+    ],
+  },
+  {
     id: 'think-shrug',
     nome: 'Pensar e dar de ombros',
     keyframes: [
