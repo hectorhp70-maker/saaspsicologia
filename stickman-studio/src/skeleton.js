@@ -354,9 +354,14 @@ function hairSVG(style, cx, cy, r, color, rot, lineWidth) {
         strand(`M ${num(0.05 * r)} ${num(-0.6 * r)} Q ${num(0.35 * r)} ${num(-0.85 * r)} ${num(0.6 * r)} ${num(-0.55 * r)}`);
       break;
     case 'baguncado': {
-      // topete bagunçado: fios espetados de tamanhos variados + fios soltos
-      const tuft = [-0.62, -0.42, -0.22, -0.02, 0.2, 0.42, 0.62];
-      const lens = [0.5, 0.72, 0.55, 0.8, 0.6, 0.74, 0.48];
+      // massa cheia (preenchida) com franja irregular + fios espetados por cima
+      const A = arc(206), B = arc(-26);
+      const fringe = [[0.66, -0.32], [0.52, -0.62], [0.36, -0.36], [0.19, -0.64], [0.0, -0.38], [-0.19, -0.66], [-0.36, -0.38], [-0.52, -0.62], [-0.66, -0.34]];
+      const fringeD = fringe.map((p) => `L ${num(p[0] * r)} ${num(p[1] * r)}`).join(' ');
+      const cap = pth(`M ${num(B.x)} ${num(B.y)} A ${num(r)} ${num(r)} 0 0 0 ${num(A.x)} ${num(A.y)} ${fringeD} Z`, color);
+      // fios espetados saindo da massa
+      const tuft = [-0.64, -0.46, -0.28, -0.1, 0.08, 0.28, 0.46, 0.64];
+      const lens = [0.5, 0.78, 0.58, 0.82, 0.66, 0.8, 0.56, 0.5];
       const spikes = tuft.map((fx, i) => {
         const x = fx * r;
         const by = -Math.sqrt(Math.max(0, r * r - x * x)) * 0.98;
@@ -365,10 +370,8 @@ function hairSVG(style, cx, cy, r, color, rot, lineWidth) {
         const tx = x + dir * r * 0.16 + (i % 2 ? r * 0.05 : -r * 0.05);
         return `<path d="M ${num(x)} ${num(by)} Q ${num(x + dir * r * 0.03)} ${num(by - len * 0.6)} ${num(tx)} ${num(by - len)}" fill="none" stroke="${color}" stroke-width="${num(lw)}" stroke-linecap="round"/>`;
       }).join('');
-      // fios finos soltos sobre a testa/lateral
-      front = spikes +
-        strand(`M ${num(-0.4 * r)} ${num(-0.62 * r)} Q ${num(-0.05 * r)} ${num(-0.75 * r)} ${num(0.28 * r)} ${num(-0.55 * r)}`) +
-        `<path d="M ${num(-0.72 * r)} ${num(-0.28 * r)} Q ${num(-0.95 * r)} ${num(-0.5 * r)} ${num(-0.78 * r)} ${num(-0.72 * r)}" fill="none" stroke="${color}" stroke-width="${num(lw * 0.85)}" stroke-linecap="round"/>`;
+      front = cap + spikes +
+        strand(`M ${num(-0.42 * r)} ${num(-0.5 * r)} Q ${num(-0.05 * r)} ${num(-0.66 * r)} ${num(0.3 * r)} ${num(-0.46 * r)}`);
       break;
     }
     case 'repartido': {
