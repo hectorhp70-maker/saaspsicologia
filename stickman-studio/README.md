@@ -6,6 +6,13 @@ do canal **Surto Financeiro** (mascote *Anderson Patrimônio Armando Pecunia*).
 Roda 100% local, sem backend. Stack: **Vite + JavaScript puro** + **JSZip**.
 Exporta **SVG**, **sequência de PNGs (.zip)** e **vídeo .webm** (MediaRecorder).
 
+## Vídeos de exemplo
+
+Em `examples/` há três `.webm` gerados pelo próprio app (export via
+MediaRecorder), 400×500: `exemplo-aceno.webm`, `exemplo-caminhada.webm` e
+`exemplo-susto-financeiro.webm`. Para gerar os seus: carregue uma animação
+pronta, ajuste o FPS e clique em **Vídeo .webm**.
+
 ## Como rodar
 
 ```bash
