@@ -1,20 +1,28 @@
 #!/usr/bin/env python3
 """
-narrar.py — gera a locução (voz) das cenas do Stickman Studio com edge-tts,
-com vozes por personagem, e (opcional) junta narração + vídeo num .mp4 final.
+narrar.py — gera a locução (voz) das cenas do Stickman Studio, com vozes por
+personagem, e (opcional) junta narração + vídeo num .mp4 final.
+
+Dois motores (--engine):
+  edge  (padrão): edge-tts — online, leve, vozes pt-BR prontas.
+  coqui         : Coqui TTS (github.com/coqui-ai/TTS) — 100% local/offline,
+                  com CLONAGEM DE VOZ (XTTS v2) a partir de um áudio de
+                  referência por personagem. Ideal para vozes próprias na VPS.
 
 Lê um projeto exportado pelo estúdio (JSON) ou um arquivo de legendas (.srt).
-Se a fala vier no formato "Nome: texto", usa a voz do personagem (mapa
-configurável); senão usa a voz padrão.
+Se a fala vier no formato "Nome: texto", usa a voz/clone do personagem.
 
-Requer: pip install edge-tts       (para --video/--mux/--concat: ffmpeg no PATH)
+Requer:
+  edge : pip install edge-tts
+  coqui: pip install coqui-tts   (baixa PyTorch e o modelo XTTS no 1º uso)
+  --video/--mux/--concat: ffmpeg no PATH
 
 Exemplos:
   python narrar.py --project projeto.json --fps 24 --out narracao
-  python narrar.py --srt legendas.srt --voz pt-BR-FranciscaNeural
-  # diálogo com vozes por personagem + juntar com o vídeo:
   python narrar.py --srt dialogo.srt --video dialogo.webm --mux final.mp4
-  python narrar.py --srt dialogo.srt --video v.webm --mux final.mp4 --dry-run
+  # Coqui local com clonagem de voz por personagem:
+  python narrar.py --srt dialogo.srt --engine coqui \\
+      --wavs "anderson=vozes/anderson.wav,ana=vozes/ana.wav" --idioma pt
   python narrar.py --list-vozes
 """
 import argparse
@@ -92,9 +100,27 @@ def resolver_voz(texto, voz_padrao, mapa):
     return nome, fala, voz
 
 
-async def sintetizar(texto, voz, rate, out):
+async def sintetizar_edge(texto, voz, rate, out):
     import edge_tts
     await edge_tts.Communicate(texto, voz, rate=rate).save(out)
+
+
+class CoquiSynth:
+    """Carrega o modelo Coqui (XTTS) uma vez e sintetiza com clonagem de voz."""
+
+    def __init__(self, modelo, gpu):
+        from TTS.api import TTS  # coqui-tts (import preguiçoso)
+        self.tts = TTS(modelo)
+        try:
+            self.tts.to("cuda" if gpu else "cpu")
+        except Exception:
+            pass
+
+    def say(self, texto, out, speaker_wav=None, idioma="pt"):
+        kw = {"text": texto, "file_path": out, "language": idioma}
+        if speaker_wav:
+            kw["speaker_wav"] = speaker_wav
+        self.tts.tts_to_file(**kw)
 
 
 def cmd_mux(video, falas, saida):
@@ -125,8 +151,14 @@ def main():
     ap.add_argument("--fps", type=float, default=24, help="FPS (para calcular tempo do projeto)")
     ap.add_argument("--voz", default="pt-BR-AntonioNeural", help="voz padrão")
     ap.add_argument("--vozes", default="", help="mapa nome=voz separado por vírgula, ex.: 'anderson=pt-BR-AntonioNeural,ana=pt-BR-FranciscaNeural'")
-    ap.add_argument("--rate", default="+0%", help="velocidade da fala, ex.: -10%% ou +12%%")
-    ap.add_argument("--out", default="narracao", help="pasta de saída dos MP3")
+    ap.add_argument("--rate", default="+0%", help="[edge] velocidade da fala, ex.: -10%% ou +12%%")
+    ap.add_argument("--engine", choices=["edge", "coqui"], default="edge", help="motor de TTS")
+    ap.add_argument("--wavs", default="", help="[coqui] áudios de referência p/ clonar voz: 'anderson=a.wav,ana=b.wav'")
+    ap.add_argument("--speaker-wav", help="[coqui] áudio de referência padrão (fallback) para clonagem")
+    ap.add_argument("--idioma", default="pt", help="[coqui] idioma do modelo XTTS (ex.: pt)")
+    ap.add_argument("--modelo", default="tts_models/multilingual/multi-dataset/xtts_v2", help="[coqui] modelo TTS")
+    ap.add_argument("--gpu", action="store_true", help="[coqui] usar GPU")
+    ap.add_argument("--out", default="narracao", help="pasta de saída dos áudios")
     ap.add_argument("--video", help="vídeo (.webm) para juntar com a narração")
     ap.add_argument("--mux", metavar="FINAL.mp4", help="arquivo .mp4 final (requer --video e ffmpeg)")
     ap.add_argument("--concat", metavar="ARQ.mp3", help="também gera uma faixa única concatenada (requer ffmpeg)")
@@ -152,24 +184,39 @@ def main():
         if "=" in par:
             k, v = par.split("=", 1)
             mapa[k.strip().lower()] = v.strip()
+    wavs = {}
+    for par in filter(None, args.wavs.split(",")):
+        if "=" in par:
+            k, v = par.split("=", 1)
+            wavs[k.strip().lower()] = v.strip()
 
     cenas = cenas_do_projeto(args.project, args.fps) if args.project else cenas_do_srt(args.srt)
     if not cenas:
         print("Nenhuma legenda/fala encontrada.", file=sys.stderr)
         sys.exit(1)
 
+    ext = "wav" if args.engine == "coqui" else "mp3"
     os.makedirs(args.out, exist_ok=True)
     pad = len(str(len(cenas)))
     falas = []
-    print(f"{len(cenas)} falas · voz padrão={args.voz} · rate={args.rate}")
+    coqui = None
+    print(f"{len(cenas)} falas · engine={args.engine} · voz padrão={args.voz}")
     for i, c in enumerate(cenas, 1):
         nome, fala, voz = resolver_voz(c["texto"], args.voz, mapa)
-        arq = os.path.join(args.out, f"fala_{str(i).zfill(pad)}.mp3")
+        arq = os.path.join(args.out, f"fala_{str(i).zfill(pad)}.{ext}")
+        ref = wavs.get(nome, args.speaker_wav) if args.engine == "coqui" else None
         falas.append({"arquivo": arq, "start": c["start"], "voz": voz, "texto": fala})
         quem = f"[{nome}] " if nome else ""
-        print(f"  [{i}] t={c['start']:.1f}s voz={voz}  {arq}  {quem}«{fala}»")
-        if not args.dry_run:
-            asyncio.run(sintetizar(fala, voz, args.rate, arq))
+        detalhe = f"ref={ref}" if args.engine == "coqui" else f"voz={voz}"
+        print(f"  [{i}] t={c['start']:.1f}s {detalhe}  {arq}  {quem}«{fala}»")
+        if args.dry_run:
+            continue
+        if args.engine == "coqui":
+            if coqui is None:
+                coqui = CoquiSynth(args.modelo, args.gpu)
+            coqui.say(fala, arq, speaker_wav=ref, idioma=args.idioma)
+        else:
+            asyncio.run(sintetizar_edge(fala, voz, args.rate, arq))
 
     if args.dry_run:
         print("\n(dry-run: nada sintetizado)")

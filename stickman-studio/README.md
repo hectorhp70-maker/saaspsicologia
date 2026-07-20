@@ -157,6 +157,25 @@ Use `--rate` para acelerar/desacelerar (ex.: `--rate=-10%`) e `--concat
 narracao.mp3` para uma faixa única simples. Fluxo típico: exporte o `.webm` + as
 **legendas .srt** no estúdio → gere a narração e o `.mp4` final aqui.
 
+### Motor local com clonagem de voz (Coqui TTS)
+
+Além do edge-tts (online), há o motor **`--engine coqui`**
+([Coqui TTS](https://github.com/coqui-ai/TTS)) — 100% offline, ideal para a VPS,
+com **clonagem de voz** (XTTS v2): cada personagem fala com uma **voz própria**
+a partir de um áudio de referência.
+
+```bash
+pip install coqui-tts     # traz PyTorch; baixa o modelo XTTS no 1º uso
+python narrar.py --srt dialogo.srt --engine coqui --idioma pt \
+    --wavs "anderson=vozes/anderson.wav,ana=vozes/ana.wav"
+# combine com --video/--mux para o .mp4 final normalmente
+```
+
+Grave ~6–15s de cada voz de referência em `vozes/*.wav`. Sem `--wavs`, use
+`--speaker-wav padrao.wav`. Se o `pip install coqui-tts` falhar no build do
+`docopt` (setuptools recente), rode num venv ou
+`pip install "setuptools<66" wheel` antes.
+
 > Observação: a síntese precisa de acesso ao serviço de voz da Microsoft — roda
 > direto na sua VPS/máquina. Em ambientes com proxy que bloqueia esse endpoint,
 > a chamada falha (só a rede; o script está correto).
