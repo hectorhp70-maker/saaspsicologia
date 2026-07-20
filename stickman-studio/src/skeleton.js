@@ -41,6 +41,7 @@ export const defaultCharacter = {
   jointRadius: 6, // "dot" nas mãos e pés
   color: '#111111',
   taper: true, // traço de peso variável (orgânico) vs. linha reta
+  finish: 'vetor', // 'vetor' (limpo) | 'esboco' (traços sobrepostos)
   showFace: true,
   prop: 'none', // objeto na mão
   tie: false, // gravata
@@ -81,6 +82,12 @@ export const HAIR_STYLES = [
   { id: 'chanel', label: 'Chanel/bob (feminino)' },
   { id: 'coque', label: 'Coque (feminino)' },
   { id: 'careca', label: 'Careca' },
+];
+
+// Acabamentos de traço.
+export const FINISHES = [
+  { id: 'vetor', label: 'Vetor (limpo)' },
+  { id: 'esboco', label: 'Esboço (à mão)' },
 ];
 
 // Roupas.
@@ -585,23 +592,62 @@ export function profileFaceSVG(cx, cy, r, expression, rot, color, lineWidth) {
 // evitando linhas retas robóticas. Junções arredondadas por círculos.
 function taperedLimbsSVG(p, LW, color) {
   const W = { core: LW * 1.25, neck: LW * 1.05, elbow: LW * 0.7, hand: LW * 0.42, knee: LW * 0.86, foot: LW * 0.48 };
-  const seg = (a, w1, b, w2) => {
+  // Segmento tapered com leve arco (bow) — organicidade, sem membro de régua.
+  const seg = (a, w1, b, w2, bowSign) => {
     const dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy) || 1;
     const nx = -dy / L, ny = dx / L;
-    const P = (pt, w, s) => `${num(pt.x + s * nx * w / 2)},${num(pt.y + s * ny * w / 2)}`;
-    return `<polygon points="${P(a, w1, 1)} ${P(b, w2, 1)} ${P(b, w2, -1)} ${P(a, w1, -1)}" fill="${color}"/>`;
+    const bow = bowSign * L * 0.045;
+    const mx = (a.x + b.x) / 2 + nx * bow, my = (a.y + b.y) / 2 + ny * bow;
+    const wMid = (w1 + w2) / 2;
+    const E = (pt, w, s) => `${num(pt.x + s * nx * w / 2)},${num(pt.y + s * ny * w / 2)}`;
+    const M = (s) => `${num(mx + s * nx * wMid / 2)},${num(my + s * ny * wMid / 2)}`;
+    return `<path d="M ${E(a, w1, 1)} Q ${M(1)} ${E(b, w2, 1)} L ${E(b, w2, -1)} Q ${M(-1)} ${E(a, w1, -1)} Z" fill="${color}"/>`;
   };
   const joint = (pt, w) => `<circle cx="${num(pt.x)}" cy="${num(pt.y)}" r="${num(w / 2)}" fill="${color}"/>`;
   return (
-    seg(p.hip, W.core, p.neck, W.neck) +
-    seg(p.shoulder, W.neck, p.elbowLpt, W.elbow) + seg(p.elbowLpt, W.elbow, p.handL, W.hand) +
-    seg(p.shoulder, W.neck, p.elbowRpt, W.elbow) + seg(p.elbowRpt, W.elbow, p.handR, W.hand) +
-    seg(p.hip, W.core, p.kneeLpt, W.knee) + seg(p.kneeLpt, W.knee, p.footL, W.foot) +
-    seg(p.hip, W.core, p.kneeRpt, W.knee) + seg(p.kneeRpt, W.knee, p.footR, W.foot) +
+    seg(p.hip, W.core, p.neck, W.neck, 0) +
+    seg(p.shoulder, W.neck, p.elbowLpt, W.elbow, 1) + seg(p.elbowLpt, W.elbow, p.handL, W.hand, 1) +
+    seg(p.shoulder, W.neck, p.elbowRpt, W.elbow, -1) + seg(p.elbowRpt, W.elbow, p.handR, W.hand, -1) +
+    seg(p.hip, W.core, p.kneeLpt, W.knee, 1) + seg(p.kneeLpt, W.knee, p.footL, W.foot, -1) +
+    seg(p.hip, W.core, p.kneeRpt, W.knee, -1) + seg(p.kneeRpt, W.knee, p.footR, W.foot, 1) +
     joint(p.hip, W.core) + joint(p.neck, W.neck) +
     joint(p.elbowLpt, W.elbow) + joint(p.elbowRpt, W.elbow) +
     joint(p.kneeLpt, W.knee) + joint(p.kneeRpt, W.knee)
   );
+}
+
+// Modo ESBOÇO: membros como 3 traços sobrepostos com leve jitter/arco, cabeça
+// com círculos sobrepostos — volume sem preenchimento (2º acabamento do guia).
+function sketchLimbsSVG(p, LW, color) {
+  const w = Math.max(1.6, LW * 0.5);
+  const rnd = (s) => { const x = Math.sin(s * 127.1 + 311.7) * 43758.5453; return (x - Math.floor(x)) - 0.5; };
+  const segs = [
+    [p.hip, p.neck], [p.shoulder, p.elbowLpt], [p.elbowLpt, p.handL], [p.shoulder, p.elbowRpt], [p.elbowRpt, p.handR],
+    [p.hip, p.kneeLpt], [p.kneeLpt, p.footL], [p.hip, p.kneeRpt], [p.kneeRpt, p.footR],
+  ];
+  let out = '';
+  segs.forEach(([a, b], si) => {
+    const dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy) || 1;
+    const nx = -dy / L, ny = dx / L;
+    for (let k = 0; k < 3; k++) {
+      const j1 = rnd(si * 9 + k) * 2.2, j2 = rnd(si * 9 + k + 3) * 2.2;
+      const jm = rnd(si * 9 + k + 5) * 2.4 + (si % 2 ? 1 : -1) * L * 0.05;
+      const ax = a.x + nx * j1, ay = a.y + ny * j1, bx = b.x + nx * j2, by = b.y + ny * j2;
+      const mx = (a.x + b.x) / 2 + nx * jm, my = (a.y + b.y) / 2 + ny * jm;
+      out += `<path d="M ${num(ax)} ${num(ay)} Q ${num(mx)} ${num(my)} ${num(bx)} ${num(by)}" fill="none" stroke="${color}" stroke-width="${num(w)}" stroke-linecap="round" opacity="${(0.5 + 0.16 * k).toFixed(2)}"/>`;
+    }
+  });
+  return out;
+}
+
+function sketchHeadSVG(hc, r, color, LW) {
+  const w = Math.max(1.6, LW * 0.5);
+  const rnd = (s) => { const x = Math.sin(s * 71.9 + 90.2) * 43758.5453; return (x - Math.floor(x)) - 0.5; };
+  let out = '';
+  for (let k = 0; k < 3; k++) {
+    out += `<circle cx="${num(hc.x + rnd(k) * 2)}" cy="${num(hc.y + rnd(k + 2) * 2)}" r="${num(r + rnd(k + 4) * 1.6)}" fill="none" stroke="${color}" stroke-width="${num(w)}" opacity="${(0.48 + 0.17 * k).toFixed(2)}"/>`;
+  }
+  return out;
 }
 
 // Renderiza APENAS a figura do personagem (sem fundo/legenda), já posicionada
@@ -621,20 +667,23 @@ function renderFigure(skel, options = {}) {
   const lines = skel.segments
     .map(([p1, p2]) => `<line x1="${num(p1.x)}" y1="${num(p1.y)}" x2="${num(p2.x)}" y2="${num(p2.y)}"/>`)
     .join('');
-  const dots = skel.dots
-    .map((p) => `<circle cx="${num(p.x)}" cy="${num(p.y)}" r="${c.jointRadius}" fill="${color}"/>`)
-    .join('');
+  const isSketch = c.finish === 'esboco';
+  const dots = isSketch
+    ? skel.dots.map((p) => `<circle cx="${num(p.x)}" cy="${num(p.y)}" r="${num(c.jointRadius * 0.85)}" fill="none" stroke="${color}" stroke-width="${num(Math.max(1.6, c.lineWidth * 0.5))}" opacity="0.7"/>`).join('')
+    : skel.dots.map((p) => `<circle cx="${num(p.x)}" cy="${num(p.y)}" r="${c.jointRadius}" fill="${color}"/>`).join('');
 
-  const headFill = isDark ? '#f6efe1' : 'none';
+  const headFill = isDark && !isSketch ? '#f6efe1' : 'none';
   let halo = '';
-  if (isDark) {
+  if (isDark && !isSketch) {
     const haloW = c.lineWidth + 7;
     halo =
       `<g stroke="#ffffff" stroke-width="${haloW}" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.92">${lines}</g>` +
       `<circle cx="${num(hc.x)}" cy="${num(hc.y)}" r="${c.headRadius}" fill="#ffffff" stroke="#ffffff" stroke-width="${haloW}"/>` +
       skel.dots.map((p) => `<circle cx="${num(p.x)}" cy="${num(p.y)}" r="${c.jointRadius + haloW / 2}" fill="#ffffff"/>`).join('');
   }
-  const head = `<circle cx="${num(hc.x)}" cy="${num(hc.y)}" r="${c.headRadius}" fill="${headFill}" stroke="${color}" stroke-width="${c.lineWidth}"/>`;
+  const head = isSketch
+    ? sketchHeadSVG(hc, c.headRadius, color, c.lineWidth)
+    : `<circle cx="${num(hc.x)}" cy="${num(hc.y)}" r="${c.headRadius}" fill="${headFill}" stroke="${color}" stroke-width="${c.lineWidth}"/>`;
 
   const isProfile = c.view === 'lado';
   const face =
@@ -656,9 +705,11 @@ function renderFigure(skel, options = {}) {
   const tie = c.tie ? tieSVG(skel.points.neck, skel.points.hip, c.headRadius, c.tieColor || '#c0392b') : '';
   const hair = c.hair ? hairSVG(c.hairStyle || 'curto', hc.x, hc.y, c.headRadius, c.hairColor || '#20140a', lean, c.lineWidth) : { back: '', front: '' };
 
-  const bodyLimbs = c.taper !== false
-    ? taperedLimbsSVG(skel.points, c.lineWidth, color)
-    : `<g stroke="${color}" stroke-width="${c.lineWidth}" stroke-linecap="round" stroke-linejoin="round" fill="none">${lines}</g>`;
+  const bodyLimbs = isSketch
+    ? sketchLimbsSVG(skel.points, c.lineWidth, color)
+    : c.taper !== false
+      ? taperedLimbsSVG(skel.points, c.lineWidth, color)
+      : `<g stroke="${color}" stroke-width="${c.lineWidth}" stroke-linecap="round" stroke-linejoin="round" fill="none">${lines}</g>`;
   const inner =
     halo +
     bodyLimbs +

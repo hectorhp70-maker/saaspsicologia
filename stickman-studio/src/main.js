@@ -1,7 +1,7 @@
 // main.js — orquestra o editor, os personagens, a biblioteca de poses,
 // a timeline de quadros-chave e a exportação.
 
-import { ANGLE_KEYS, ANGLE_META, EXPRESSIONS, HAIR_STYLES, OUTFITS, normalizePose, poseToSVG, composeScene } from './skeleton.js';
+import { ANGLE_KEYS, ANGLE_META, EXPRESSIONS, HAIR_STYLES, OUTFITS, FINISHES, normalizePose, poseToSVG, composeScene } from './skeleton.js';
 import { BACKGROUNDS, PROPS } from './effects.js';
 import { defaultCharacters, CHARACTER_FIELDS, normalizeCharacter } from './characters.js';
 import { defaultPoses } from './poses.js';
@@ -131,8 +131,10 @@ function buildPropSelect() {
 function buildWardrobeSelects() {
   el('hairStyle').innerHTML = HAIR_STYLES.map((h) => `<option value="${h.id}">${h.label}</option>`).join('');
   el('outfitSelect').innerHTML = OUTFITS.map((o) => `<option value="${o.id}">${o.label}</option>`).join('');
+  el('finishSelect').innerHTML = FINISHES.map((f) => `<option value="${f.id}">${f.label}</option>`).join('');
   el('hairStyle').value = state.character.hairStyle || 'curto';
   el('outfitSelect').value = state.character.outfit || (state.character.jacket ? 'paleto' : 'nenhum');
+  el('finishSelect').value = state.character.finish || 'vetor';
 }
 
 function buildCharFields() {
@@ -163,6 +165,7 @@ function syncCharFields() {
   el('colorInput').value = state.character.color || '#111111';
   el('showFace').checked = state.character.showFace !== false;
   el('taperToggle').checked = state.character.taper !== false;
+  el('finishSelect').value = state.character.finish || 'vetor';
   el('tieToggle').checked = !!state.character.tie;
   el('tieColor').value = state.character.tieColor || '#c0392b';
   el('hairToggle').checked = !!state.character.hair;
@@ -746,6 +749,10 @@ function init() {
   });
   el('taperToggle').addEventListener('change', (e) => {
     state.character.taper = e.target.checked;
+    renderPreview();
+  });
+  el('finishSelect').addEventListener('change', (e) => {
+    state.character.finish = e.target.value;
     renderPreview();
   });
   el('tieToggle').addEventListener('change', (e) => {

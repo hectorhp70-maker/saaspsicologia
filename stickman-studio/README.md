@@ -190,11 +190,17 @@ Grave ~6–15s de cada voz de referência em `vozes/*.wav`. Sem `--wavs`, use
 
 ## Traço orgânico (tapered lines)
 
-Por padrão os membros usam **peso variável**: mais grossos no núcleo (tronco/
-quadril) e afinando nas extremidades (mãos/pés), com junções arredondadas —
-dá organicidade e evita o aspecto de linha reta robótica (recomendação do guia
-de estilo). Dá para desligar no personagem (checkbox "Traço orgânico") voltando
-ao traço de espessura fixa. Vale para preview, exportações, perfil e diálogos.
+Há dois **acabamentos de traço** (seletor no personagem):
+
+- **Vetor (limpo)** — membros com **peso variável** (grossos no núcleo, afinando
+  nas pontas) + **leve curvatura**, junções arredondadas: organicidade sem
+  aspecto de linha reta robótica. O checkbox "Traço orgânico" liga/desliga o
+  peso variável.
+- **Esboço (à mão)** — membros como **traços sobrepostos** com jitter, cabeça
+  rabiscada em círculos e pontas em círculos abertos: volume sem preenchimento
+  (o 2º acabamento do guia de estilo).
+
+Ambos valem para preview, exportações, perfil e diálogos.
 
 ## Como o boneco é construído (esqueleto paramétrico)
 
