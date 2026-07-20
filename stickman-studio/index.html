@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stickman Studio — Surto Financeiro</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <h1>🕺 Stickman Studio</h1>
+      <span class="sub">Anderson Patrimônio Armando Pecunia · canal Surto Financeiro</span>
+    </header>
+
+    <main class="layout">
+      <!-- Coluna esquerda: preview -->
+      <section class="panel preview-panel">
+        <h2>Pré-visualização</h2>
+        <div id="stage" class="stage"></div>
+        <div class="preview-opts">
+          <label>
+            Fundo
+            <select id="bgSelect">
+              <option value="white">Branco</option>
+              <option value="transparent">Transparente</option>
+            </select>
+          </label>
+          <label>
+            Cor do traço
+            <input type="color" id="colorInput" value="#111111" />
+          </label>
+        </div>
+      </section>
+
+      <!-- Coluna central: editor de pose -->
+      <section class="panel editor-panel">
+        <h2>Editor de pose</h2>
+        <div id="sliders" class="sliders"></div>
+        <div class="row">
+          <button id="resetPose" class="btn ghost">Zerar ângulos</button>
+        </div>
+
+        <h3>Salvar pose atual</h3>
+        <div class="row">
+          <input type="text" id="poseName" placeholder="Nome da nova pose" />
+          <button id="savePose" class="btn">Salvar</button>
+        </div>
+      </section>
+
+      <!-- Coluna direita: biblioteca + animação + export -->
+      <section class="panel side-panel">
+        <h2>Biblioteca de poses</h2>
+        <ul id="poseList" class="pose-list"></ul>
+        <div class="row">
+          <button id="exportPosesJson" class="btn ghost small">Exportar poses (JSON)</button>
+          <label class="btn ghost small file-label">
+            Importar JSON
+            <input type="file" id="importPosesJson" accept="application/json" hidden />
+          </label>
+        </div>
+
+        <h2>Animação (interpolação)</h2>
+        <div class="row">
+          <label class="col">
+            Pose inicial
+            <select id="fromPose"></select>
+          </label>
+          <label class="col">
+            Pose final
+            <select id="toPose"></select>
+          </label>
+        </div>
+        <div class="row">
+          <label class="col">
+            Quadros
+            <input type="number" id="frames" value="24" min="2" max="240" />
+          </label>
+          <label class="col">
+            FPS
+            <input type="number" id="fps" value="12" min="1" max="60" />
+          </label>
+        </div>
+        <div class="row">
+          <button id="playAnim" class="btn">▶ Pré-visualizar</button>
+          <button id="stopAnim" class="btn ghost">■ Parar</button>
+        </div>
+
+        <h2>Exportar</h2>
+        <div class="row wrap">
+          <button id="exportSvg" class="btn">SVG (pose atual)</button>
+          <button id="exportPng" class="btn">PNG sequência (zip)</button>
+          <button id="exportWebm" class="btn">Vídeo .webm</button>
+        </div>
+        <p id="status" class="status"></p>
+      </section>
+    </main>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

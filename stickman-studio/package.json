@@ -1,0 +1,18 @@
+{
+  "name": "stickman-studio",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Gerador e animador de bonecos stickman (SVG paramétrico) para o canal Surto Financeiro",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "jszip": "^3.10.1"
+  },
+  "devDependencies": {
+    "vite": "^5.4.10"
+  }
+}
