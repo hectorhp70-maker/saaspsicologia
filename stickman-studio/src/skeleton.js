@@ -70,9 +70,13 @@ export const EXPRESSIONS = [
 // Estilos de cabelo (inclui femininos e mais realistas).
 export const HAIR_STYLES = [
   { id: 'curto', label: 'Curto (espetado)' },
+  { id: 'repartido', label: 'Repartido' },
+  { id: 'franja', label: 'Com franja' },
   { id: 'ondulado', label: 'Ondulado' },
+  { id: 'cacheado', label: 'Cacheado' },
   { id: 'moicano', label: 'Moicano' },
   { id: 'longo', label: 'Longo (feminino)' },
+  { id: 'rabo', label: 'Rabo de cavalo (fem.)' },
   { id: 'chanel', label: 'Chanel/bob (feminino)' },
   { id: 'coque', label: 'Coque (feminino)' },
   { id: 'careca', label: 'Careca' },
@@ -292,6 +296,9 @@ function hairSVG(style, cx, cy, r, color, rot, lineWidth) {
   const arc = (deg) => ({ x: r * Math.cos((deg * Math.PI) / 180), y: r * Math.sin((deg * Math.PI) / 180) });
   const pth = (d, fill) => `<path d="${d}" fill="${fill}" stroke="${shade(color, -20)}" stroke-width="1"/>`;
   const dark = shade(color, -22);
+  const hl = shade(color, 40); // mecha de luz (realismo)
+  const strand = (d) => `<path d="${d}" fill="none" stroke="${hl}" stroke-width="${num(Math.max(1.2, r * 0.03))}" stroke-linecap="round" opacity="0.65"/>`;
+  const circ = (fx, fy, fr) => `<circle cx="${num(fx * r)}" cy="${num(fy * r)}" r="${num(fr * r)}" fill="${color}" stroke="${dark}" stroke-width="1"/>`;
   let back = '', front = '';
 
   const tufts = () => {
@@ -332,8 +339,45 @@ function hairSVG(style, cx, cy, r, color, rot, lineWidth) {
       break;
     }
     case 'ondulado':
-      front = wavyCap();
+      front = wavyCap() +
+        strand(`M ${num(-0.5 * r)} ${num(-0.55 * r)} Q ${num(-0.2 * r)} ${num(-0.85 * r)} ${num(0.1 * r)} ${num(-0.7 * r)}`) +
+        strand(`M ${num(0.05 * r)} ${num(-0.6 * r)} Q ${num(0.35 * r)} ${num(-0.85 * r)} ${num(0.6 * r)} ${num(-0.55 * r)}`);
       break;
+    case 'repartido': {
+      // cap com risca lateral e varredura para os lados
+      front = pth(
+        `M ${num(arc(202).x)} ${num(arc(202).y)} A ${num(r)} ${num(r)} 0 0 1 ${num(arc(-22).x)} ${num(arc(-22).y)} ` +
+        `Q ${num(0.35 * r)} ${num(-0.28 * r)} ${num(0.1 * r)} ${num(-0.72 * r)} ` +
+        `Q ${num(-0.35 * r)} ${num(-0.32 * r)} ${num(arc(202).x)} ${num(arc(202).y)} Z`,
+        color
+      ) +
+        strand(`M ${num(0.1 * r)} ${num(-0.72 * r)} Q ${num(-0.15 * r)} ${num(-0.5 * r)} ${num(-0.55 * r)} ${num(-0.4 * r)}`) +
+        strand(`M ${num(0.12 * r)} ${num(-0.66 * r)} Q ${num(0.5 * r)} ${num(-0.5 * r)} ${num(0.78 * r)} ${num(-0.22 * r)}`);
+      break;
+    }
+    case 'franja': {
+      const cap = pth(
+        `M ${num(arc(200).x)} ${num(arc(200).y)} A ${num(r)} ${num(r)} 0 0 1 ${num(arc(-20).x)} ${num(arc(-20).y)} ` +
+        `Q 0 ${num(-0.45 * r)} ${num(arc(200).x)} ${num(arc(200).y)} Z`,
+        color
+      );
+      const bangs = [-0.52, -0.26, 0, 0.26, 0.52]
+        .map((fx) => {
+          const x = fx * r, top = -0.78 * r, bot = -0.02 * r;
+          return pth(`M ${num(x - 0.16 * r)} ${num(top)} Q ${num(x)} ${num(top - 0.06 * r)} ${num(x + 0.16 * r)} ${num(top)} L ${num(x + 0.13 * r)} ${num(bot)} Q ${num(x)} ${num(bot + 0.1 * r)} ${num(x - 0.13 * r)} ${num(bot)} Z`, color);
+        })
+        .join('');
+      front = cap + bangs;
+      break;
+    }
+    case 'cacheado': {
+      const curls = [
+        [-0.62, -0.45, 0.3], [-0.4, -0.72, 0.32], [-0.05, -0.88, 0.34], [0.32, -0.78, 0.32], [0.6, -0.5, 0.3],
+        [-0.78, -0.1, 0.27], [0.78, -0.12, 0.27], [0, -0.55, 0.3], [-0.28, -0.35, 0.26], [0.3, -0.4, 0.26],
+      ].map(([fx, fy, fr]) => circ(fx, fy, fr)).join('');
+      front = curls;
+      break;
+    }
     case 'longo': {
       const fall = (s) => pth(
         `M ${num(s * 0.5 * r)} ${num(-0.55 * r)} ` +
@@ -342,8 +386,23 @@ function hairSVG(style, cx, cy, r, color, rot, lineWidth) {
         `C ${num(s * 0.55 * r)} ${num(0.6 * r)} ${num(s * 0.5 * r)} ${num(-0.1 * r)} ${num(s * 0.25 * r)} ${num(-0.62 * r)} Z`,
         color
       );
-      back = fall(-1) + fall(1);
+      const sfall = (s) => strand(`M ${num(s * 0.85 * r)} ${num(-0.2 * r)} Q ${num(s * 1.05 * r)} ${num(0.7 * r)} ${num(s * 0.8 * r)} ${num(1.5 * r)}`);
+      back = fall(-1) + fall(1) + sfall(-1) + sfall(1);
       front = wavyCap();
+      break;
+    }
+    case 'rabo': {
+      // rabo de cavalo atrás, à direita, subindo e caindo
+      back = pth(
+        `M ${num(0.7 * r)} ${num(-0.55 * r)} C ${num(1.5 * r)} ${num(-0.85 * r)} ${num(1.75 * r)} ${num(-0.05 * r)} ${num(1.35 * r)} ${num(0.6 * r)} ` +
+        `C ${num(1.5 * r)} ${num(-0.05 * r)} ${num(1.2 * r)} ${num(-0.45 * r)} ${num(0.55 * r)} ${num(-0.35 * r)} Z`,
+        color
+      );
+      front = pth(
+        `M ${num(arc(200).x)} ${num(arc(200).y)} A ${num(r)} ${num(r)} 0 0 1 ${num(arc(-20).x)} ${num(arc(-20).y)} ` +
+        `Q 0 ${num(-0.5 * r)} ${num(arc(200).x)} ${num(arc(200).y)} Z`,
+        color
+      ) + `<ellipse cx="${num(0.72 * r)}" cy="${num(-0.5 * r)}" rx="${num(0.12 * r)}" ry="${num(0.09 * r)}" fill="${dark}"/>`;
       break;
     }
     case 'chanel': {
@@ -394,74 +453,91 @@ function captionSVG(text, w) {
 // cabeça, y para baixo); o grupo é rotacionado por `rot` graus para acompanhar
 // a inclinação da cabeça.
 export function faceToSVG(cx, cy, r, expression, rot, color, lineWidth) {
-  const eyeDX = 0.38 * r;
-  const eyeY = -0.2 * r;
-  const eyeR = Math.max(1.6, 0.08 * r);
-  const browY = eyeY - 0.26 * r;
-  const mouthY = 0.34 * r;
-  const mw = 0.5 * r;
-  const mh = 0.26 * r;
-  const lw = Math.max(1.5, lineWidth * 0.55);
-
-  const dot = (x, y, rr = eyeR) => `<circle cx="${num(x)}" cy="${num(y)}" r="${num(rr)}" fill="${color}"/>`;
+  const eyeDX = 0.36 * r;
+  const eyeY = -0.15 * r;
+  const exr = 0.11 * r, eyr = 0.145 * r; // raios do olho (oval)
+  const browY = eyeY - 0.28 * r;
+  const mouthY = 0.36 * r;
+  const mw = 0.42 * r;
+  const lw = Math.max(1.5, lineWidth * 0.5);
   const stroke = `fill="none" stroke="${color}" stroke-width="${num(lw)}" stroke-linecap="round"`;
+  const strokeB = `fill="none" stroke="${color}" stroke-width="${num(lw * 1.35)}" stroke-linecap="round"`;
   const line = (x1, y1, x2, y2) => `<line x1="${num(x1)}" y1="${num(y1)}" x2="${num(x2)}" y2="${num(y2)}" ${stroke}/>`;
-  const smile = () => `<path d="M ${num(-mw)} ${num(mouthY)} Q 0 ${num(mouthY + mh)} ${num(mw)} ${num(mouthY)}" ${stroke}/>`;
-  const frown = (s = mh) => `<path d="M ${num(-mw)} ${num(mouthY)} Q 0 ${num(mouthY - s)} ${num(mw)} ${num(mouthY)}" ${stroke}/>`;
-  const flat = () => line(-mw, mouthY, mw, mouthY);
-  const circleMouth = () => `<circle cx="0" cy="${num(mouthY)}" r="${num(0.16 * r)}" ${stroke}/>`;
-  const eyesDots = () => dot(-eyeDX, eyeY) + dot(eyeDX, eyeY);
-  const eyesOpen = () =>
-    `<circle cx="${num(-eyeDX)}" cy="${num(eyeY)}" r="${num(0.13 * r)}" ${stroke}/>` +
-    `<circle cx="${num(eyeDX)}" cy="${num(eyeY)}" r="${num(0.13 * r)}" ${stroke}/>`;
+
+  // Olho oval com brilho (dá vida ao rosto).
+  const eye = (x) =>
+    `<ellipse cx="${num(x)}" cy="${num(eyeY)}" rx="${num(exr)}" ry="${num(eyr)}" fill="${color}"/>` +
+    `<circle cx="${num(x - exr * 0.35)}" cy="${num(eyeY - eyr * 0.35)}" r="${num(exr * 0.34)}" fill="#ffffff"/>`;
+  const eyes = () => eye(-eyeDX) + eye(eyeDX);
+  // Olho arregalado (surpresa): anel + pupila.
+  const eyeWide = (x) =>
+    `<circle cx="${num(x)}" cy="${num(eyeY)}" r="${num(0.16 * r)}" fill="#ffffff" stroke="${color}" stroke-width="${num(lw)}"/>` +
+    `<circle cx="${num(x)}" cy="${num(eyeY + 0.02 * r)}" r="${num(0.06 * r)}" fill="${color}"/>`;
+  const eyesWide = () => eyeWide(-eyeDX) + eyeWide(eyeDX);
+  // Olho feliz fechado (^).
+  const eyeHappy = (x) =>
+    `<path d="M ${num(x - 0.13 * r)} ${num(eyeY + 0.04 * r)} Q ${num(x)} ${num(eyeY - 0.13 * r)} ${num(x + 0.13 * r)} ${num(eyeY + 0.04 * r)}" ${strokeB}/>`;
+  const eyesHappy = () => eyeHappy(-eyeDX) + eyeHappy(eyeDX);
   const eyesX = () => {
     const d = 0.11 * r;
-    const one = (ex) =>
-      line(ex - d, eyeY - d, ex + d, eyeY + d) + line(ex - d, eyeY + d, ex + d, eyeY - d);
+    const one = (ex) => line(ex - d, eyeY - d, ex + d, eyeY + d) + line(ex - d, eyeY + d, ex + d, eyeY - d);
     return one(-eyeDX) + one(eyeDX);
   };
+
+  // Sobrancelha curva, do canto externo ao interno (innerDY/outerDY em px).
+  const brow = (x, innerDY, outerDY) => {
+    const toCenter = x < 0 ? 1 : -1;
+    const outerX = x - toCenter * 0.16 * r, innerX = x + toCenter * 0.14 * r;
+    const topY = Math.min(browY + innerDY, browY + outerDY) - 0.05 * r;
+    return `<path d="M ${num(outerX)} ${num(browY + outerDY)} Q ${num(x)} ${num(topY)} ${num(innerX)} ${num(browY + innerDY)}" ${strokeB}/>`;
+  };
+  const brows = (innerDY, outerDY) => brow(-eyeDX, innerDY, outerDY) + brow(eyeDX, innerDY, outerDY);
+
+  const nose = `<path d="M 0 ${num(0.02 * r)} Q ${num(0.05 * r)} ${num(0.1 * r)} 0 ${num(0.13 * r)}" fill="none" stroke="${shade(color, 60)}" stroke-width="${num(lw * 0.9)}" stroke-linecap="round"/>`;
+  const blush = () =>
+    `<ellipse cx="${num(-0.44 * r)}" cy="${num(0.16 * r)}" rx="${num(0.11 * r)}" ry="${num(0.06 * r)}" fill="#ff8f9a" opacity="0.55"/>` +
+    `<ellipse cx="${num(0.44 * r)}" cy="${num(0.16 * r)}" rx="${num(0.11 * r)}" ry="${num(0.06 * r)}" fill="#ff8f9a" opacity="0.55"/>`;
+  const sweat = (x, y) => `<path d="M ${num(x)} ${num(y - 0.1 * r)} Q ${num(x + 0.07 * r)} ${num(y + 0.02 * r)} ${num(x)} ${num(y + 0.06 * r)} Q ${num(x - 0.07 * r)} ${num(y + 0.02 * r)} ${num(x)} ${num(y - 0.1 * r)} Z" fill="#5fb8ec" stroke="#2f86c0" stroke-width="${num(lw * 0.5)}"/>`;
+
+  const smile = () => `<path d="M ${num(-mw)} ${num(mouthY)} Q 0 ${num(mouthY + 0.24 * r)} ${num(mw)} ${num(mouthY)}" ${strokeB}/>`;
+  const openSmile = () =>
+    `<path d="M ${num(-mw * 0.85)} ${num(mouthY - 0.02 * r)} Q 0 ${num(mouthY + 0.36 * r)} ${num(mw * 0.85)} ${num(mouthY - 0.02 * r)} Q 0 ${num(mouthY + 0.06 * r)} ${num(-mw * 0.85)} ${num(mouthY - 0.02 * r)} Z" fill="#93404a" stroke="${color}" stroke-width="${num(lw)}" stroke-linejoin="round"/>` +
+    `<path d="M ${num(-mw * 0.7)} ${num(mouthY - 0.01 * r)} Q 0 ${num(mouthY + 0.03 * r)} ${num(mw * 0.7)} ${num(mouthY - 0.01 * r)}" fill="none" stroke="#ffffff" stroke-width="${num(lw * 0.8)}"/>`;
+  const frown = (s = 0.18 * r) => `<path d="M ${num(-mw)} ${num(mouthY + 0.04 * r)} Q 0 ${num(mouthY - s)} ${num(mw)} ${num(mouthY + 0.04 * r)}" ${strokeB}/>`;
+  const flat = () => line(-mw * 0.8, mouthY, mw * 0.8, mouthY);
+  const circleMouth = (rr = 0.14 * r) => `<ellipse cx="0" cy="${num(mouthY)}" rx="${num(rr * 0.85)}" ry="${num(rr)}" fill="#7a3138" stroke="${color}" stroke-width="${num(lw)}"/>`;
+  const wavy = () => `<path d="M ${num(-mw * 0.8)} ${num(mouthY)} Q ${num(-mw * 0.4)} ${num(mouthY - 0.1 * r)} 0 ${num(mouthY)} Q ${num(mw * 0.4)} ${num(mouthY + 0.1 * r)} ${num(mw * 0.8)} ${num(mouthY)}" ${stroke}/>`;
 
   let inner = '';
   switch (expression) {
     case 'feliz':
-      inner = eyesDots() + smile();
+      inner = brows(-0.04 * r, -0.06 * r) + eyesHappy() + nose + blush() + openSmile();
       break;
     case 'triste':
-      inner = eyesDots() + frown() +
-        line(-eyeDX - 0.16 * r, browY + 0.12 * r, -eyeDX + 0.1 * r, browY) +
-        line(eyeDX + 0.16 * r, browY + 0.12 * r, eyeDX - 0.1 * r, browY);
+      inner = brows(-0.06 * r, 0.12 * r) + eyes() + nose + frown() + sweat(-eyeDX - 0.16 * r, eyeY + 0.05 * r);
       break;
     case 'bravo':
-      inner = eyesDots() + frown(0.18 * r) +
-        line(-eyeDX - 0.16 * r, browY, -eyeDX + 0.12 * r, browY + 0.16 * r) +
-        line(eyeDX + 0.16 * r, browY, eyeDX - 0.12 * r, browY + 0.16 * r);
+      inner = brows(0.18 * r, -0.02 * r) + eyes() + nose + frown(0.22 * r);
       break;
     case 'surpreso':
-      inner = eyesOpen() + circleMouth();
+      inner = brows(-0.14 * r, -0.14 * r) + eyesWide() + circleMouth(0.15 * r) + sweat(eyeDX + 0.18 * r, eyeY);
       break;
     case 'preocupado':
-      inner = eyesDots() + frown(0.12 * r) +
-        line(-eyeDX - 0.14 * r, browY + 0.14 * r, -eyeDX + 0.12 * r, browY) +
-        line(eyeDX + 0.14 * r, browY + 0.14 * r, eyeDX - 0.12 * r, browY);
+      inner = brows(-0.08 * r, 0.06 * r) + eyes() + nose + wavy() + sweat(eyeDX + 0.18 * r, eyeY);
       break;
     case 'furioso': {
-      // sobrancelhas em V acentuadas + boca aberta (grito) com dentes
       const mouthOpen =
-        `<path d="M ${num(-mw * 0.9)} ${num(mouthY - 0.02 * r)} Q 0 ${num(mouthY - 0.14 * r)} ${num(mw * 0.9)} ${num(mouthY - 0.02 * r)} Q ${num(mw * 0.7)} ${num(mouthY + 0.3 * r)} 0 ${num(mouthY + 0.34 * r)} Q ${num(-mw * 0.7)} ${num(mouthY + 0.3 * r)} ${num(-mw * 0.9)} ${num(mouthY - 0.02 * r)} Z" fill="${color}" stroke="${color}" stroke-width="${num(lw * 0.6)}" stroke-linejoin="round"/>` +
-        `<line x1="${num(-mw * 0.7)}" y1="${num(mouthY + 0.02 * r)} " x2="${num(mw * 0.7)}" y2="${num(mouthY + 0.02 * r)}" fill="none" stroke="#ffffff" stroke-width="${num(lw * 0.5)}"/>`;
-      inner =
-        dot(-eyeDX, eyeY) + dot(eyeDX, eyeY) +
-        line(-eyeDX - 0.22 * r, browY - 0.04 * r, -eyeDX + 0.14 * r, browY + 0.22 * r) +
-        line(eyeDX + 0.22 * r, browY - 0.04 * r, eyeDX - 0.14 * r, browY + 0.22 * r) +
-        mouthOpen;
+        `<path d="M ${num(-mw)} ${num(mouthY - 0.04 * r)} Q 0 ${num(mouthY - 0.16 * r)} ${num(mw)} ${num(mouthY - 0.04 * r)} Q ${num(mw * 0.8)} ${num(mouthY + 0.32 * r)} 0 ${num(mouthY + 0.36 * r)} Q ${num(-mw * 0.8)} ${num(mouthY + 0.32 * r)} ${num(-mw)} ${num(mouthY - 0.04 * r)} Z" fill="#7a2e2e" stroke="${color}" stroke-width="${num(lw)}" stroke-linejoin="round"/>` +
+        `<line x1="${num(-mw * 0.8)}" y1="${num(mouthY)}" x2="${num(mw * 0.8)}" y2="${num(mouthY)}" fill="none" stroke="#ffffff" stroke-width="${num(lw * 0.7)}"/>`;
+      inner = brows(0.22 * r, -0.06 * r) + eyes() + mouthOpen;
       break;
     }
     case 'tonto':
-      inner = eyesX() + circleMouth();
+      inner = eyesX() + circleMouth(0.12 * r);
       break;
     case 'neutro':
     default:
-      inner = eyesDots() + flat();
+      inner = brows(0, 0) + eyes() + nose + flat();
   }
 
   return `<g transform="translate(${num(cx)} ${num(cy)}) rotate(${num(rot)})">${inner}</g>`;

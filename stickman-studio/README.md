@@ -35,8 +35,9 @@ npm run preview    # serve o build localmente
 - **Editor de personagem**: troque as proporções (raio da cabeça, coluna, braço,
   antebraço, coxa, canela, espessura do traço, tamanho das mãos/pés), a cor, e
   o guarda-roupa, com preview ao vivo:
-  - **Cabelos** (7 estilos): curto, ondulado, moicano, longo, chanel/bob, coque
-    e careca — inclui opções femininas e mais realistas, com cor.
+  - **Cabelos** (11 estilos): curto, repartido, com franja, ondulado, cacheado,
+    moicano, longo, rabo de cavalo, chanel/bob, coque e careca — opções
+    femininas e mais realistas (com mechas), com cor.
   - **Roupas** (6): paletó, camisa social, camiseta, vestido, saia + top, com cor.
   - **Gravata** e **objeto na mão** (dinheiro/moeda/cartão/celular/sacola).
   - Presets prontos: Anderson, Anderson Executivo, **Ana Poupança**,
@@ -54,10 +55,11 @@ npm run preview    # serve o build localmente
   exportar JSON. As poses valem para qualquer personagem.
 - **Editor de pose**: sliders para cada ângulo (ombro E/D, cotovelo E/D, quadril
   E/D, joelho E/D e inclinação da coluna) com preview SVG ao vivo.
-- **Expressões faciais**: seletor de rosto (neutro, feliz, triste, bravo,
-  surpreso, preocupado, furioso, tonto). O rosto acompanha a inclinação da
-  cabeça e pode ser desligado no personagem (checkbox "Mostrar rosto"). A
-  expressão é salva junto com a pose.
+- **Expressões faciais** refinadas: olhos ovais com brilho, sobrancelhas
+  expressivas, bocas detalhadas e toques como rubor (feliz) e gota de suor
+  (preocupado/surpreso). Estados: neutro, feliz, triste, bravo, surpreso,
+  preocupado, furioso, tonto. O rosto acompanha a inclinação da cabeça, tem
+  versão de perfil e pode ser desligado. A expressão é salva junto com a pose.
 - **Vista de lado (perfil) + direção**: além da vista de frente, o personagem
   pode ser mostrado de perfil (rosto de lado com nariz), olhando para a direita
   ou esquerda — ideal para andar/correr em cena.
