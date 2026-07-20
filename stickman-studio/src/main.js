@@ -164,6 +164,7 @@ function syncCharFields() {
   }
   el('colorInput').value = state.character.color || '#111111';
   el('showFace').checked = state.character.showFace !== false;
+  el('earsToggle').checked = !!state.character.ears;
   el('taperToggle').checked = state.character.taper !== false;
   el('finishSelect').value = state.character.finish || 'vetor';
   el('tieToggle').checked = !!state.character.tie;
@@ -745,6 +746,10 @@ function init() {
   el('charSelect').addEventListener('change', (e) => applyCharacter(e.target.value));
   el('showFace').addEventListener('change', (e) => {
     state.character.showFace = e.target.checked;
+    renderPreview();
+  });
+  el('earsToggle').addEventListener('change', (e) => {
+    state.character.ears = e.target.checked;
     renderPreview();
   });
   el('taperToggle').addEventListener('change', (e) => {

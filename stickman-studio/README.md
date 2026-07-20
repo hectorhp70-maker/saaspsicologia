@@ -39,9 +39,12 @@ npm run preview    # serve o build localmente
     moicano, longo, rabo de cavalo, chanel/bob, coque e careca — opções
     femininas e mais realistas (com mechas), com cor.
   - **Roupas** (6): paletó, camisa social, camiseta, vestido, saia + top, com cor.
-  - **Gravata** e **objeto na mão** (dinheiro/moeda/cartão/celular/sacola).
-  - Presets prontos: Anderson, Anderson Executivo, **Ana Poupança**,
-    **Ana Executiva**, Jovem casual, além dos de proporção (Magrelo, Forte…).
+  - **Gravata**, **orelhas** (estilo cartoon) e **objeto na mão**
+    (dinheiro/moeda/cartão/celular/sacola).
+  - Presets prontos: Anderson, **Anderson (canal)** (traço fino + orelhas +
+    cabelo bagunçado + camisa social + gravata, no estilo da referência do
+    canal), Anderson Executivo, **Ana Poupança**, **Ana Executiva**, Jovem
+    casual, além dos de proporção (Magrelo, Forte…).
 - **Legendas por cena**: cada cena do roteiro pode ter uma legenda (fala) exibida
   no topo, incluída nas exportações — ótimo para vídeos explicativos.
 - **Objeto na mão**: o personagem pode segurar dinheiro, moeda, cartão, celular

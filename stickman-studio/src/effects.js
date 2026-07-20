@@ -5,6 +5,7 @@
 
 export const BACKGROUNDS = [
   { id: 'white', label: 'Branco' },
+  { id: 'creme', label: 'Creme (papel)' },
   { id: 'transparent', label: 'Transparente' },
   { id: 'dramatico', label: 'Dramático (escuro)' },
   { id: 'explosao', label: 'Explosão (raios)' },
@@ -45,6 +46,9 @@ export function backgroundSVG(id, w, h, scroll = 0) {
   if (id === 'transparent') return { defs: '', rect: '' };
   if (id === 'white') {
     return { defs: '', rect: `<rect x="0" y="0" width="${w}" height="${h}" fill="#ffffff"/>` };
+  }
+  if (id === 'creme') {
+    return { defs: '', rect: `<rect x="0" y="0" width="${w}" height="${h}" fill="#f7edc7"/>` };
   }
   if (SCENARIOS.includes(id)) {
     const { defs, base, mid } = scenarioParts(id, w, h);

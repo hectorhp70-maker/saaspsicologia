@@ -42,6 +42,7 @@ export const defaultCharacter = {
   color: '#111111',
   taper: true, // traço de peso variável (orgânico) vs. linha reta
   finish: 'vetor', // 'vetor' (limpo) | 'esboco' (traços sobrepostos)
+  ears: false, // orelhas (estilo cartoon)
   showFace: true,
   prop: 'none', // objeto na mão
   tie: false, // gravata
@@ -72,6 +73,7 @@ export const EXPRESSIONS = [
 // Estilos de cabelo (inclui femininos e mais realistas).
 export const HAIR_STYLES = [
   { id: 'curto', label: 'Curto (espetado)' },
+  { id: 'baguncado', label: 'Bagunçado (cartoon)' },
   { id: 'repartido', label: 'Repartido' },
   { id: 'franja', label: 'Com franja' },
   { id: 'ondulado', label: 'Ondulado' },
@@ -351,6 +353,24 @@ function hairSVG(style, cx, cy, r, color, rot, lineWidth) {
         strand(`M ${num(-0.5 * r)} ${num(-0.55 * r)} Q ${num(-0.2 * r)} ${num(-0.85 * r)} ${num(0.1 * r)} ${num(-0.7 * r)}`) +
         strand(`M ${num(0.05 * r)} ${num(-0.6 * r)} Q ${num(0.35 * r)} ${num(-0.85 * r)} ${num(0.6 * r)} ${num(-0.55 * r)}`);
       break;
+    case 'baguncado': {
+      // topete bagunçado: fios espetados de tamanhos variados + fios soltos
+      const tuft = [-0.62, -0.42, -0.22, -0.02, 0.2, 0.42, 0.62];
+      const lens = [0.5, 0.72, 0.55, 0.8, 0.6, 0.74, 0.48];
+      const spikes = tuft.map((fx, i) => {
+        const x = fx * r;
+        const by = -Math.sqrt(Math.max(0, r * r - x * x)) * 0.98;
+        const dir = fx < 0 ? -1 : 1;
+        const len = r * lens[i];
+        const tx = x + dir * r * 0.16 + (i % 2 ? r * 0.05 : -r * 0.05);
+        return `<path d="M ${num(x)} ${num(by)} Q ${num(x + dir * r * 0.03)} ${num(by - len * 0.6)} ${num(tx)} ${num(by - len)}" fill="none" stroke="${color}" stroke-width="${num(lw)}" stroke-linecap="round"/>`;
+      }).join('');
+      // fios finos soltos sobre a testa/lateral
+      front = spikes +
+        strand(`M ${num(-0.4 * r)} ${num(-0.62 * r)} Q ${num(-0.05 * r)} ${num(-0.75 * r)} ${num(0.28 * r)} ${num(-0.55 * r)}`) +
+        `<path d="M ${num(-0.72 * r)} ${num(-0.28 * r)} Q ${num(-0.95 * r)} ${num(-0.5 * r)} ${num(-0.78 * r)} ${num(-0.72 * r)}" fill="none" stroke="${color}" stroke-width="${num(lw * 0.85)}" stroke-linecap="round"/>`;
+      break;
+    }
     case 'repartido': {
       // cap com risca lateral e varredura para os lados
       front = pth(
@@ -434,6 +454,15 @@ function hairSVG(style, cx, cy, r, color, rot, lineWidth) {
   }
 
   return { back: wrap(back), front: wrap(front) };
+}
+
+// Orelhas (estilo cartoon) nas laterais da cabeça; acompanham a inclinação.
+function earsSVG(cx, cy, r, color, rot, lineWidth, fill) {
+  const lw = Math.max(1.5, lineWidth * 0.85);
+  const st = `fill="${fill || 'none'}" stroke="${color}" stroke-width="${num(lw)}" stroke-linecap="round"`;
+  const left = `<path d="M ${num(-r * 0.96)} ${num(-0.2 * r)} C ${num(-r * 1.34)} ${num(-0.14 * r)} ${num(-r * 1.34)} ${num(0.22 * r)} ${num(-r * 0.96)} ${num(0.26 * r)}" ${st}/>`;
+  const right = `<path d="M ${num(r * 0.96)} ${num(-0.2 * r)} C ${num(r * 1.34)} ${num(-0.14 * r)} ${num(r * 1.34)} ${num(0.22 * r)} ${num(r * 0.96)} ${num(0.26 * r)}" ${st}/>`;
+  return `<g transform="translate(${num(cx)} ${num(cy)}) rotate(${num(rot)})">${left}${right}</g>`;
 }
 
 // Legenda (fala) no topo, com quebra de linha automática. Fica legível em
@@ -710,10 +739,13 @@ function renderFigure(skel, options = {}) {
     : c.taper !== false
       ? taperedLimbsSVG(skel.points, c.lineWidth, color)
       : `<g stroke="${color}" stroke-width="${c.lineWidth}" stroke-linecap="round" stroke-linejoin="round" fill="none">${lines}</g>`;
+  const ears = c.ears
+    ? earsSVG(hc.x, hc.y, c.headRadius, color, lean, c.lineWidth, isSketch ? 'none' : headFill)
+    : '';
   const inner =
     halo +
     bodyLimbs +
-    clothes + tie + hair.back + head + hair.front + face + dots + prop;
+    clothes + tie + hair.back + ears + head + hair.front + face + dots + prop;
   const flip = isProfile && c.facing === 'esq';
   // Espelha em torno do próprio eixo do personagem (hip.x), para funcionar
   // também quando há vários personagens fora do centro.

@@ -9,6 +9,22 @@ export const defaultCharacters = [
   { ...defaultCharacter },
   {
     ...defaultCharacter,
+    id: 'anderson-canal',
+    nome: 'Anderson (canal)',
+    headRadius: 38,
+    lineWidth: 3,
+    jointRadius: 3,
+    taper: false, // traço fino e limpo, estilo desenho à mão
+    ears: true,
+    hair: true,
+    hairStyle: 'baguncado',
+    hairColor: '#2a2118',
+    outfit: 'social',
+    tie: true,
+    tieColor: '#3a3a3a',
+  },
+  {
+    ...defaultCharacter,
     id: 'anderson-exec',
     nome: 'Anderson Executivo',
     hair: true,
