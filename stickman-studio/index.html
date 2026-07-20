@@ -122,6 +122,37 @@
           <input type="text" id="poseName" placeholder="Nome da nova pose" />
           <button id="savePose" class="btn">Salvar</button>
         </div>
+
+        <h2 style="margin-top:22px">💬 Diálogo (2 personagens)</h2>
+        <div class="row">
+          <label class="col">
+            Personagem A (esq.)
+            <select id="dlgCharA"></select>
+          </label>
+          <label class="col">
+            Personagem B (dir.)
+            <select id="dlgCharB"></select>
+          </label>
+        </div>
+        <p class="hint">Uma fala por linha, no formato <b>A: texto</b> ou <b>B: texto</b>. O fundo/cenário e o título usam os controles da esquerda.</p>
+        <textarea id="dlgScript" class="ai-prompt" rows="5" placeholder="A: Ana, não sobra nada no fim do mês?
+B: É que eu pago todo mundo antes de pagar a mim mesma.
+A: Separe a reserva assim que o salário cai.
+B: Fechou! Bora começar hoje."></textarea>
+        <div class="row">
+          <label class="col" style="max-width:120px">
+            Quadros/fala
+            <input type="number" id="dlgFrames" value="40" min="8" max="200" />
+          </label>
+          <button id="dlgPlay" class="btn">▶ Pré-visualizar</button>
+          <button id="dlgStop" class="btn ghost">■ Parar</button>
+        </div>
+        <div class="row wrap">
+          <button id="dlgWebm" class="btn">Vídeo .webm</button>
+          <button id="dlgPng" class="btn">PNG (zip)</button>
+          <button id="dlgSrt" class="btn ghost">Legendas .srt</button>
+        </div>
+        <p id="dlgStatus" class="status"></p>
       </section>
 
       <!-- Coluna direita: biblioteca + animação + export -->

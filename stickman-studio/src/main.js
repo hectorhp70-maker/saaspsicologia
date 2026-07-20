@@ -1,7 +1,7 @@
 // main.js — orquestra o editor, os personagens, a biblioteca de poses,
 // a timeline de quadros-chave e a exportação.
 
-import { ANGLE_KEYS, ANGLE_META, EXPRESSIONS, HAIR_STYLES, OUTFITS, normalizePose, poseToSVG } from './skeleton.js';
+import { ANGLE_KEYS, ANGLE_META, EXPRESSIONS, HAIR_STYLES, OUTFITS, normalizePose, poseToSVG, composeScene } from './skeleton.js';
 import { BACKGROUNDS, PROPS } from './effects.js';
 import { defaultCharacters, CHARACTER_FIELDS, normalizeCharacter } from './characters.js';
 import { defaultPoses } from './poses.js';
@@ -15,7 +15,7 @@ import {
   loadAIConfig, saveAIConfig,
   exportProjectFile, importProjectFile,
 } from './storage.js';
-import { exportSVG, exportThumbnail, exportPNGSequence, exportWebM, exportSRT } from './export.js';
+import { exportSVG, exportThumbnail, exportPNGSequence, exportWebM, exportSRT, exportFramesWebM, exportFramesZip } from './export.js';
 
 // ---------- Estado ----------
 const state = {
@@ -523,6 +523,146 @@ async function doExportWebm() {
   }
 }
 
+// ---------- Diálogo (2 personagens) ----------
+const DLG_W = 480, DLG_H = 500, DLG_TR = 8;
+const DLG_POSE = {
+  idle: { spineLean: 0, shoulderL: -12, elbowL: 8, shoulderR: 12, elbowR: -8, hipL: -8, kneeL: 5, hipR: 8, kneeR: 5 },
+  fala: { spineLean: -2, shoulderL: -20, elbowL: -45, shoulderR: -30, elbowR: -40, hipL: -8, kneeL: 5, hipR: 8, kneeR: 5 },
+};
+const setDlgStatus = (m) => { el('dlgStatus').textContent = m; };
+let dlgTimer = null;
+
+function buildDialogueSelects() {
+  const opts = allCharacters().map((c) => `<option value="${c.id}">${c.nome || c.id}</option>`).join('');
+  el('dlgCharA').innerHTML = opts;
+  el('dlgCharB').innerHTML = opts;
+  el('dlgCharA').value = 'anderson-exec';
+  el('dlgCharB').value = 'ana-poupanca';
+}
+
+function dlgMatchExpr(t) {
+  const s = t.toLowerCase();
+  if (/feliz|ótimo|otimo|legal|isso|fechou|valeu|bora|obrigad|😄|!/.test(s)) return 'feliz';
+  if (/surto|furioso|absurdo|caro|caríssimo|carissimo/.test(s)) return 'furioso';
+  if (/susto|sério|serio|nossa|caramba|\?!/.test(s)) return 'surpreso';
+  if (/preocup|difícil|dificil|não sei|nao sei|medo|dívida|divida/.test(s)) return 'preocupado';
+  if (/triste|não sobra|nao sobra|nada/.test(s)) return 'triste';
+  if (/\?$/.test(t.trim())) return 'surpreso';
+  return 'neutro';
+}
+
+function parseDialogue(text) {
+  const linhas = [];
+  for (const raw of text.split('\n')) {
+    const m = raw.match(/^\s*([ABab12])\s*:\s*(.+)$/);
+    if (!m) continue;
+    const quem = /[A1a]/.test(m[1]) ? 'A' : 'B';
+    const texto = m[2].trim();
+    linhas.push({ quem, texto, expr: dlgMatchExpr(texto) });
+  }
+  return linhas;
+}
+
+function dlgCharacters() {
+  const A = normalizeCharacter({ ...allCharacters().find((c) => c.id === el('dlgCharA').value), view: 'lado', facing: 'dir' });
+  const B = normalizeCharacter({ ...allCharacters().find((c) => c.id === el('dlgCharB').value), view: 'lado', facing: 'esq' });
+  return { A, B };
+}
+
+// Gera as strings SVG (frames) do diálogo + a lista de legendas por fala.
+function buildDialogue() {
+  const linhas = parseDialogue(el('dlgScript').value);
+  if (!linhas.length) return { svgs: [], legendas: [] };
+  const { A, B } = dlgCharacters();
+  const nomeA = A.nome || 'A', nomeB = B.nome || 'B';
+  const hold = Math.max(8, Number(el('dlgFrames').value) || 40);
+  const bg = el('bgSelect').value;
+  const title = state.titulo;
+  const OX_A = DLG_W * 0.34, OX_B = DLG_W * 0.66;
+
+  const frame = (poseA, poseB, quem, expr, texto) =>
+    composeScene({
+      background: bg, width: DLG_W, height: DLG_H, title,
+      caption: `${quem === 'A' ? nomeA : nomeB}: ${texto}`,
+      figuras: [
+        { pose: poseA, character: A, expression: quem === 'A' ? expr : 'neutro', originX: OX_A },
+        { pose: poseB, character: B, expression: quem === 'B' ? expr : 'neutro', originX: OX_B },
+      ],
+    });
+
+  const svgs = [];
+  const legendas = [];
+  let prevA = DLG_POSE.idle, prevB = DLG_POSE.idle;
+  for (const { quem, texto, expr } of linhas) {
+    const targetA = quem === 'A' ? DLG_POSE.fala : DLG_POSE.idle;
+    const targetB = quem === 'B' ? DLG_POSE.fala : DLG_POSE.idle;
+    const segA = interpolatePoses(normalizePose(prevA), normalizePose(targetA), DLG_TR);
+    const segB = interpolatePoses(normalizePose(prevB), normalizePose(targetB), DLG_TR);
+    for (let k = 0; k < DLG_TR; k++) {
+      if (k === 0 && svgs.length) continue;
+      svgs.push(frame(segA[k], segB[k], quem, expr, texto));
+    }
+    for (let h = 0; h < hold; h++) {
+      const a = { ...targetA }, b = { ...targetB };
+      if (quem === 'A') a.spineLean += Math.sin(h / 5) * 2;
+      else b.spineLean += Math.sin(h / 5) * 2;
+      svgs.push(frame(a, b, quem, expr, texto));
+    }
+    legendas.push({ caption: `${quem === 'A' ? nomeA : nomeB}: ${texto}`, frames: DLG_TR + hold });
+    prevA = targetA; prevB = targetB;
+  }
+  return { svgs, legendas };
+}
+
+function playDialogue() {
+  stopDialogue();
+  const { svgs } = buildDialogue();
+  if (!svgs.length) { setDlgStatus('Escreva as falas no formato "A: ..." / "B: ...".'); return; }
+  const fps = Number(el('fps').value) || 12;
+  let i = 0;
+  dlgTimer = setInterval(() => {
+    stage.innerHTML = svgs[i];
+    i = (i + 1) % svgs.length;
+  }, 1000 / fps);
+  setDlgStatus(`Reproduzindo diálogo (${svgs.length} frames).`);
+}
+function stopDialogue() {
+  if (dlgTimer) clearInterval(dlgTimer);
+  dlgTimer = null;
+  renderPreview();
+}
+
+async function exportDialogueWebm() {
+  const { svgs } = buildDialogue();
+  if (!svgs.length) { setDlgStatus('Sem falas para exportar.'); return; }
+  const fps = Number(el('fps').value) || 12;
+  setDlgStatus('Gravando diálogo em .webm...');
+  try {
+    await exportFramesWebM(svgs, { width: DLG_W, height: DLG_H, background: el('bgSelect').value }, fps,
+      (i, t) => setDlgStatus(`Gravando ${i}/${t}...`), 'dialogo.webm');
+    setDlgStatus('Diálogo exportado (.webm).');
+  } catch (e) { setDlgStatus('Erro: ' + e.message); }
+}
+async function exportDialoguePng() {
+  const { svgs } = buildDialogue();
+  if (!svgs.length) { setDlgStatus('Sem falas para exportar.'); return; }
+  setDlgStatus('Renderizando PNGs do diálogo...');
+  try {
+    await exportFramesZip(svgs, { width: DLG_W, height: DLG_H, background: el('bgSelect').value },
+      (i, t) => setDlgStatus(`PNG ${i}/${t}...`), 'dialogo-png.zip');
+    setDlgStatus('Zip de PNGs do diálogo exportado.');
+  } catch (e) { setDlgStatus('Erro: ' + e.message); }
+}
+function exportDialogueSrt() {
+  const { legendas } = buildDialogue();
+  if (legendas.length < 1) { setDlgStatus('Sem falas.'); return; }
+  try {
+    // exportSRT usa trechos entre quadros-chave; adiciona um marcador final.
+    exportSRT([...legendas, { caption: '', frames: 1 }], Number(el('fps').value) || 12);
+    setDlgStatus('Legendas .srt do diálogo exportadas.');
+  } catch (e) { setDlgStatus('Erro: ' + e.message); }
+}
+
 // ---------- Init ----------
 function init() {
   buildSliders();
@@ -531,6 +671,7 @@ function init() {
   buildCharFields();
   buildPropSelect();
   buildWardrobeSelects();
+  buildDialogueSelects();
   refreshCharSelect();
   refreshAnimSelect();
   renderPoseList();
@@ -646,6 +787,14 @@ function init() {
     renderPoseList();
   });
   el('savePose').addEventListener('click', saveCurrentPose);
+
+  // Diálogo (2 personagens)
+  el('dlgPlay').addEventListener('click', playDialogue);
+  el('dlgStop').addEventListener('click', stopDialogue);
+  el('dlgWebm').addEventListener('click', exportDialogueWebm);
+  el('dlgPng').addEventListener('click', exportDialoguePng);
+  el('dlgSrt').addEventListener('click', exportDialogueSrt);
+
   el('exportPosesJson').addEventListener('click', exportCustomPosesFile);
   el('importPosesJson').addEventListener('change', async (e) => {
     const file = e.target.files?.[0];

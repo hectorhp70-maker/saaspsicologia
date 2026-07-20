@@ -71,6 +71,11 @@ npm run preview    # serve o build localmente
 - **Dois personagens no mesmo quadro**: `composeScene({ figuras: [...] })`
   compõe vários personagens (com `originX` e direção própria) sobre um fundo —
   para diálogos de verdade, um encarando o outro.
+- **Diálogo na interface**: painel **💬 Diálogo (2 personagens)** — escolha os
+  personagens A/B, escreva as falas (`A: ...` / `B: ...`, uma por linha) e
+  pré-visualize/exporte **vídeo .webm**, **PNG (zip)** e **legendas .srt**
+  (com o nome de quem fala — prontas para as vozes por personagem). Quem fala
+  gesticula; o cenário e o título usam os controles da esquerda.
 - **Tema Surto Financeiro**: fundos `Dramático (escuro)` e `Explosão (raios)`,
   além do slider **💥 Efeito Surto** (0–10) que espalha dinheiro, moedas e
   cérebro ao redor da cabeça, com linhas de impacto e gotas de suor. Em fundo

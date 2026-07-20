@@ -94,6 +94,59 @@ function canvasToBlob(canvas, type = 'image/png') {
   return new Promise((resolve) => canvas.toBlob(resolve, type));
 }
 
+// Exporta uma sequência de strings SVG já prontas (ex.: cenas com 2 personagens)
+// como zip de PNGs.
+export async function exportFramesZip(svgs, options, onProgress, filename = 'stickman-cena-png.zip') {
+  const zip = new JSZip();
+  const width = options.width ?? 480;
+  const height = options.height ?? 500;
+  const bg = options.background ?? 'white';
+  const pad = String(svgs.length).length;
+  for (let i = 0; i < svgs.length; i++) {
+    const canvas = await svgToCanvas(svgs[i], width, height, bg);
+    const blob = await canvasToBlob(canvas, 'image/png');
+    zip.file(`frame_${String(i + 1).padStart(pad, '0')}.png`, blob);
+    onProgress?.(i + 1, svgs.length);
+  }
+  const content = await zip.generateAsync({ type: 'blob' });
+  download(content, filename);
+}
+
+// Exporta uma sequência de strings SVG como vídeo .webm.
+export async function exportFramesWebM(svgs, options, fps = 12, onProgress, filename = 'stickman-cena.webm') {
+  if (typeof MediaRecorder === 'undefined') throw new Error('MediaRecorder não é suportado neste navegador.');
+  const width = options.width ?? 480;
+  const height = options.height ?? 500;
+  const bg = options.background ?? 'white';
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+
+  const images = [];
+  for (let i = 0; i < svgs.length; i++) {
+    images.push(await svgToCanvas(svgs[i], width, height, bg));
+  }
+  const stream = canvas.captureStream(fps);
+  const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm';
+  const recorder = new MediaRecorder(stream, { mimeType: mime });
+  const chunks = [];
+  recorder.ondataavailable = (e) => e.data.size > 0 && chunks.push(e.data);
+  const done = new Promise((resolve) => (recorder.onstop = () => resolve(new Blob(chunks, { type: 'video/webm' }))));
+  recorder.start();
+  const delay = 1000 / fps;
+  for (let i = 0; i < images.length; i++) {
+    if (bg === 'white') { ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, width, height); }
+    else ctx.clearRect(0, 0, width, height);
+    ctx.drawImage(images[i], 0, 0);
+    onProgress?.(i + 1, images.length);
+    await new Promise((r) => setTimeout(r, delay));
+  }
+  await new Promise((r) => setTimeout(r, delay * 2));
+  recorder.stop();
+  download(await done, filename);
+}
+
 // Renderiza cada frame (pose) para PNG e empacota num zip.
 // frames: array de ângulos. onProgress(i, total) opcional.
 export async function exportPNGSequence(frames, character, options, onProgress) {
