@@ -113,4 +113,9 @@ input[type='color'] { border: 1px solid var(--border); border-radius: 8px; backg
 .pose-list .del:hover { color: #ff6b6b; }
 .pose-list .tag { font-size: 10px; color: var(--muted); border: 1px solid var(--border); border-radius: 6px; padding: 1px 5px; }
 
+.char-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; margin-top: 10px; }
+.char-field { display: flex; flex-direction: column; gap: 3px; }
+.char-field label { font-size: 12px; color: var(--muted); }
+.char-field input { padding: 6px 8px; font-size: 13px; }
+
 .status { font-size: 13px; color: var(--muted); min-height: 18px; margin: 10px 0 0; }

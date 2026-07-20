@@ -1,14 +1,19 @@
 // main.js — orquestra o editor, a biblioteca de poses, a animação e a exportação.
 
 import { defaultCharacter, ANGLE_KEYS, ANGLE_META, normalizePose, poseToSVG } from './skeleton.js';
+import { defaultCharacters, CHARACTER_FIELDS, normalizeCharacter } from './characters.js';
 import { defaultPoses } from './poses.js';
 import { interpolatePoses } from './interpolate.js';
-import { loadCustomPoses, upsertCustomPose, removeCustomPose, exportCustomPosesFile, importCustomPosesFile } from './storage.js';
+import {
+  loadCustomPoses, upsertCustomPose, removeCustomPose, exportCustomPosesFile, importCustomPosesFile,
+  loadCustomCharacters, upsertCustomCharacter, removeCustomCharacter, exportCustomCharactersFile, importCustomCharactersFile,
+} from './storage.js';
 import { exportSVG, exportPNGSequence, exportWebM } from './export.js';
 
 // ---------- Estado ----------
 const state = {
-  character: { ...defaultCharacter },
+  character: normalizeCharacter(defaultCharacters[0]),
+  activeCharacterId: defaultCharacters[0].id,
   pose: normalizePose(defaultPoses[0].angles),
   activePoseId: 'idle',
   playing: false,
@@ -61,6 +66,79 @@ function syncSliders() {
       el(`val_${key}`).textContent = `${Math.round(state.pose[key])}°`;
     }
   }
+}
+
+// ---------- Personagens ----------
+function allCharacters() {
+  const custom = loadCustomCharacters().map((c) => ({ ...c, custom: true }));
+  return [...defaultCharacters.map((c) => ({ ...c, custom: false })), ...custom];
+}
+
+function isActiveCharCustom() {
+  return loadCustomCharacters().some((c) => c.id === state.activeCharacterId);
+}
+
+function buildCharFields() {
+  const container = el('charFields');
+  container.innerHTML = '';
+  for (const f of CHARACTER_FIELDS) {
+    const div = document.createElement('div');
+    div.className = 'char-field';
+    div.innerHTML = `
+      <label for="ch_${f.key}">${f.label}</label>
+      <input type="number" id="ch_${f.key}" min="${f.min}" max="${f.max}" step="${f.step}" value="${state.character[f.key]}" />`;
+    container.appendChild(div);
+    const input = div.querySelector('input');
+    input.addEventListener('input', () => {
+      const v = Number(input.value);
+      if (!Number.isFinite(v)) return;
+      state.character[f.key] = v;
+      renderPreview();
+    });
+  }
+}
+
+function syncCharFields() {
+  for (const f of CHARACTER_FIELDS) {
+    const input = el(`ch_${f.key}`);
+    if (input) input.value = state.character[f.key];
+  }
+  el('colorInput').value = state.character.color || '#111111';
+}
+
+function refreshCharSelect() {
+  const sel = el('charSelect');
+  sel.innerHTML = allCharacters()
+    .map((c) => `<option value="${c.id}">${c.nome || c.id}${c.custom ? ' (custom)' : ''}</option>`)
+    .join('');
+  sel.value = state.activeCharacterId;
+  el('delChar').disabled = !isActiveCharCustom();
+}
+
+function applyCharacter(id) {
+  const char = allCharacters().find((c) => c.id === id);
+  if (!char) return;
+  state.character = normalizeCharacter(char);
+  state.activeCharacterId = id;
+  syncCharFields();
+  refreshCharSelect();
+  renderPreview();
+}
+
+function saveCurrentCharacter() {
+  const nome = el('charName').value.trim();
+  if (!nome) {
+    setStatus('Dê um nome para o personagem antes de salvar.');
+    return;
+  }
+  const id = slugify(nome) + '-' + Date.now().toString(36).slice(-4);
+  const char = normalizeCharacter({ ...state.character, id, nome });
+  upsertCustomCharacter(char);
+  el('charName').value = '';
+  state.activeCharacterId = id;
+  refreshCharSelect();
+  el('charSelect').value = id;
+  setStatus(`Personagem "${nome}" salvo localmente.`);
 }
 
 // ---------- Biblioteca ----------
@@ -199,12 +277,49 @@ async function doExportWebm() {
 // ---------- Wire up ----------
 function init() {
   buildSliders();
+  buildCharFields();
+  refreshCharSelect();
   renderPreview();
   renderPoseList();
   refreshAnimSelectors();
 
   el('bgSelect').addEventListener('change', renderPreview);
-  el('colorInput').addEventListener('input', renderPreview);
+  el('colorInput').addEventListener('input', () => {
+    state.character.color = el('colorInput').value;
+    renderPreview();
+  });
+
+  // Personagem
+  el('charSelect').addEventListener('change', (e) => applyCharacter(e.target.value));
+  el('saveChar').addEventListener('click', saveCurrentCharacter);
+  el('resetChar').addEventListener('click', () => {
+    const base = allCharacters().find((c) => c.id === state.activeCharacterId);
+    if (base) {
+      state.character = normalizeCharacter(base);
+      syncCharFields();
+      renderPreview();
+      setStatus('Proporções restauradas.');
+    }
+  });
+  el('delChar').addEventListener('click', () => {
+    if (!isActiveCharCustom()) return;
+    removeCustomCharacter(state.activeCharacterId);
+    applyCharacter(defaultCharacters[0].id);
+    setStatus('Personagem excluído.');
+  });
+  el('exportCharsJson').addEventListener('click', exportCustomCharactersFile);
+  el('importCharsJson').addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      await importCustomCharactersFile(file);
+      refreshCharSelect();
+      setStatus('Personagens importados.');
+    } catch (err) {
+      setStatus('Erro ao importar: ' + err.message);
+    }
+    e.target.value = '';
+  });
   el('resetPose').addEventListener('click', () => {
     for (const k of ANGLE_KEYS) state.pose[k] = 0;
     state.activePoseId = null;

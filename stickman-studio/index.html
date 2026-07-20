@@ -30,6 +30,28 @@
             <input type="color" id="colorInput" value="#111111" />
           </label>
         </div>
+
+        <h2 style="margin-top:20px">Personagem</h2>
+        <div class="row">
+          <label class="col">
+            Personagem ativo
+            <select id="charSelect"></select>
+          </label>
+        </div>
+        <div id="charFields" class="char-fields"></div>
+        <div class="row">
+          <input type="text" id="charName" placeholder="Nome do novo personagem" />
+          <button id="saveChar" class="btn">Salvar</button>
+        </div>
+        <div class="row">
+          <button id="resetChar" class="btn ghost small">Restaurar</button>
+          <button id="delChar" class="btn ghost small">Excluir</button>
+          <button id="exportCharsJson" class="btn ghost small">Exportar (JSON)</button>
+          <label class="btn ghost small file-label">
+            Importar
+            <input type="file" id="importCharsJson" accept="application/json" hidden />
+          </label>
+        </div>
       </section>
 
       <!-- Coluna central: editor de pose -->

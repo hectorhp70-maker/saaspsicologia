@@ -25,6 +25,11 @@ npm run preview    # serve o build localmente
 
 ## O que dá pra fazer
 
+- **Editor de personagem**: troque as proporções (raio da cabeça, coluna, braço,
+  antebraço, coxa, canela, espessura do traço, tamanho das mãos/pés) e a cor, com
+  preview ao vivo. Presets prontos (`Anderson`, `Magrelo`, `Forte`, `Mascote
+  mini`) + criar/salvar personagens customizados (localStorage) e importar/
+  exportar JSON. As poses valem para qualquer personagem.
 - **Editor de pose**: sliders para cada ângulo (ombro E/D, cotovelo E/D, quadril
   E/D, joelho E/D e inclinação da coluna) com preview SVG ao vivo.
 - **Biblioteca de poses**: poses base prontas (`idle`, `wave`, `walk`, `run`,
@@ -87,13 +92,36 @@ Os ângulos disponíveis são exatamente as chaves em `ANGLE_KEYS`
 (`src/skeleton.js`): `spineLean`, `shoulderL`, `elbowL`, `shoulderR`, `elbowR`,
 `hipL`, `kneeL`, `hipR`, `kneeR`.
 
-## Múltiplos personagens (estrutura já aberta)
+## Múltiplos personagens
 
-As proporções ficam em `defaultCharacter` (`src/skeleton.js`): `headRadius`,
-`spineLength`, `upperArm`, `foreArm`, `thigh`, `shin`, `lineWidth`,
-`jointRadius`. Para um novo personagem, basta clonar esse objeto com outras
-proporções — as poses continuam valendo. (A UI de troca de personagem ainda não
-foi implementada; a estrutura de dados já suporta.)
+Já implementado. As proporções ficam em `defaultCharacter` (`src/skeleton.js`):
+`headRadius`, `spineLength`, `upperArm`, `foreArm`, `thigh`, `shin`, `lineWidth`,
+`jointRadius`, `color`. Como uma pose guarda só ângulos, o mesmo conjunto de
+poses serve para qualquer personagem.
+
+### Pela interface
+
+No painel **Personagem**: escolha um preset no seletor, ajuste os campos
+numéricos (preview ao vivo), dê um nome e clique **Salvar** para persistir no
+`localStorage`. Use **Restaurar** para voltar às proporções do preset,
+**Excluir** para remover um custom, e **Exportar/Importar (JSON)** para levar
+seus personagens entre máquinas.
+
+### Presets fixos no código
+
+Edite `src/characters.js` e adicione um objeto no array `defaultCharacters`:
+
+```js
+{
+  id: 'careca-forte',
+  nome: 'Careca forte',
+  headRadius: 42, spineLength: 78,
+  upperArm: 42, foreArm: 40,
+  thigh: 52, shin: 50,
+  lineWidth: 12, jointRadius: 9,
+  color: '#111111',
+}
+```
 
 ## Estrutura
 
@@ -103,6 +131,7 @@ stickman-studio/
 ├── src/
 │   ├── main.js         # orquestra UI, biblioteca, animação e export
 │   ├── skeleton.js     # esqueleto paramétrico + geração de SVG
+│   ├── characters.js   # personagens base + campos editáveis
 │   ├── poses.js        # biblioteca de poses base (JSON)
 │   ├── interpolate.js  # interpolação linear entre poses
 │   ├── storage.js      # persistência (localStorage) + import/export JSON

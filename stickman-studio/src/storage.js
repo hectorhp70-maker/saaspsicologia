@@ -2,6 +2,7 @@
 // Persistência local das poses customizadas via localStorage.
 
 const KEY = 'stickman-studio:custom-poses:v1';
+const CHAR_KEY = 'stickman-studio:custom-characters:v1';
 
 export function loadCustomPoses() {
   try {
@@ -60,4 +61,61 @@ export async function importCustomPosesFile(file) {
   }
   saveCustomPoses(poses);
   return poses;
+}
+
+// ---------- Personagens customizados ----------
+export function loadCustomCharacters() {
+  try {
+    const raw = localStorage.getItem(CHAR_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveCustomCharacters(chars) {
+  localStorage.setItem(CHAR_KEY, JSON.stringify(chars));
+}
+
+export function upsertCustomCharacter(char) {
+  const chars = loadCustomCharacters();
+  const idx = chars.findIndex((c) => c.id === char.id);
+  if (idx >= 0) chars[idx] = char;
+  else chars.push(char);
+  saveCustomCharacters(chars);
+  return chars;
+}
+
+export function removeCustomCharacter(id) {
+  const chars = loadCustomCharacters().filter((c) => c.id !== id);
+  saveCustomCharacters(chars);
+  return chars;
+}
+
+export function exportCustomCharactersFile() {
+  const data = JSON.stringify(loadCustomCharacters(), null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'personagens-customizados.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export async function importCustomCharactersFile(file) {
+  const text = await file.text();
+  const arr = JSON.parse(text);
+  if (!Array.isArray(arr)) throw new Error('JSON inválido: esperado um array de personagens.');
+  let chars = loadCustomCharacters();
+  for (const c of arr) {
+    if (!c.id) continue;
+    const idx = chars.findIndex((x) => x.id === c.id);
+    if (idx >= 0) chars[idx] = c;
+    else chars.push(c);
+  }
+  saveCustomCharacters(chars);
+  return chars;
 }

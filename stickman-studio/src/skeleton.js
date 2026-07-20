@@ -37,6 +37,7 @@ export const defaultCharacter = {
   shin: 60,
   lineWidth: 8,
   jointRadius: 6, // "dot" nas mãos e pés
+  color: '#111111',
 };
 
 // Lista de ângulos editáveis (usada pelos sliders e pela interpolação).
@@ -122,10 +123,10 @@ const num = (n) => Number(n.toFixed(2));
 export function poseToSVG(pose, character, options = {}) {
   const width = options.width ?? 400;
   const height = options.height ?? 500;
-  const color = options.color ?? '#111111';
   const bg = options.background ?? 'white';
   const skel = buildSkeleton(pose, character, width, height);
   const c = skel.character;
+  const color = options.color ?? c.color ?? '#111111';
 
   const bgRect =
     bg === 'transparent'
