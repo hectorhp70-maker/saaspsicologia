@@ -188,6 +188,14 @@ Grave ~6–15s de cada voz de referência em `vozes/*.wav`. Sem `--wavs`, use
 > direto na sua VPS/máquina. Em ambientes com proxy que bloqueia esse endpoint,
 > a chamada falha (só a rede; o script está correto).
 
+## Traço orgânico (tapered lines)
+
+Por padrão os membros usam **peso variável**: mais grossos no núcleo (tronco/
+quadril) e afinando nas extremidades (mãos/pés), com junções arredondadas —
+dá organicidade e evita o aspecto de linha reta robótica (recomendação do guia
+de estilo). Dá para desligar no personagem (checkbox "Traço orgânico") voltando
+ao traço de espessura fixa. Vale para preview, exportações, perfil e diálogos.
+
 ## Como o boneco é construído (esqueleto paramétrico)
 
 Nenhuma coordenada de membro é fixa. Tudo é calculado por trigonometria a partir

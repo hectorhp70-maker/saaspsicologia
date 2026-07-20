@@ -162,6 +162,7 @@ function syncCharFields() {
   }
   el('colorInput').value = state.character.color || '#111111';
   el('showFace').checked = state.character.showFace !== false;
+  el('taperToggle').checked = state.character.taper !== false;
   el('tieToggle').checked = !!state.character.tie;
   el('tieColor').value = state.character.tieColor || '#c0392b';
   el('hairToggle').checked = !!state.character.hair;
@@ -741,6 +742,10 @@ function init() {
   el('charSelect').addEventListener('change', (e) => applyCharacter(e.target.value));
   el('showFace').addEventListener('change', (e) => {
     state.character.showFace = e.target.checked;
+    renderPreview();
+  });
+  el('taperToggle').addEventListener('change', (e) => {
+    state.character.taper = e.target.checked;
     renderPreview();
   });
   el('tieToggle').addEventListener('change', (e) => {

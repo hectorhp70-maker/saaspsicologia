@@ -40,6 +40,7 @@ export const defaultCharacter = {
   lineWidth: 8,
   jointRadius: 6, // "dot" nas mãos e pés
   color: '#111111',
+  taper: true, // traço de peso variável (orgânico) vs. linha reta
   showFace: true,
   prop: 'none', // objeto na mão
   tie: false, // gravata
@@ -579,6 +580,30 @@ export function profileFaceSVG(cx, cy, r, expression, rot, color, lineWidth) {
   return `<g transform="translate(${num(cx)} ${num(cy)}) rotate(${num(rot)})">${nose}${eyeEl}${extra}${mouth}</g>`;
 }
 
+// Membros com peso variável (tapered): grossos no núcleo (tronco/quadril),
+// afinando nas extremidades (mãos/pés) — dá organicidade e sensação de vida,
+// evitando linhas retas robóticas. Junções arredondadas por círculos.
+function taperedLimbsSVG(p, LW, color) {
+  const W = { core: LW * 1.25, neck: LW * 1.05, elbow: LW * 0.7, hand: LW * 0.42, knee: LW * 0.86, foot: LW * 0.48 };
+  const seg = (a, w1, b, w2) => {
+    const dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy) || 1;
+    const nx = -dy / L, ny = dx / L;
+    const P = (pt, w, s) => `${num(pt.x + s * nx * w / 2)},${num(pt.y + s * ny * w / 2)}`;
+    return `<polygon points="${P(a, w1, 1)} ${P(b, w2, 1)} ${P(b, w2, -1)} ${P(a, w1, -1)}" fill="${color}"/>`;
+  };
+  const joint = (pt, w) => `<circle cx="${num(pt.x)}" cy="${num(pt.y)}" r="${num(w / 2)}" fill="${color}"/>`;
+  return (
+    seg(p.hip, W.core, p.neck, W.neck) +
+    seg(p.shoulder, W.neck, p.elbowLpt, W.elbow) + seg(p.elbowLpt, W.elbow, p.handL, W.hand) +
+    seg(p.shoulder, W.neck, p.elbowRpt, W.elbow) + seg(p.elbowRpt, W.elbow, p.handR, W.hand) +
+    seg(p.hip, W.core, p.kneeLpt, W.knee) + seg(p.kneeLpt, W.knee, p.footL, W.foot) +
+    seg(p.hip, W.core, p.kneeRpt, W.knee) + seg(p.kneeRpt, W.knee, p.footR, W.foot) +
+    joint(p.hip, W.core) + joint(p.neck, W.neck) +
+    joint(p.elbowLpt, W.elbow) + joint(p.elbowRpt, W.elbow) +
+    joint(p.kneeLpt, W.knee) + joint(p.kneeRpt, W.knee)
+  );
+}
+
 // Renderiza APENAS a figura do personagem (sem fundo/legenda), já posicionada
 // pelo `skel`. Retorna { figure, fx } — fx são as partículas do surto (atrás/à
 // frente) para o caller ordenar. `flipWidth` é a largura usada no espelhamento.
@@ -631,9 +656,12 @@ function renderFigure(skel, options = {}) {
   const tie = c.tie ? tieSVG(skel.points.neck, skel.points.hip, c.headRadius, c.tieColor || '#c0392b') : '';
   const hair = c.hair ? hairSVG(c.hairStyle || 'curto', hc.x, hc.y, c.headRadius, c.hairColor || '#20140a', lean, c.lineWidth) : { back: '', front: '' };
 
+  const bodyLimbs = c.taper !== false
+    ? taperedLimbsSVG(skel.points, c.lineWidth, color)
+    : `<g stroke="${color}" stroke-width="${c.lineWidth}" stroke-linecap="round" stroke-linejoin="round" fill="none">${lines}</g>`;
   const inner =
     halo +
-    `<g stroke="${color}" stroke-width="${c.lineWidth}" stroke-linecap="round" stroke-linejoin="round" fill="none">${lines}</g>` +
+    bodyLimbs +
     clothes + tie + hair.back + head + hair.front + face + dots + prop;
   const flip = isProfile && c.facing === 'esq';
   // Espelha em torno do próprio eixo do personagem (hip.x), para funcionar
