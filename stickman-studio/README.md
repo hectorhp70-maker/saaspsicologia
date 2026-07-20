@@ -114,6 +114,37 @@ exportações. Use **Thumbnail PNG (2x)** para uma capa em alta da cena atual.
 > imagem. Este Diretor gera a **direção e a animação** do stickman (o que dá pra
 > automatizar no estúdio), não arte pintada.
 
+## 🎙️ Narração (voz) com edge-tts
+
+Dá pra gerar a **locução em pt-BR** das falas das cenas usando o
+[`edge-tts`](https://github.com/rany2/edge-tts) (TTS gratuito da Microsoft, sem
+chave). O script `tts/narrar.py` lê um **projeto** exportado pelo estúdio (JSON)
+ou um arquivo de **legendas** (`.srt`) e sintetiza um MP3 por fala.
+
+```bash
+cd stickman-studio/tts
+pip install -r requirements.txt          # ou: pip install edge-tts
+
+# a partir de um projeto do estúdio (usa as legendas das cenas)
+python narrar.py --project projeto-stickman.json --fps 24 --out narracao
+
+# a partir de um .srt, com voz feminina
+python narrar.py --srt legendas.srt --voz pt-BR-FranciscaNeural --out narracao
+
+python narrar.py --list-vozes           # vozes pt-BR sugeridas
+python narrar.py --project p.json --dry-run   # só mostra o plano
+```
+
+Vozes sugeridas: `pt-BR-AntonioNeural` (Anderson) e `pt-BR-FranciscaNeural`
+(Ana). Use `--rate` para acelerar/desacelerar (ex.: `--rate=-10%`). Com
+`--concat narracao.mp3` e o **ffmpeg** instalado, ele também junta tudo numa
+faixa só. Fluxo típico: exporte o vídeo `.webm` + as **legendas .srt** no
+estúdio, gere a narração aqui e junte áudio+vídeo no seu editor (ou com ffmpeg).
+
+> Observação: a síntese precisa de acesso ao serviço de voz da Microsoft — roda
+> direto na sua VPS/máquina. Em ambientes com proxy que bloqueia esse endpoint,
+> a chamada falha (só a rede; o script está correto).
+
 ## Como o boneco é construído (esqueleto paramétrico)
 
 Nenhuma coordenada de membro é fixa. Tudo é calculado por trigonometria a partir
