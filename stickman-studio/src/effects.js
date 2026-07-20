@@ -8,9 +8,14 @@ export const BACKGROUNDS = [
   { id: 'transparent', label: 'Transparente' },
   { id: 'dramatico', label: 'Dramático (escuro)' },
   { id: 'explosao', label: 'Explosão (raios)' },
+  { id: 'rua', label: 'Cenário: Rua' },
+  { id: 'parque', label: 'Cenário: Parque' },
+  { id: 'escritorio', label: 'Cenário: Escritório' },
+  { id: 'noite', label: 'Cenário: Cidade à noite' },
 ];
 
-export const DARK_BACKGROUNDS = ['dramatico', 'explosao'];
+export const DARK_BACKGROUNDS = ['dramatico', 'explosao', 'noite'];
+export const SCENARIOS = ['rua', 'parque', 'escritorio', 'noite'];
 
 // Objetos que o personagem pode segurar na mão.
 export const PROPS = [
@@ -36,6 +41,7 @@ export function backgroundSVG(id, w, h) {
   if (id === 'white') {
     return { defs: '', rect: `<rect x="0" y="0" width="${w}" height="${h}" fill="#ffffff"/>` };
   }
+  if (SCENARIOS.includes(id)) return scenarioSVG(id, w, h);
   const cx = w / 2;
   const cy = h * 0.42;
   const defs = `
@@ -61,6 +67,71 @@ export function backgroundSVG(id, w, h) {
     rect += `<g>${rays.join('')}</g>`;
   }
   return { defs, rect };
+}
+
+// Cenários vetoriais. Chão em ~0.84h para o personagem "pisar".
+function scenarioSVG(id, w, h) {
+  const g = h * 0.84; // linha do chão
+  const R = (x, y, ww, hh, fill) => `<rect x="${num(x)}" y="${num(y)}" width="${num(ww)}" height="${num(hh)}" fill="${fill}"/>`;
+  const C = (cx, cy, r, fill) => `<circle cx="${num(cx)}" cy="${num(cy)}" r="${num(r)}" fill="${fill}"/>`;
+
+  if (id === 'rua') {
+    const defs = `<linearGradient id="skyRua" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#8ecbf0"/><stop offset="100%" stop-color="#dff0fb"/></linearGradient>`;
+    const bld = (x, ww, hh, fill) => R(x, g - hh, ww, hh, fill) +
+      Array.from({ length: Math.floor(hh / 26) }, (_, r) =>
+        Array.from({ length: Math.floor(ww / 22) }, (_, cc) => R(x + 8 + cc * 22, g - hh + 10 + r * 26, 10, 14, '#bcd3e6')).join('')
+      ).join('');
+    const scene =
+      R(0, 0, w, h, 'url(#skyRua)') +
+      C(w * 0.82, h * 0.16, 26, '#ffe9a8') +
+      bld(w * 0.02, 90, 220, '#6d7f92') + bld(w * 0.3, 70, 160, '#8496a8') + bld(w * 0.62, 110, 250, '#5f7183') + bld(w * 0.86, 60, 190, '#7c8ea0') +
+      R(0, g, w, h - g, '#9aa3ab') + // calçada
+      R(0, g, w, 6, '#c3ccd3');
+    return { defs, rect: scene };
+  }
+
+  if (id === 'parque') {
+    const defs = `<linearGradient id="skyPq" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#9fd8f2"/><stop offset="100%" stop-color="#e6f6ff"/></linearGradient>`;
+    const tree = (x) => R(x - 7, g - 70, 14, 74, '#7a5230') + C(x, g - 88, 40, '#4a9d5a') + C(x - 28, g - 74, 28, '#57ab66') + C(x + 28, g - 74, 28, '#57ab66');
+    const scene =
+      R(0, 0, w, h, 'url(#skyPq)') +
+      C(w * 0.16, h * 0.16, 28, '#ffe58a') +
+      C(w * 0.62, h * 0.2, 20, '#ffffff') + C(w * 0.68, h * 0.2, 24, '#ffffff') + C(w * 0.74, h * 0.2, 18, '#ffffff') +
+      R(0, g, w, h - g, '#7cc36a') +
+      tree(w * 0.86) + tree(w * 0.08);
+    return { defs, rect: scene };
+  }
+
+  if (id === 'escritorio') {
+    const scene =
+      R(0, 0, w, h, '#d9cdb8') + // parede
+      R(w * 0.12, h * 0.16, w * 0.34, h * 0.32, '#a9c7dd') + // janela
+      R(w * 0.12, h * 0.16, w * 0.34, h * 0.32, 'none') +
+      `<rect x="${num(w * 0.12)}" y="${num(h * 0.16)}" width="${num(w * 0.34)}" height="${num(h * 0.32)}" fill="none" stroke="#8a7f6b" stroke-width="6"/>` +
+      `<line x1="${num(w * 0.29)}" y1="${num(h * 0.16)}" x2="${num(w * 0.29)}" y2="${num(h * 0.48)}" stroke="#8a7f6b" stroke-width="4"/>` +
+      `<line x1="${num(w * 0.12)}" y1="${num(h * 0.32)}" x2="${num(w * 0.46)}" y2="${num(h * 0.32)}" stroke="#8a7f6b" stroke-width="4"/>` +
+      C(w * 0.78, h * 0.34, 22, '#5aa06a') + R(w * 0.75, h * 0.34, 6, 50, '#7a5230') + // plantinha
+      R(0, g, w, h - g, '#b08d5c'); // piso
+    return { defs: '', rect: scene };
+  }
+
+  // noite (cidade)
+  const defs = `<linearGradient id="skyNoite" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b1030"/><stop offset="100%" stop-color="#2a2350"/></linearGradient>`;
+  const stars = Array.from({ length: 30 }, (_, i) => {
+    const x = ((i * 137) % w), y = ((i * 89) % (h * 0.6));
+    return C(x, y, 1.4, '#ffffff');
+  }).join('');
+  const bld = (x, ww, hh) => R(x, g - hh, ww, hh, '#141a33') +
+    Array.from({ length: Math.floor(hh / 24) }, (_, r) =>
+      Array.from({ length: Math.floor(ww / 20) }, (_, cc) => (((r + cc + x) | 0) % 2 ? R(x + 6 + cc * 20, g - hh + 8 + r * 24, 8, 12, '#ffd97a') : '')).join('')
+    ).join('');
+  const scene =
+    R(0, 0, w, h, 'url(#skyNoite)') +
+    C(w * 0.8, h * 0.16, 24, '#f4f0d0') +
+    stars +
+    bld(w * 0.02, 90, 240) + bld(w * 0.32, 70, 180) + bld(w * 0.6, 110, 260) + bld(w * 0.85, 70, 200) +
+    R(0, g, w, h - g, '#0a0d1c');
+  return { defs, rect: scene };
 }
 
 // --- Símbolos vetoriais -------------------------------------------------------

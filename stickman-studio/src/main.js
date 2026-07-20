@@ -170,6 +170,8 @@ function syncCharFields() {
   el('outfitSelect').value = state.character.outfit || (state.character.jacket ? 'paleto' : 'nenhum');
   el('outfitColor').value = state.character.outfitColor || state.character.jacketColor || '#2c3e50';
   el('propSelect').value = state.character.prop || 'none';
+  el('viewSelect').value = state.character.view || 'frente';
+  el('facingSelect').value = state.character.facing || 'dir';
 }
 
 function refreshCharSelect() {
@@ -595,6 +597,14 @@ function init() {
   });
   el('propSelect').addEventListener('change', (e) => {
     state.character.prop = e.target.value;
+    renderPreview();
+  });
+  el('viewSelect').addEventListener('change', (e) => {
+    state.character.view = e.target.value;
+    renderPreview();
+  });
+  el('facingSelect').addEventListener('change', (e) => {
+    state.character.facing = e.target.value;
     renderPreview();
   });
   el('saveChar').addEventListener('click', saveCurrentCharacter);

@@ -93,6 +93,28 @@ export const defaultAnimations = [
     ],
   },
   {
+    id: 'andar-lado',
+    nome: 'Andar (perfil)',
+    keyframes: [
+      { angles: { spineLean: 6, shoulderL: 22, elbowL: 18, shoulderR: -22, elbowR: 18, hipL: -24, kneeL: 22, hipR: 26, kneeR: 8 }, expression: 'neutro', frames: 7 },
+      { angles: { spineLean: 5, shoulderL: 6, elbowL: 14, shoulderR: -6, elbowR: 14, hipL: -6, kneeL: 55, hipR: 4, kneeR: 12 }, expression: 'neutro', frames: 7 },
+      { angles: { spineLean: 6, shoulderL: -22, elbowL: 18, shoulderR: 22, elbowR: 18, hipL: 26, kneeL: 8, hipR: -24, kneeR: 22 }, expression: 'neutro', frames: 7 },
+      { angles: { spineLean: 5, shoulderL: -6, elbowL: 14, shoulderR: 6, elbowR: 14, hipL: 4, kneeL: 12, hipR: -6, kneeR: 55 }, expression: 'neutro', frames: 7 },
+      { angles: { spineLean: 6, shoulderL: 22, elbowL: 18, shoulderR: -22, elbowR: 18, hipL: -24, kneeL: 22, hipR: 26, kneeR: 8 }, expression: 'neutro', frames: 7 },
+    ],
+  },
+  {
+    id: 'correr-lado',
+    nome: 'Correr (perfil)',
+    keyframes: [
+      { angles: { spineLean: 20, shoulderL: 55, elbowL: 80, shoulderR: -55, elbowR: 80, hipL: -40, kneeL: 80, hipR: 45, kneeR: 20 }, expression: 'neutro', frames: 5 },
+      { angles: { spineLean: 22, shoulderL: 25, elbowL: 90, shoulderR: -20, elbowR: 90, hipL: -15, kneeL: 40, hipR: 10, kneeR: 90 }, expression: 'neutro', frames: 5 },
+      { angles: { spineLean: 20, shoulderL: -55, elbowL: 80, shoulderR: 55, elbowR: 80, hipL: 45, kneeL: 20, hipR: -40, kneeR: 80 }, expression: 'neutro', frames: 5 },
+      { angles: { spineLean: 22, shoulderL: -20, elbowL: 90, shoulderR: 25, elbowR: 90, hipL: 10, kneeL: 90, hipR: -15, kneeR: 40 }, expression: 'neutro', frames: 5 },
+      { angles: { spineLean: 20, shoulderL: 55, elbowL: 80, shoulderR: -55, elbowR: 80, hipL: -40, kneeL: 80, hipR: 45, kneeR: 20 }, expression: 'neutro', frames: 5 },
+    ],
+  },
+  {
     id: 'think-shrug',
     nome: 'Pensar e dar de ombros',
     keyframes: [

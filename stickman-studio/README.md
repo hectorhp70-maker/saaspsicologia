@@ -58,6 +58,13 @@ npm run preview    # serve o build localmente
   surpreso, preocupado, furioso, tonto). O rosto acompanha a inclinação da
   cabeça e pode ser desligado no personagem (checkbox "Mostrar rosto"). A
   expressão é salva junto com a pose.
+- **Vista de lado (perfil) + direção**: além da vista de frente, o personagem
+  pode ser mostrado de perfil (rosto de lado com nariz), olhando para a direita
+  ou esquerda — ideal para andar/correr em cena.
+- **Movimentos humanizados**: animações prontas `Andar (perfil)` e
+  `Correr (perfil)` com ciclos de passada e balanço de braços naturais.
+- **Cenários**: fundos ilustrados com chão — `Rua`, `Parque`, `Escritório` e
+  `Cidade à noite`.
 - **Tema Surto Financeiro**: fundos `Dramático (escuro)` e `Explosão (raios)`,
   além do slider **💥 Efeito Surto** (0–10) que espalha dinheiro, moedas e
   cérebro ao redor da cabeça, com linhas de impacto e gotas de suor. Em fundo

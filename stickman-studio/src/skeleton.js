@@ -51,6 +51,8 @@ export const defaultCharacter = {
   jacketColor: '#2c3e50',
   outfit: 'nenhum',
   outfitColor: '#2c3e50',
+  view: 'frente', // 'frente' | 'lado' (perfil)
+  facing: 'dir', // 'dir' | 'esq' (direção que olha, no modo lado)
 };
 
 // Expressões faciais disponíveis (id + rótulo pt-BR).
@@ -465,6 +467,42 @@ export function faceToSVG(cx, cy, r, expression, rot, color, lineWidth) {
   return `<g transform="translate(${num(cx)} ${num(cy)}) rotate(${num(rot)})">${inner}</g>`;
 }
 
+// Rosto de PERFIL (olhando para a direita). O flip de direção é feito fora.
+export function profileFaceSVG(cx, cy, r, expression, rot, color, lineWidth) {
+  const lw = Math.max(1.6, lineWidth * 0.55);
+  const eyeX = r * 0.28, eyeY = -0.14 * r, eyeR = Math.max(1.8, 0.09 * r);
+  const stroke = `fill="none" stroke="${color}" stroke-width="${num(lw)}" stroke-linecap="round"`;
+  const mouthX = r * 0.42, mouthY = 0.36 * r, mw = 0.28 * r;
+  const nose = `<path d="M ${num(r * 0.96)} ${num(-0.06 * r)} L ${num(r * 1.16)} ${num(0.06 * r)} L ${num(r * 0.92)} ${num(0.16 * r)}" ${stroke} stroke-linejoin="round"/>`;
+  const eye = `<circle cx="${num(eyeX)}" cy="${num(eyeY)}" r="${num(eyeR)}" fill="${color}"/>`;
+  const brow = (dy1, dy2) => `<line x1="${num(eyeX - 0.14 * r)}" y1="${num(eyeY - 0.24 * r + dy1)}" x2="${num(eyeX + 0.16 * r)}" y2="${num(eyeY - 0.24 * r + dy2)}" ${stroke}/>`;
+  let mouth = `<line x1="${num(mouthX - mw)}" y1="${num(mouthY)}" x2="${num(mouthX + mw)}" y2="${num(mouthY)}" ${stroke}/>`;
+  let extra = '';
+  switch (expression) {
+    case 'feliz':
+      mouth = `<path d="M ${num(mouthX - mw)} ${num(mouthY)} Q ${num(mouthX)} ${num(mouthY + 0.22 * r)} ${num(mouthX + mw)} ${num(mouthY)}" ${stroke}/>`;
+      break;
+    case 'triste':
+    case 'preocupado':
+      mouth = `<path d="M ${num(mouthX - mw)} ${num(mouthY)} Q ${num(mouthX)} ${num(mouthY - 0.18 * r)} ${num(mouthX + mw)} ${num(mouthY)}" ${stroke}/>`;
+      extra = brow(0.12 * r, 0);
+      break;
+    case 'bravo':
+    case 'furioso':
+      mouth = `<path d="M ${num(mouthX - mw)} ${num(mouthY - 0.05 * r)} Q ${num(mouthX)} ${num(mouthY + 0.24 * r)} ${num(mouthX + mw)} ${num(mouthY - 0.05 * r)} Z" fill="${color}" ${''}/>`;
+      extra = brow(0, 0.16 * r);
+      break;
+    case 'surpreso':
+      mouth = `<circle cx="${num(mouthX)}" cy="${num(mouthY)}" r="${num(0.14 * r)}" ${stroke}/>`;
+      break;
+    case 'tonto':
+      extra = `<line x1="${num(eyeX - 0.1 * r)}" y1="${num(eyeY - 0.1 * r)}" x2="${num(eyeX + 0.1 * r)}" y2="${num(eyeY + 0.1 * r)}" ${stroke}/><line x1="${num(eyeX - 0.1 * r)}" y1="${num(eyeY + 0.1 * r)}" x2="${num(eyeX + 0.1 * r)}" y2="${num(eyeY - 0.1 * r)}" ${stroke}/>`;
+      break;
+  }
+  const eyeEl = expression === 'tonto' ? '' : eye;
+  return `<g transform="translate(${num(cx)} ${num(cy)}) rotate(${num(rot)})">${nose}${eyeEl}${extra}${mouth}</g>`;
+}
+
 // Gera a string SVG da pose atual.
 // options: {
 //   background: 'white'|'transparent'|'dramatico'|'explosao',
@@ -510,10 +548,13 @@ export function poseToSVG(pose, character, options = {}) {
 
   const expression = options.expression ?? 'neutro';
   const lean = normalizePose(pose).spineLean;
+  const isProfile = c.view === 'lado';
   const face =
     c.showFace === false
       ? ''
-      : faceToSVG(hc.x, hc.y, c.headRadius, expression, lean, color, c.lineWidth);
+      : isProfile
+        ? profileFaceSVG(hc.x, hc.y, c.headRadius, expression, lean, color, c.lineWidth)
+        : faceToSVG(hc.x, hc.y, c.headRadius, expression, lean, color, c.lineWidth);
 
   const fx = surtoLayer(hc.x, hc.y, c.headRadius, surto, phase);
   const prop =
@@ -532,21 +573,22 @@ export function poseToSVG(pose, character, options = {}) {
   const title = titleSVG(options.title, width, height);
   const caption = captionSVG(options.caption, width);
 
+  // Conjunto do personagem (pode ser espelhado para mudar a direção no perfil).
+  const figure =
+    halo +
+    `<g stroke="${color}" stroke-width="${c.lineWidth}" stroke-linecap="round" stroke-linejoin="round" fill="none">${lines}</g>` +
+    clothes + tie + hair.back + head + hair.front + face + dots + prop;
+  const flip = isProfile && c.facing === 'esq';
+  const figureWrapped = flip
+    ? `<g transform="translate(${num(width)} 0) scale(-1 1)">${figure}</g>`
+    : figure;
+
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">` +
     (defs ? `<defs>${defs}</defs>` : '') +
     rect +
     fx.back +
-    halo +
-    `<g stroke="${color}" stroke-width="${c.lineWidth}" stroke-linecap="round" stroke-linejoin="round" fill="none">${lines}</g>` +
-    clothes +
-    tie +
-    hair.back +
-    head +
-    hair.front +
-    face +
-    dots +
-    prop +
+    figureWrapped +
     fx.front +
     caption +
     title +
