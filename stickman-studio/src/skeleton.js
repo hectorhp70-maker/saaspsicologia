@@ -43,6 +43,8 @@ export const defaultCharacter = {
   showFace: true,
   tie: false, // gravata
   tieColor: '#c0392b',
+  hair: false, // cabelo
+  hairColor: '#20140a',
 };
 
 // Expressões faciais disponíveis (id + rótulo pt-BR).
@@ -160,6 +162,26 @@ function tieSVG(neck, hip, r, color) {
   const knot = poly([P(r * 0.12, w0 * 1.25), P(r * 0.12, -w0 * 1.25), P(r * 0.44, -w0), P(r * 0.44, w0)]);
   const body = poly([P(r * 0.44, w0), P(r * 0.44, -w0), P(r * 1.15, -w1), P(r * 1.48, 0), P(r * 1.15, w1)]);
   return knot + body;
+}
+
+// Cabelo (tufos) no topo da cabeça; acompanha a inclinação via `rot`.
+function hairSVG(cx, cy, r, color, rot, lineWidth) {
+  const lw = Math.max(2.5, lineWidth * 0.8);
+  const xs = [-0.58, -0.29, 0, 0.29, 0.58];
+  const strokes = xs
+    .map((fx) => {
+      const x = fx * r;
+      const by = -Math.sqrt(Math.max(0, r * r - x * x)) * 0.98; // ponto no arco de cima
+      const dir = fx <= 0 ? -1 : 1; // encaracola pra fora
+      const len = r * (0.46 + 0.12 * Math.cos(fx * 3));
+      const tx = x + dir * r * 0.2;
+      const ty = by - len;
+      const ctrlX = x + dir * r * 0.06;
+      const ctrlY = by - len * 0.55;
+      return `<path d="M ${num(x)} ${num(by)} Q ${num(ctrlX)} ${num(ctrlY)} ${num(tx)} ${num(ty)}" fill="none" stroke="${color}" stroke-width="${num(lw)}" stroke-linecap="round"/>`;
+    })
+    .join('');
+  return `<g transform="translate(${num(cx)} ${num(cy)}) rotate(${num(rot)})">${strokes}</g>`;
 }
 
 // Legenda (fala) no topo, com quebra de linha automática. Fica legível em
@@ -312,6 +334,7 @@ export function poseToSVG(pose, character, options = {}) {
 
   const fx = surtoLayer(hc.x, hc.y, c.headRadius, surto, phase);
   const tie = c.tie ? tieSVG(skel.points.neck, skel.points.hip, c.headRadius, c.tieColor || '#c0392b') : '';
+  const hair = c.hair ? hairSVG(hc.x, hc.y, c.headRadius, c.hairColor || '#20140a', lean, c.lineWidth) : '';
   const title = titleSVG(options.title, width, height);
   const caption = captionSVG(options.caption, width);
 
@@ -324,6 +347,7 @@ export function poseToSVG(pose, character, options = {}) {
     `<g stroke="${color}" stroke-width="${c.lineWidth}" stroke-linecap="round" stroke-linejoin="round" fill="none">${lines}</g>` +
     tie +
     head +
+    hair +
     face +
     dots +
     fx.front +
