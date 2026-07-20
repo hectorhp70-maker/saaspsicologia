@@ -135,6 +135,7 @@ export function scriptToTimeline(script, resolvePose) {
     frames: Math.max(2, Number(c.frames) || 12),
     bg: BACKGROUND_IDS.includes(c.fundo) ? c.fundo : null,
     surto: c.surto == null ? null : Math.max(0, Math.min(10, Number(c.surto))),
+    caption: c.narracao || c.legenda || null,
   }));
 }
 

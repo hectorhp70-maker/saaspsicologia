@@ -79,7 +79,7 @@ export async function exportPNGSequence(frames, character, options, onProgress) 
     const phase = frames.length > 1 ? i / frames.length : 0;
     const fbg = f.bg ?? options.background ?? 'white';
     const fsurto = f.surto ?? options.surto ?? 0;
-    const svg = poseToSVG(f.angles, character, { ...options, expression: f.expression, background: fbg, surto: fsurto, phase });
+    const svg = poseToSVG(f.angles, character, { ...options, expression: f.expression, background: fbg, surto: fsurto, caption: f.caption ?? null, phase });
     const canvas = await svgToCanvas(svg, width, height, fbg);
     const blob = await canvasToBlob(canvas, 'image/png');
     const name = `frame_${String(i + 1).padStart(pad, '0')}.png`;
@@ -113,7 +113,7 @@ export async function exportWebM(frames, character, options, fps = 12, onProgres
     const phase = frames.length > 1 ? i / frames.length : 0;
     const fbg = f.bg ?? options.background ?? 'white';
     const fsurto = f.surto ?? options.surto ?? 0;
-    const svg = poseToSVG(f.angles, character, { ...options, expression: f.expression, background: fbg, surto: fsurto, phase });
+    const svg = poseToSVG(f.angles, character, { ...options, expression: f.expression, background: fbg, surto: fsurto, caption: f.caption ?? null, phase });
     const c = await svgToCanvas(svg, width, height, fbg);
     images.push(c);
     bgs.push(fbg);

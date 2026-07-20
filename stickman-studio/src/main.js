@@ -148,6 +148,8 @@ function syncCharFields() {
   }
   el('colorInput').value = state.character.color || '#111111';
   el('showFace').checked = state.character.showFace !== false;
+  el('tieToggle').checked = !!state.character.tie;
+  el('tieColor').value = state.character.tieColor || '#c0392b';
 }
 
 function refreshCharSelect() {
@@ -336,7 +338,7 @@ function timelineFrames() {
   if (tl.length === 0) return [{ angles: { ...state.pose }, expression: state.expression, bg: null, surto: null }];
   if (tl.length === 1) {
     const k = tl[0];
-    return [{ angles: { ...k.angles }, expression: k.expression, bg: k.bg ?? null, surto: k.surto ?? null }];
+    return [{ angles: { ...k.angles }, expression: k.expression, bg: k.bg ?? null, surto: k.surto ?? null, caption: k.caption ?? null }];
   }
   const out = [];
   for (let i = 0; i < tl.length - 1; i++) {
@@ -347,7 +349,7 @@ function timelineFrames() {
     let frames = seg.map((a, k) => {
       const t = seg.length > 1 ? k / (seg.length - 1) : 0;
       const surto = hasSurto ? lerp(from.surto ?? 0, to.surto ?? from.surto ?? 0, t) : null;
-      return { angles: a, expression: from.expression, bg: from.bg ?? null, surto };
+      return { angles: a, expression: from.expression, bg: from.bg ?? null, surto, caption: from.caption ?? null };
     });
     if (i > 0) frames = frames.slice(1); // evita duplicar o quadro de junção
     out.push(...frames);
@@ -414,6 +416,7 @@ function playAnimation() {
       expression: f.expression,
       background: f.bg ?? opts.background,
       surto: f.surto ?? opts.surto,
+      caption: f.caption ?? null,
       phase,
     });
     i++;
@@ -497,6 +500,14 @@ function init() {
   el('showFace').addEventListener('change', (e) => {
     state.character.showFace = e.target.checked;
     renderPreview();
+  });
+  el('tieToggle').addEventListener('change', (e) => {
+    state.character.tie = e.target.checked;
+    renderPreview();
+  });
+  el('tieColor').addEventListener('input', (e) => {
+    state.character.tieColor = e.target.value;
+    if (state.character.tie) renderPreview();
   });
   el('saveChar').addEventListener('click', saveCurrentCharacter);
   el('resetChar').addEventListener('click', () => {

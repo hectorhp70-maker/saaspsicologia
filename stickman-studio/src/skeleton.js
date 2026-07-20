@@ -41,6 +41,8 @@ export const defaultCharacter = {
   jointRadius: 6, // "dot" nas mãos e pés
   color: '#111111',
   showFace: true,
+  tie: false, // gravata
+  tieColor: '#c0392b',
 };
 
 // Expressões faciais disponíveis (id + rótulo pt-BR).
@@ -143,6 +145,42 @@ function titleSVG(text, w, h) {
   const len = Math.max(6, text.length);
   const fs = Math.max(15, Math.min(32, (w * 0.92) / len * 1.55));
   return `<text x="${num(w / 2)}" y="${num(h - 22)}" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="${num(fs)}" text-anchor="middle" fill="#f6c945" stroke="#1a1206" stroke-width="4.5" paint-order="stroke" letter-spacing="0.5">${escapeXml(text)}</text>`;
+}
+
+// Gravata pendurada do pescoço ao peito (ao longo da coluna).
+function tieSVG(neck, hip, r, color) {
+  const dx = hip.x - neck.x, dy = hip.y - neck.y;
+  const L = Math.hypot(dx, dy) || 1;
+  const ux = dx / L, uy = dy / L; // desce pela coluna
+  const px = -uy, py = ux; // perpendicular
+  const P = (d, w) => ({ x: neck.x + ux * d + px * w, y: neck.y + uy * d + py * w });
+  const w0 = r * 0.14, w1 = r * 0.3;
+  const poly = (pts) =>
+    `<polygon points="${pts.map((p) => num(p.x) + ',' + num(p.y)).join(' ')}" fill="${color}" stroke="#00000055" stroke-width="1"/>`;
+  const knot = poly([P(r * 0.12, w0 * 1.25), P(r * 0.12, -w0 * 1.25), P(r * 0.44, -w0), P(r * 0.44, w0)]);
+  const body = poly([P(r * 0.44, w0), P(r * 0.44, -w0), P(r * 1.15, -w1), P(r * 1.48, 0), P(r * 1.15, w1)]);
+  return knot + body;
+}
+
+// Legenda (fala) no topo, com quebra de linha automática. Fica legível em
+// qualquer fundo (texto branco com contorno escuro).
+function captionSVG(text, w) {
+  if (!text) return '';
+  const words = String(text).split(/\s+/);
+  const lines = [];
+  let cur = '';
+  const max = 28;
+  for (const wd of words) {
+    if ((cur + ' ' + wd).trim().length > max) { lines.push(cur.trim()); cur = wd; }
+    else cur += ' ' + wd;
+  }
+  if (cur.trim()) lines.push(cur.trim());
+  const fs = 17, lh = fs * 1.3, y0 = 28;
+  const tspans = lines
+    .slice(0, 3)
+    .map((ln, i) => `<tspan x="${num(w / 2)}" y="${num(y0 + i * lh)}">${escapeXml(ln)}</tspan>`)
+    .join('');
+  return `<text text-anchor="middle" font-family="Arial, sans-serif" font-weight="700" font-size="${fs}" fill="#ffffff" stroke="#141414" stroke-width="3.5" paint-order="stroke">${tspans}</text>`;
 }
 
 // Desenha o rosto dentro da cabeça. Coordenadas locais (origem no centro da
@@ -273,7 +311,9 @@ export function poseToSVG(pose, character, options = {}) {
       : faceToSVG(hc.x, hc.y, c.headRadius, expression, lean, color, c.lineWidth);
 
   const fx = surtoLayer(hc.x, hc.y, c.headRadius, surto, phase);
+  const tie = c.tie ? tieSVG(skel.points.neck, skel.points.hip, c.headRadius, c.tieColor || '#c0392b') : '';
   const title = titleSVG(options.title, width, height);
+  const caption = captionSVG(options.caption, width);
 
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">` +
@@ -282,10 +322,12 @@ export function poseToSVG(pose, character, options = {}) {
     fx.back +
     halo +
     `<g stroke="${color}" stroke-width="${c.lineWidth}" stroke-linecap="round" stroke-linejoin="round" fill="none">${lines}</g>` +
+    tie +
     head +
     face +
     dots +
     fx.front +
+    caption +
     title +
     `</svg>`
   );
