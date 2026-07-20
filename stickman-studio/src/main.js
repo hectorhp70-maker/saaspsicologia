@@ -2,6 +2,7 @@
 // a timeline de quadros-chave e a exportação.
 
 import { ANGLE_KEYS, ANGLE_META, EXPRESSIONS, normalizePose, poseToSVG } from './skeleton.js';
+import { BACKGROUNDS } from './effects.js';
 import { defaultCharacters, CHARACTER_FIELDS, normalizeCharacter } from './characters.js';
 import { defaultPoses } from './poses.js';
 import { defaultAnimations, cloneKeyframes } from './animations.js';
@@ -21,6 +22,8 @@ const state = {
   expression: defaultPoses[0].expression || 'neutro',
   activePoseId: 'idle',
   timeline: [], // [{ angles, expression, frames }]
+  surto: 0, // intensidade do efeito Surto Financeiro (0..10)
+  phase: 0, // fase p/ animar os efeitos
   playing: false,
 };
 
@@ -35,6 +38,8 @@ function renderOptions() {
     background: el('bgSelect').value,
     color: el('colorInput').value,
     expression: state.expression,
+    surto: state.surto,
+    phase: state.phase,
     width: 400,
     height: 500,
   };
@@ -85,6 +90,21 @@ function buildExpressionSelect() {
   const sel = el('expressionSelect');
   sel.innerHTML = EXPRESSIONS.map((e) => `<option value="${e.id}">${e.label}</option>`).join('');
   sel.value = state.expression;
+}
+
+function buildBgSelect() {
+  const sel = el('bgSelect');
+  sel.innerHTML = BACKGROUNDS.map((b) => `<option value="${b.id}">${b.label}</option>`).join('');
+  sel.value = 'white';
+}
+
+// Anima os efeitos (partículas do surto) mesmo com a timeline parada.
+function startEffectTicker() {
+  setInterval(() => {
+    if (state.playing || state.surto <= 0) return;
+    state.phase = (state.phase + 0.012) % 1;
+    renderPreview();
+  }, 45);
 }
 
 // ---------- Personagens ----------
@@ -332,7 +352,8 @@ function playAnimation() {
   animTimer = setInterval(() => {
     if (!state.playing) return;
     const f = frames[i];
-    stage.innerHTML = poseToSVG(f.angles, state.character, { ...renderOptions(), expression: f.expression });
+    const phase = frames.length > 1 ? i / frames.length : 0;
+    stage.innerHTML = poseToSVG(f.angles, state.character, { ...renderOptions(), expression: f.expression, phase });
     i++;
     if (i >= frames.length) {
       if (loop) i = 0;
@@ -379,6 +400,7 @@ async function doExportWebm() {
 function init() {
   buildSliders();
   buildExpressionSelect();
+  buildBgSelect();
   buildCharFields();
   refreshCharSelect();
   refreshAnimSelect();
@@ -401,6 +423,12 @@ function init() {
     state.expression = e.target.value;
     renderPreview();
   });
+  el('surtoRange').addEventListener('input', (e) => {
+    state.surto = Number(e.target.value);
+    el('surtoVal').textContent = String(state.surto);
+    renderPreview();
+  });
+  startEffectTicker();
 
   // Personagem
   el('charSelect').addEventListener('change', (e) => applyCharacter(e.target.value));

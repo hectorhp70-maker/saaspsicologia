@@ -61,7 +61,8 @@ export async function exportPNGSequence(frames, character, options, onProgress) 
 
   for (let i = 0; i < frames.length; i++) {
     const f = frames[i];
-    const svg = poseToSVG(f.angles, character, { ...options, expression: f.expression });
+    const phase = frames.length > 1 ? i / frames.length : 0;
+    const svg = poseToSVG(f.angles, character, { ...options, expression: f.expression, phase });
     const canvas = await svgToCanvas(svg, width, height, bg);
     const blob = await canvasToBlob(canvas, 'image/png');
     const name = `frame_${String(i + 1).padStart(pad, '0')}.png`;
@@ -92,7 +93,8 @@ export async function exportWebM(frames, character, options, fps = 12, onProgres
   const images = [];
   for (let i = 0; i < frames.length; i++) {
     const f = frames[i];
-    const svg = poseToSVG(f.angles, character, { ...options, expression: f.expression });
+    const phase = frames.length > 1 ? i / frames.length : 0;
+    const svg = poseToSVG(f.angles, character, { ...options, expression: f.expression, phase });
     const c = await svgToCanvas(svg, width, height, bg);
     images.push(c);
   }

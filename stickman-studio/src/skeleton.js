@@ -13,6 +13,8 @@
 // comprimento. Não há coordenadas fixas de membros: trocar as proporções do
 // personagem (character) reaproveita as mesmas poses.
 
+import { backgroundSVG, surtoLayer, DARK_BACKGROUNDS } from './effects.js';
+
 const D2R = Math.PI / 180;
 
 // Projeta um ponto a partir de `p`, num `angulo` (graus) e `comprimento`.
@@ -49,6 +51,7 @@ export const EXPRESSIONS = [
   { id: 'bravo', label: 'Bravo' },
   { id: 'surpreso', label: 'Surpreso' },
   { id: 'preocupado', label: 'Preocupado' },
+  { id: 'furioso', label: 'Furioso (surto)' },
   { id: 'tonto', label: 'Tonto (X)' },
 ];
 
@@ -184,6 +187,18 @@ export function faceToSVG(cx, cy, r, expression, rot, color, lineWidth) {
         line(-eyeDX - 0.14 * r, browY + 0.14 * r, -eyeDX + 0.12 * r, browY) +
         line(eyeDX + 0.14 * r, browY + 0.14 * r, eyeDX - 0.12 * r, browY);
       break;
+    case 'furioso': {
+      // sobrancelhas em V acentuadas + boca aberta (grito) com dentes
+      const mouthOpen =
+        `<path d="M ${num(-mw * 0.9)} ${num(mouthY - 0.02 * r)} Q 0 ${num(mouthY - 0.14 * r)} ${num(mw * 0.9)} ${num(mouthY - 0.02 * r)} Q ${num(mw * 0.7)} ${num(mouthY + 0.3 * r)} 0 ${num(mouthY + 0.34 * r)} Q ${num(-mw * 0.7)} ${num(mouthY + 0.3 * r)} ${num(-mw * 0.9)} ${num(mouthY - 0.02 * r)} Z" fill="${color}" stroke="${color}" stroke-width="${num(lw * 0.6)}" stroke-linejoin="round"/>` +
+        `<line x1="${num(-mw * 0.7)}" y1="${num(mouthY + 0.02 * r)} " x2="${num(mw * 0.7)}" y2="${num(mouthY + 0.02 * r)}" fill="none" stroke="#ffffff" stroke-width="${num(lw * 0.5)}"/>`;
+      inner =
+        dot(-eyeDX, eyeY) + dot(eyeDX, eyeY) +
+        line(-eyeDX - 0.22 * r, browY - 0.04 * r, -eyeDX + 0.14 * r, browY + 0.22 * r) +
+        line(eyeDX + 0.22 * r, browY - 0.04 * r, eyeDX - 0.14 * r, browY + 0.22 * r) +
+        mouthOpen;
+      break;
+    }
     case 'tonto':
       inner = eyesX() + circleMouth();
       break;
@@ -196,35 +211,47 @@ export function faceToSVG(cx, cy, r, expression, rot, color, lineWidth) {
 }
 
 // Gera a string SVG da pose atual.
-// options: { background: 'white'|'transparent', color, width, height }
+// options: {
+//   background: 'white'|'transparent'|'dramatico'|'explosao',
+//   color, width, height,
+//   surto: 0..10 (intensidade do efeito Surto Financeiro),
+//   phase: 0..1 (fase p/ animar os efeitos),
+// }
 export function poseToSVG(pose, character, options = {}) {
   const width = options.width ?? 400;
   const height = options.height ?? 500;
   const bg = options.background ?? 'white';
+  const surto = options.surto ?? 0;
+  const phase = options.phase ?? 0;
   const skel = buildSkeleton(pose, character, width, height);
   const c = skel.character;
   const color = options.color ?? c.color ?? '#111111';
+  const isDark = DARK_BACKGROUNDS.includes(bg);
 
-  const bgRect =
-    bg === 'transparent'
-      ? ''
-      : `<rect x="0" y="0" width="${width}" height="${height}" fill="#ffffff"/>`;
+  const { defs, rect } = backgroundSVG(bg, width, height);
 
-  const lines = skel.segments
-    .map(
-      ([p1, p2]) =>
-        `<line x1="${num(p1.x)}" y1="${num(p1.y)}" x2="${num(p2.x)}" y2="${num(p2.y)}"/>`
-    )
-    .join('');
+  const lineStr = (p1, p2) =>
+    `<line x1="${num(p1.x)}" y1="${num(p1.y)}" x2="${num(p2.x)}" y2="${num(p2.y)}"/>`;
+  const lines = skel.segments.map(([p1, p2]) => lineStr(p1, p2)).join('');
 
   const dots = skel.dots
     .map((p) => `<circle cx="${num(p.x)}" cy="${num(p.y)}" r="${c.jointRadius}" fill="${color}"/>`)
     .join('');
 
   const hc = skel.points.headCenter;
-  const head = `<circle cx="${num(hc.x)}" cy="${num(
-    hc.y
-  )}" r="${c.headRadius}" fill="none" stroke="${color}" stroke-width="${c.lineWidth}"/>`;
+  // Em fundo escuro, dá tratamento "adesivo": halo claro atrás do corpo e
+  // cabeça preenchida (tom claro), para o personagem escuro se destacar.
+  const headFill = isDark ? '#f6efe1' : 'none';
+  let halo = '';
+  if (isDark) {
+    const haloW = c.lineWidth + 7;
+    halo =
+      `<g stroke="#ffffff" stroke-width="${haloW}" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.92">${lines}</g>` +
+      `<circle cx="${num(hc.x)}" cy="${num(hc.y)}" r="${c.headRadius}" fill="#ffffff" stroke="#ffffff" stroke-width="${haloW}"/>` +
+      skel.dots.map((p) => `<circle cx="${num(p.x)}" cy="${num(p.y)}" r="${c.jointRadius + haloW / 2}" fill="#ffffff"/>`).join('');
+  }
+
+  const head = `<circle cx="${num(hc.x)}" cy="${num(hc.y)}" r="${c.headRadius}" fill="${headFill}" stroke="${color}" stroke-width="${c.lineWidth}"/>`;
 
   const expression = options.expression ?? 'neutro';
   const lean = normalizePose(pose).spineLean;
@@ -233,5 +260,19 @@ export function poseToSVG(pose, character, options = {}) {
       ? ''
       : faceToSVG(hc.x, hc.y, c.headRadius, expression, lean, color, c.lineWidth);
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${bgRect}<g stroke="${color}" stroke-width="${c.lineWidth}" stroke-linecap="round" stroke-linejoin="round" fill="none">${lines}</g>${head}${face}${dots}</svg>`;
+  const fx = surtoLayer(hc.x, hc.y, c.headRadius, surto, phase);
+
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">` +
+    (defs ? `<defs>${defs}</defs>` : '') +
+    rect +
+    fx.back +
+    halo +
+    `<g stroke="${color}" stroke-width="${c.lineWidth}" stroke-linecap="round" stroke-linejoin="round" fill="none">${lines}</g>` +
+    head +
+    face +
+    dots +
+    fx.front +
+    `</svg>`
+  );
 }

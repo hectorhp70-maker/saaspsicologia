@@ -40,9 +40,14 @@ npm run preview    # serve o build localmente
 - **Editor de pose**: sliders para cada ângulo (ombro E/D, cotovelo E/D, quadril
   E/D, joelho E/D e inclinação da coluna) com preview SVG ao vivo.
 - **Expressões faciais**: seletor de rosto (neutro, feliz, triste, bravo,
-  surpreso, preocupado, tonto). O rosto acompanha a inclinação da cabeça e pode
-  ser desligado no personagem (checkbox "Mostrar rosto"). A expressão é salva
-  junto com a pose.
+  surpreso, preocupado, furioso, tonto). O rosto acompanha a inclinação da
+  cabeça e pode ser desligado no personagem (checkbox "Mostrar rosto"). A
+  expressão é salva junto com a pose.
+- **Tema Surto Financeiro**: fundos `Dramático (escuro)` e `Explosão (raios)`,
+  além do slider **💥 Efeito Surto** (0–10) que espalha dinheiro, moedas e
+  cérebro ao redor da cabeça, com linhas de impacto e gotas de suor. Em fundo
+  escuro o personagem ganha tratamento "adesivo" (contorno claro + cabeça
+  preenchida) para se destacar. Os efeitos animam ao vivo e nas exportações.
 - **Biblioteca de poses**: poses base prontas (`idle`, `wave`, `walk`, `run`,
   `jump`, `point`, `shrug`, `sit`, `think`) + criar/salvar poses customizadas
   com nome (persistidas no `localStorage`).
@@ -152,6 +157,7 @@ stickman-studio/
 │   ├── characters.js   # personagens base + campos editáveis
 │   ├── poses.js        # biblioteca de poses base (JSON)
 │   ├── animations.js   # animações prontas (timelines nomeadas)
+│   ├── effects.js      # tema Surto Financeiro (fundos + partículas)
 │   ├── interpolate.js  # interpolação linear entre poses
 │   ├── storage.js      # persistência (localStorage) + import/export JSON
 │   ├── export.js       # SVG / PNG(zip) / WebM
