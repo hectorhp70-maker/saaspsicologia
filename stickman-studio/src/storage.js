@@ -191,3 +191,21 @@ export function loadAIConfig() {
 export function saveAIConfig(cfg) {
   localStorage.setItem(AI_KEY, JSON.stringify(cfg || {}));
 }
+
+// ---------- Projeto completo (.json) ----------
+export function exportProjectFile(project) {
+  const data = JSON.stringify({ version: 1, ...project }, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'projeto-stickman.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export async function importProjectFile(file) {
+  const proj = JSON.parse(await file.text());
+  if (!proj || typeof proj !== 'object') throw new Error('Projeto inválido.');
+  return proj;
+}

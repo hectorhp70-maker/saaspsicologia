@@ -41,6 +41,12 @@
           </label>
         </div>
         <div id="charFields" class="char-fields"></div>
+        <div class="row">
+          <label class="col">
+            Objeto na mão
+            <select id="propSelect"></select>
+          </label>
+        </div>
         <label class="check-row">
           <input type="checkbox" id="showFace" checked />
           Mostrar rosto
@@ -179,6 +185,14 @@
           <button id="exportThumb" class="btn">Thumbnail PNG (2x)</button>
           <button id="exportPng" class="btn">PNG sequência (zip)</button>
           <button id="exportWebm" class="btn">Vídeo .webm</button>
+          <button id="exportSrt" class="btn ghost">Legendas .srt</button>
+        </div>
+        <div class="row wrap">
+          <button id="saveProject" class="btn ghost small">Salvar projeto (JSON)</button>
+          <label class="btn ghost small file-label">
+            Abrir projeto
+            <input type="file" id="loadProject" accept="application/json" hidden />
+          </label>
         </div>
         <p id="status" class="status"></p>
       </section>

@@ -37,7 +37,14 @@ npm run preview    # serve o build localmente
   acessórios (**gravata**, **cabelo** e **paletó**, cada um com cor), com
   preview ao vivo.
 - **Legendas por cena**: cada cena do roteiro pode ter uma legenda (fala) exibida
-  no topo, incluída nas exportações — ótimo para vídeos explicativos. Presets prontos (`Anderson`, `Magrelo`, `Forte`, `Mascote
+  no topo, incluída nas exportações — ótimo para vídeos explicativos.
+- **Objeto na mão**: o personagem pode segurar dinheiro, moeda, cartão, celular
+  ou uma sacola de $ (aparece na mão direita).
+- **Exportar legendas .SRT**: gera um arquivo de legendas sincronizado com o FPS
+  a partir das falas das cenas — pronto pro seu editor de vídeo.
+- **Salvar/Abrir projeto (.json)**: guarda tudo (personagem, timeline, título,
+  fundo, surto) num arquivo e recarrega depois.
+- **Preset "Anderson Executivo"**: personagem já com paletó + gravata + cabelo. Presets prontos (`Anderson`, `Magrelo`, `Forte`, `Mascote
   mini`) + criar/salvar personagens customizados (localStorage) e importar/
   exportar JSON. As poses valem para qualquer personagem.
 - **Editor de pose**: sliders para cada ângulo (ombro E/D, cotovelo E/D, quadril

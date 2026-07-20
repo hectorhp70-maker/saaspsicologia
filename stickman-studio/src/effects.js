@@ -12,6 +12,16 @@ export const BACKGROUNDS = [
 
 export const DARK_BACKGROUNDS = ['dramatico', 'explosao'];
 
+// Objetos que o personagem pode segurar na mão.
+export const PROPS = [
+  { id: 'none', label: 'Nenhum' },
+  { id: 'dinheiro', label: 'Dinheiro' },
+  { id: 'moeda', label: 'Moeda' },
+  { id: 'cartao', label: 'Cartão' },
+  { id: 'celular', label: 'Celular' },
+  { id: 'sacola', label: 'Sacola $' },
+];
+
 const num = (n) => Number(n.toFixed(2));
 
 // PRNG determinístico (hash de um inteiro -> 0..1).
@@ -82,6 +92,44 @@ function brain(x, y, s, rot) {
 
 function sweat(x, y, s) {
   return `<path d="M ${num(x)} ${num(y - s)} Q ${num(x + s * 0.7)} ${num(y + s * 0.2)} ${num(x)} ${num(y + s * 0.6)} Q ${num(x - s * 0.7)} ${num(y + s * 0.2)} ${num(x)} ${num(y - s)} Z" fill="#5fb8ec" stroke="#2f86c0" stroke-width="${num(s * 0.14)}"/>`;
+}
+
+// Objeto na mão (centralizado em x,y, tamanho base s). Vetorial, sem rotação.
+export function propSVG(x, y, s, type) {
+  const g = (inner) => `<g transform="translate(${num(x)} ${num(y)})">${inner}</g>`;
+  switch (type) {
+    case 'moeda':
+      return g(
+        `<circle r="${num(s * 0.6)}" fill="#f6c945" stroke="#a9781a" stroke-width="${num(s * 0.08)}"/>` +
+        `<circle r="${num(s * 0.44)}" fill="none" stroke="#d9a326" stroke-width="${num(s * 0.06)}"/>` +
+        `<text x="0" y="${num(s * 0.24)}" font-family="Arial, sans-serif" font-weight="bold" font-size="${num(s * 0.72)}" text-anchor="middle" fill="#7a5600">$</text>`
+      );
+    case 'cartao':
+      return g(
+        `<rect x="${num(-s * 0.75)}" y="${num(-s * 0.5)}" width="${num(s * 1.5)}" height="${num(s)}" rx="${num(s * 0.12)}" fill="#3477c9" stroke="#1f4e8a" stroke-width="${num(s * 0.07)}"/>` +
+        `<rect x="${num(-s * 0.75)}" y="${num(-s * 0.22)}" width="${num(s * 1.5)}" height="${num(s * 0.18)}" fill="#16324f"/>` +
+        `<rect x="${num(-s * 0.55)}" y="${num(s * 0.12)}" width="${num(s * 0.3)}" height="${num(s * 0.22)}" rx="${num(s * 0.04)}" fill="#f6c945"/>`
+      );
+    case 'celular':
+      return g(
+        `<rect x="${num(-s * 0.42)}" y="${num(-s * 0.72)}" width="${num(s * 0.84)}" height="${num(s * 1.44)}" rx="${num(s * 0.14)}" fill="#15181f" stroke="#000" stroke-width="${num(s * 0.06)}"/>` +
+        `<rect x="${num(-s * 0.32)}" y="${num(-s * 0.54)}" width="${num(s * 0.64)}" height="${num(s * 1.02)}" rx="${num(s * 0.05)}" fill="#8fd3a0"/>` +
+        `<text x="0" y="${num(s * 0.12)}" font-family="Arial, sans-serif" font-weight="bold" font-size="${num(s * 0.5)}" text-anchor="middle" fill="#1f5f27">$</text>`
+      );
+    case 'sacola':
+      return g(
+        `<path d="M ${num(-s * 0.6)} ${num(-s * 0.35)} Q 0 ${num(-s * 0.75)} ${num(s * 0.6)} ${num(-s * 0.35)} L ${num(s * 0.78)} ${num(s * 0.7)} Q 0 ${num(s * 0.95)} ${num(-s * 0.78)} ${num(s * 0.7)} Z" fill="#caa24a" stroke="#8a6d24" stroke-width="${num(s * 0.07)}"/>` +
+        `<path d="M ${num(-s * 0.6)} ${num(-s * 0.35)} Q 0 ${num(-s * 0.1)} ${num(s * 0.6)} ${num(-s * 0.35)}" fill="none" stroke="#8a6d24" stroke-width="${num(s * 0.07)}"/>` +
+        `<text x="0" y="${num(s * 0.45)}" font-family="Arial, sans-serif" font-weight="bold" font-size="${num(s * 0.7)}" text-anchor="middle" fill="#5f4a12">$</text>`
+      );
+    case 'dinheiro':
+    default:
+      return g(
+        `<rect x="${num(-s * 0.8)}" y="${num(-s * 0.48)}" width="${num(s * 1.6)}" height="${num(s * 0.96)}" rx="${num(s * 0.1)}" fill="#79c47a" stroke="#2f7d38" stroke-width="${num(s * 0.08)}"/>` +
+        `<circle r="${num(s * 0.28)}" fill="none" stroke="#2f7d38" stroke-width="${num(s * 0.06)}"/>` +
+        `<text x="0" y="${num(s * 0.22)}" font-family="Arial, sans-serif" font-weight="bold" font-size="${num(s * 0.6)}" text-anchor="middle" fill="#1f5f27">$</text>`
+      );
+  }
 }
 
 // Camada de "surto" em volta da cabeça. Retorna { back, front }:

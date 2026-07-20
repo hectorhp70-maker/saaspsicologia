@@ -13,6 +13,34 @@ function download(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
+// --- Legendas .SRT -----------------------------------------------------------
+function srtTime(sec) {
+  const ms = Math.round(sec * 1000);
+  const h = String(Math.floor(ms / 3600000)).padStart(2, '0');
+  const m = String(Math.floor((ms % 3600000) / 60000)).padStart(2, '0');
+  const s = String(Math.floor((ms % 60000) / 1000)).padStart(2, '0');
+  const mmm = String(ms % 1000).padStart(3, '0');
+  return `${h}:${m}:${s},${mmm}`;
+}
+
+// Gera um .SRT a partir dos quadros-chave (legenda + duração até o próximo) e o FPS.
+export function exportSRT(timeline, fps) {
+  const parts = [];
+  let t = 0;
+  let idx = 1;
+  for (let i = 0; i < timeline.length - 1; i++) {
+    const kf = timeline[i];
+    const dur = (kf.frames || 12) / fps;
+    const cap = (kf.caption || '').trim();
+    if (cap) {
+      parts.push(`${idx++}\n${srtTime(t)} --> ${srtTime(t + dur)}\n${cap}\n`);
+    }
+    t += dur;
+  }
+  if (!parts.length) throw new Error('Nenhuma legenda nos quadros-chave.');
+  download(new Blob([parts.join('\n')], { type: 'text/plain;charset=utf-8' }), 'legendas.srt');
+}
+
 // --- SVG único ---------------------------------------------------------------
 export function exportSVG(pose, character, options) {
   const svg = poseToSVG(pose, character, options);

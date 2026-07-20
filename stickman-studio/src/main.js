@@ -2,7 +2,7 @@
 // a timeline de quadros-chave e a exportação.
 
 import { ANGLE_KEYS, ANGLE_META, EXPRESSIONS, normalizePose, poseToSVG } from './skeleton.js';
-import { BACKGROUNDS } from './effects.js';
+import { BACKGROUNDS, PROPS } from './effects.js';
 import { defaultCharacters, CHARACTER_FIELDS, normalizeCharacter } from './characters.js';
 import { defaultPoses } from './poses.js';
 import { defaultAnimations, cloneKeyframes } from './animations.js';
@@ -13,8 +13,9 @@ import {
   loadCustomCharacters, upsertCustomCharacter, removeCustomCharacter, exportCustomCharactersFile, importCustomCharactersFile,
   loadCustomAnimations, upsertCustomAnimation, removeCustomAnimation, exportCustomAnimationsFile, importCustomAnimationsFile,
   loadAIConfig, saveAIConfig,
+  exportProjectFile, importProjectFile,
 } from './storage.js';
-import { exportSVG, exportThumbnail, exportPNGSequence, exportWebM } from './export.js';
+import { exportSVG, exportThumbnail, exportPNGSequence, exportWebM, exportSRT } from './export.js';
 
 // ---------- Estado ----------
 const state = {
@@ -121,6 +122,12 @@ function isActiveCharCustom() {
   return loadCustomCharacters().some((c) => c.id === state.activeCharacterId);
 }
 
+function buildPropSelect() {
+  const sel = el('propSelect');
+  sel.innerHTML = PROPS.map((p) => `<option value="${p.id}">${p.label}</option>`).join('');
+  sel.value = state.character.prop || 'none';
+}
+
 function buildCharFields() {
   const container = el('charFields');
   container.innerHTML = '';
@@ -154,6 +161,7 @@ function syncCharFields() {
   el('hairColor').value = state.character.hairColor || '#20140a';
   el('jacketToggle').checked = !!state.character.jacket;
   el('jacketColor').value = state.character.jacketColor || '#2c3e50';
+  el('propSelect').value = state.character.prop || 'none';
 }
 
 function refreshCharSelect() {
@@ -400,6 +408,46 @@ async function generateWithAI() {
   }
 }
 
+// ---------- Projeto (salvar/abrir) ----------
+function currentProject() {
+  return {
+    character: state.character,
+    timeline: state.timeline,
+    titulo: state.titulo,
+    background: el('bgSelect').value,
+    surto: state.surto,
+  };
+}
+
+function applyProject(proj) {
+  if (proj.character) {
+    state.character = normalizeCharacter(proj.character);
+    state.activeCharacterId = proj.character.id || 'custom';
+  }
+  state.timeline = Array.isArray(proj.timeline) ? proj.timeline : [];
+  state.titulo = proj.titulo || '';
+  state.surto = Number(proj.surto) || 0;
+  if (proj.background) el('bgSelect').value = proj.background;
+
+  syncCharFields();
+  buildPropSelect();
+  refreshCharSelect();
+  el('titleInput').value = state.titulo;
+  el('surtoRange').value = state.surto;
+  el('surtoVal').textContent = String(Math.round(state.surto));
+
+  const first = state.timeline[0];
+  if (first) {
+    state.pose = normalizePose(first.angles);
+    state.expression = first.expression || 'neutro';
+    state.activePoseId = null;
+    syncSliders();
+    el('expressionSelect').value = state.expression;
+  }
+  renderTimeline();
+  renderPreview();
+}
+
 // ---------- Animação (preview) ----------
 let animTimer = null;
 function playAnimation() {
@@ -471,6 +519,7 @@ function init() {
   buildExpressionSelect();
   buildBgSelect();
   buildCharFields();
+  buildPropSelect();
   refreshCharSelect();
   refreshAnimSelect();
   renderPoseList();
@@ -528,6 +577,10 @@ function init() {
   el('jacketColor').addEventListener('input', (e) => {
     state.character.jacketColor = e.target.value;
     if (state.character.jacket) renderPreview();
+  });
+  el('propSelect').addEventListener('change', (e) => {
+    state.character.prop = e.target.value;
+    renderPreview();
   });
   el('saveChar').addEventListener('click', saveCurrentCharacter);
   el('resetChar').addEventListener('click', () => {
@@ -659,6 +712,29 @@ function init() {
   });
   el('exportPng').addEventListener('click', doExportPng);
   el('exportWebm').addEventListener('click', doExportWebm);
+  el('exportSrt').addEventListener('click', () => {
+    try {
+      exportSRT(state.timeline, Number(el('fps').value) || 12);
+      setStatus('Legendas .srt exportadas.');
+    } catch (e) {
+      setStatus('SRT: ' + e.message);
+    }
+  });
+  el('saveProject').addEventListener('click', () => {
+    exportProjectFile(currentProject());
+    setStatus('Projeto salvo (JSON).');
+  });
+  el('loadProject').addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      applyProject(await importProjectFile(file));
+      setStatus('Projeto carregado.');
+    } catch (err) {
+      setStatus('Erro ao abrir projeto: ' + err.message);
+    }
+    e.target.value = '';
+  });
 }
 
 init();

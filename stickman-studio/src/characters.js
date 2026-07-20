@@ -8,6 +8,17 @@ import { defaultCharacter } from './skeleton.js';
 export const defaultCharacters = [
   { ...defaultCharacter },
   {
+    ...defaultCharacter,
+    id: 'anderson-exec',
+    nome: 'Anderson Executivo',
+    hair: true,
+    hairColor: '#20140a',
+    tie: true,
+    tieColor: '#c0392b',
+    jacket: true,
+    jacketColor: '#2c3e50',
+  },
+  {
     id: 'magrelo',
     nome: 'Magrelo (alto e fino)',
     headRadius: 26,

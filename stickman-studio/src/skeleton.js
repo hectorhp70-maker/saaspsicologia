@@ -13,7 +13,7 @@
 // comprimento. Não há coordenadas fixas de membros: trocar as proporções do
 // personagem (character) reaproveita as mesmas poses.
 
-import { backgroundSVG, surtoLayer, DARK_BACKGROUNDS } from './effects.js';
+import { backgroundSVG, surtoLayer, propSVG, DARK_BACKGROUNDS } from './effects.js';
 
 const D2R = Math.PI / 180;
 
@@ -41,6 +41,7 @@ export const defaultCharacter = {
   jointRadius: 6, // "dot" nas mãos e pés
   color: '#111111',
   showFace: true,
+  prop: 'none', // objeto na mão
   tie: false, // gravata
   tieColor: '#c0392b',
   hair: false, // cabelo
@@ -369,6 +370,10 @@ export function poseToSVG(pose, character, options = {}) {
   const jacket = c.jacket ? jacketSVG(skel.points.neck, skel.points.hip, c.headRadius, c.jacketColor || '#2c3e50') : '';
   const tie = c.tie ? tieSVG(skel.points.neck, skel.points.hip, c.headRadius, c.tieColor || '#c0392b') : '';
   const hair = c.hair ? hairSVG(hc.x, hc.y, c.headRadius, c.hairColor || '#20140a', lean, c.lineWidth) : '';
+  const prop =
+    c.prop && c.prop !== 'none'
+      ? propSVG(skel.points.handR.x, skel.points.handR.y, c.headRadius * 0.8, c.prop)
+      : '';
   const title = titleSVG(options.title, width, height);
   const caption = captionSVG(options.caption, width);
 
@@ -385,6 +390,7 @@ export function poseToSVG(pose, character, options = {}) {
     hair +
     face +
     dots +
+    prop +
     fx.front +
     caption +
     title +
