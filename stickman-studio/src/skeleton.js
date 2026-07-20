@@ -354,24 +354,25 @@ function hairSVG(style, cx, cy, r, color, rot, lineWidth) {
         strand(`M ${num(0.05 * r)} ${num(-0.6 * r)} Q ${num(0.35 * r)} ${num(-0.85 * r)} ${num(0.6 * r)} ${num(-0.55 * r)}`);
       break;
     case 'baguncado': {
-      // massa cheia (preenchida) com franja irregular + fios espetados por cima
-      const A = arc(206), B = arc(-26);
-      const fringe = [[0.66, -0.32], [0.52, -0.62], [0.36, -0.36], [0.19, -0.64], [0.0, -0.38], [-0.19, -0.66], [-0.36, -0.38], [-0.52, -0.62], [-0.66, -0.34]];
-      const fringeD = fringe.map((p) => `L ${num(p[0] * r)} ${num(p[1] * r)}`).join(' ');
-      const cap = pth(`M ${num(B.x)} ${num(B.y)} A ${num(r)} ${num(r)} 0 0 0 ${num(A.x)} ${num(A.y)} ${fringeD} Z`, color);
-      // fios espetados saindo da massa
-      const tuft = [-0.64, -0.46, -0.28, -0.1, 0.08, 0.28, 0.46, 0.64];
-      const lens = [0.5, 0.78, 0.58, 0.82, 0.66, 0.8, 0.56, 0.5];
-      const spikes = tuft.map((fx, i) => {
+      // muitos fios individuais (denso, estilo caneta) — sem massa preenchida
+      const rr = (s) => { const x = Math.sin(s * 91.7 + 13.1) * 43758.5453; return x - Math.floor(x); };
+      const hairLine = (fx, spread, layer) => {
         const x = fx * r;
-        const by = -Math.sqrt(Math.max(0, r * r - x * x)) * 0.98;
-        const dir = fx < 0 ? -1 : 1;
-        const len = r * lens[i];
-        const tx = x + dir * r * 0.16 + (i % 2 ? r * 0.05 : -r * 0.05);
-        return `<path d="M ${num(x)} ${num(by)} Q ${num(x + dir * r * 0.03)} ${num(by - len * 0.6)} ${num(tx)} ${num(by - len)}" fill="none" stroke="${color}" stroke-width="${num(lw)}" stroke-linecap="round"/>`;
-      }).join('');
-      front = cap + spikes +
-        strand(`M ${num(-0.42 * r)} ${num(-0.5 * r)} Q ${num(-0.05 * r)} ${num(-0.66 * r)} ${num(0.3 * r)} ${num(-0.46 * r)}`);
+        const inset = layer === 1 ? 0.86 : 0.99; // camada de baixo começa mais dentro
+        const by = -Math.sqrt(Math.max(0, r * r - x * x)) * inset;
+        const dir = fx < -0.08 ? -1 : fx > 0.08 ? 1 : (rr(fx * 7) > 0.5 ? 1 : -1);
+        const len = r * (0.4 + 0.5 * rr(fx * 3 + layer));
+        const bend = dir * r * (0.08 + 0.16 * rr(fx * 5 + layer)) * spread;
+        const tx = x + bend, ty = by - len;
+        const cxp = x + bend * 0.35, cyp = by - len * 0.62;
+        return `<path d="M ${num(x)} ${num(by)} Q ${num(cxp)} ${num(cyp)} ${num(tx)} ${num(ty)}" fill="none" stroke="${color}" stroke-width="${num(lw)}" stroke-linecap="round"/>`;
+      };
+      const N = 20;
+      let out = '';
+      // camada de baixo (mais curta, preenche entre) + camada de cima (fios longos)
+      for (let i = 0; i < N; i++) out += hairLine(-0.82 + (1.64 * i) / (N - 1), 0.7, 1);
+      for (let i = 0; i < N; i++) out += hairLine(-0.8 + (1.6 * (i + 0.5)) / (N - 1), 1, 2);
+      front = out;
       break;
     }
     case 'repartido': {
