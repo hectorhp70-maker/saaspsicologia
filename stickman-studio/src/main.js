@@ -4,10 +4,12 @@
 import { ANGLE_KEYS, ANGLE_META, EXPRESSIONS, normalizePose, poseToSVG } from './skeleton.js';
 import { defaultCharacters, CHARACTER_FIELDS, normalizeCharacter } from './characters.js';
 import { defaultPoses } from './poses.js';
+import { defaultAnimations, cloneKeyframes } from './animations.js';
 import { interpolatePoses } from './interpolate.js';
 import {
   loadCustomPoses, upsertCustomPose, removeCustomPose, exportCustomPosesFile, importCustomPosesFile,
   loadCustomCharacters, upsertCustomCharacter, removeCustomCharacter, exportCustomCharactersFile, importCustomCharactersFile,
+  loadCustomAnimations, upsertCustomAnimation, removeCustomAnimation, exportCustomAnimationsFile, importCustomAnimationsFile,
 } from './storage.js';
 import { exportSVG, exportPNGSequence, exportWebM } from './export.js';
 
@@ -208,6 +210,51 @@ function saveCurrentPose() {
   setStatus(`Pose "${nome}" salva localmente.`);
 }
 
+// ---------- Animações prontas ----------
+function allAnimations() {
+  const custom = loadCustomAnimations().map((a) => ({ ...a, custom: true }));
+  return [...defaultAnimations.map((a) => ({ ...a, custom: false })), ...custom];
+}
+
+function activeAnimId() {
+  return el('animSelect').value;
+}
+
+function isActiveAnimCustom() {
+  return loadCustomAnimations().some((a) => a.id === activeAnimId());
+}
+
+function refreshAnimSelect() {
+  const sel = el('animSelect');
+  const prev = sel.value;
+  sel.innerHTML = allAnimations()
+    .map((a) => `<option value="${a.id}">${a.nome || a.id}${a.custom ? ' (custom)' : ''}</option>`)
+    .join('');
+  if (allAnimations().some((a) => a.id === prev)) sel.value = prev;
+  el('delAnim').disabled = !isActiveAnimCustom();
+}
+
+function loadAnimation() {
+  const anim = allAnimations().find((a) => a.id === activeAnimId());
+  if (!anim) return;
+  state.timeline = cloneKeyframes(anim);
+  renderTimeline();
+  setStatus(`Animação "${anim.nome}" carregada na timeline.`);
+}
+
+function saveTimelineAsAnimation() {
+  const nome = el('animName').value.trim();
+  if (!nome) { setStatus('Dê um nome para a animação antes de salvar.'); return; }
+  if (state.timeline.length < 2) { setStatus('Adicione ao menos 2 quadros-chave.'); return; }
+  const id = slugify(nome) + '-' + Date.now().toString(36).slice(-4);
+  upsertCustomAnimation({ id, nome, keyframes: cloneKeyframes({ keyframes: state.timeline }) });
+  el('animName').value = '';
+  refreshAnimSelect();
+  el('animSelect').value = id;
+  el('delAnim').disabled = false;
+  setStatus(`Animação "${nome}" salva localmente.`);
+}
+
 // ---------- Timeline de quadros-chave ----------
 function addKeyframe() {
   state.timeline.push({ angles: { ...state.pose }, expression: state.expression, frames: 16 });
@@ -334,6 +381,7 @@ function init() {
   buildExpressionSelect();
   buildCharFields();
   refreshCharSelect();
+  refreshAnimSelect();
   renderPoseList();
 
   // timeline inicial de demonstração: idle -> wave
@@ -407,6 +455,32 @@ function init() {
       await importCustomPosesFile(file);
       renderPoseList();
       setStatus('Poses importadas.');
+    } catch (err) {
+      setStatus('Erro ao importar: ' + err.message);
+    }
+    e.target.value = '';
+  });
+
+  // Animações prontas
+  el('animSelect').addEventListener('change', () => {
+    el('delAnim').disabled = !isActiveAnimCustom();
+  });
+  el('loadAnim').addEventListener('click', loadAnimation);
+  el('saveAnim').addEventListener('click', saveTimelineAsAnimation);
+  el('delAnim').addEventListener('click', () => {
+    if (!isActiveAnimCustom()) return;
+    removeCustomAnimation(activeAnimId());
+    refreshAnimSelect();
+    setStatus('Animação excluída.');
+  });
+  el('exportAnimsJson').addEventListener('click', exportCustomAnimationsFile);
+  el('importAnimsJson').addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      await importCustomAnimationsFile(file);
+      refreshAnimSelect();
+      setStatus('Animações importadas.');
     } catch (err) {
       setStatus('Erro ao importar: ' + err.message);
     }

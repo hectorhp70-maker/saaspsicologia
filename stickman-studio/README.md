@@ -44,6 +44,10 @@ npm run preview    # serve o build localmente
   consecutivos é interpolado linearmente (com o número de quadros ajustável por
   trecho). Pré-visualização com FPS e loop. Cada trecho usa a expressão do seu
   quadro-chave inicial.
+- **Animações prontas**: presets que preenchem a timeline com um clique
+  (respiração parada, aceno, caminhada e corrida em loop, comemoração, susto
+  financeiro, pensar/dar de ombros). Dá para salvar a timeline atual como uma
+  animação nova (localStorage) e importar/exportar em JSON.
 - **Exportação**:
   - SVG único da pose atual;
   - Sequência de PNGs em `.zip` (400×500, fundo branco ou transparente);
@@ -140,6 +144,7 @@ stickman-studio/
 │   ├── skeleton.js     # esqueleto paramétrico + geração de SVG
 │   ├── characters.js   # personagens base + campos editáveis
 │   ├── poses.js        # biblioteca de poses base (JSON)
+│   ├── animations.js   # animações prontas (timelines nomeadas)
 │   ├── interpolate.js  # interpolação linear entre poses
 │   ├── storage.js      # persistência (localStorage) + import/export JSON
 │   ├── export.js       # SVG / PNG(zip) / WebM

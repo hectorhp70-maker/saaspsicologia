@@ -3,6 +3,7 @@
 
 const KEY = 'stickman-studio:custom-poses:v1';
 const CHAR_KEY = 'stickman-studio:custom-characters:v1';
+const ANIM_KEY = 'stickman-studio:custom-animations:v1';
 
 export function loadCustomPoses() {
   try {
@@ -118,4 +119,61 @@ export async function importCustomCharactersFile(file) {
   }
   saveCustomCharacters(chars);
   return chars;
+}
+
+// ---------- Animações customizadas ----------
+export function loadCustomAnimations() {
+  try {
+    const raw = localStorage.getItem(ANIM_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveCustomAnimations(anims) {
+  localStorage.setItem(ANIM_KEY, JSON.stringify(anims));
+}
+
+export function upsertCustomAnimation(anim) {
+  const anims = loadCustomAnimations();
+  const idx = anims.findIndex((x) => x.id === anim.id);
+  if (idx >= 0) anims[idx] = anim;
+  else anims.push(anim);
+  saveCustomAnimations(anims);
+  return anims;
+}
+
+export function removeCustomAnimation(id) {
+  const anims = loadCustomAnimations().filter((x) => x.id !== id);
+  saveCustomAnimations(anims);
+  return anims;
+}
+
+export function exportCustomAnimationsFile() {
+  const data = JSON.stringify(loadCustomAnimations(), null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'animacoes-customizadas.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export async function importCustomAnimationsFile(file) {
+  const text = await file.text();
+  const arr = JSON.parse(text);
+  if (!Array.isArray(arr)) throw new Error('JSON inválido: esperado um array de animações.');
+  let anims = loadCustomAnimations();
+  for (const an of arr) {
+    if (!an.id || !Array.isArray(an.keyframes)) continue;
+    const idx = anims.findIndex((x) => x.id === an.id);
+    if (idx >= 0) anims[idx] = an;
+    else anims.push(an);
+  }
+  saveCustomAnimations(anims);
+  return anims;
 }

@@ -91,6 +91,27 @@
           </label>
         </div>
 
+        <h2>Animações prontas</h2>
+        <div class="row">
+          <label class="col">
+            Animação
+            <select id="animSelect"></select>
+          </label>
+          <button id="loadAnim" class="btn">Carregar</button>
+        </div>
+        <div class="row">
+          <input type="text" id="animName" placeholder="Salvar timeline atual como..." />
+          <button id="saveAnim" class="btn">Salvar</button>
+        </div>
+        <div class="row">
+          <button id="delAnim" class="btn ghost small">Excluir</button>
+          <button id="exportAnimsJson" class="btn ghost small">Exportar (JSON)</button>
+          <label class="btn ghost small file-label">
+            Importar
+            <input type="file" id="importAnimsJson" accept="application/json" hidden />
+          </label>
+        </div>
+
         <h2>Animação (quadros-chave)</h2>
         <p class="hint">
           Monte a pose no editor e clique em <b>+ Adicionar quadro-chave</b>. A
