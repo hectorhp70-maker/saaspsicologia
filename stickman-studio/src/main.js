@@ -152,6 +152,8 @@ function syncCharFields() {
   el('tieColor').value = state.character.tieColor || '#c0392b';
   el('hairToggle').checked = !!state.character.hair;
   el('hairColor').value = state.character.hairColor || '#20140a';
+  el('jacketToggle').checked = !!state.character.jacket;
+  el('jacketColor').value = state.character.jacketColor || '#2c3e50';
 }
 
 function refreshCharSelect() {
@@ -518,6 +520,14 @@ function init() {
   el('hairColor').addEventListener('input', (e) => {
     state.character.hairColor = e.target.value;
     if (state.character.hair) renderPreview();
+  });
+  el('jacketToggle').addEventListener('change', (e) => {
+    state.character.jacket = e.target.checked;
+    renderPreview();
+  });
+  el('jacketColor').addEventListener('input', (e) => {
+    state.character.jacketColor = e.target.value;
+    if (state.character.jacket) renderPreview();
   });
   el('saveChar').addEventListener('click', saveCurrentCharacter);
   el('resetChar').addEventListener('click', () => {

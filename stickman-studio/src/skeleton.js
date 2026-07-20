@@ -45,6 +45,8 @@ export const defaultCharacter = {
   tieColor: '#c0392b',
   hair: false, // cabelo
   hairColor: '#20140a',
+  jacket: false, // paletó
+  jacketColor: '#2c3e50',
 };
 
 // Expressões faciais disponíveis (id + rótulo pt-BR).
@@ -147,6 +149,37 @@ function titleSVG(text, w, h) {
   const len = Math.max(6, text.length);
   const fs = Math.max(15, Math.min(32, (w * 0.92) / len * 1.55));
   return `<text x="${num(w / 2)}" y="${num(h - 22)}" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="${num(fs)}" text-anchor="middle" fill="#f6c945" stroke="#1a1206" stroke-width="4.5" paint-order="stroke" letter-spacing="0.5">${escapeXml(text)}</text>`;
+}
+
+// Clareia/escurece uma cor hex (#rrggbb) por `amt` (-255..255).
+function shade(hex, amt) {
+  const n = String(hex).replace('#', '');
+  const v = parseInt(n.length === 3 ? n.split('').map((c) => c + c).join('') : n, 16);
+  const cl = (x) => Math.max(0, Math.min(255, x));
+  const r = cl((v >> 16) + amt), g = cl(((v >> 8) & 0xff) + amt), b = cl((v & 0xff) + amt);
+  return '#' + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
+}
+
+// Paletó/blazer sobre o tronco (pescoço -> quadril), com decote em V, camisa,
+// lapelas e linha de botões. Construído no eixo da coluna (acompanha a inclinação).
+function jacketSVG(neck, hip, r, color) {
+  const dx = hip.x - neck.x, dy = hip.y - neck.y;
+  const L = Math.hypot(dx, dy) || 1;
+  const ux = dx / L, uy = dy / L, px = -uy, py = ux;
+  const P = (d, w) => ({ x: neck.x + ux * d + px * w, y: neck.y + uy * d + py * w });
+  const Wt = r * 1.05, Wh = r * 0.82;
+  const pts = (arr) => arr.map((p) => num(p.x) + ',' + num(p.y)).join(' ');
+  const darker = shade(color, -28);
+
+  const A = P(0, Wt), B = P(0, -Wt), C = P(L * 0.98, -Wh), D = P(L * 0.98, Wh);
+  const body = `<polygon points="${pts([A, B, C, D])}" fill="${color}" stroke="#00000055" stroke-width="1.5"/>`;
+
+  const cL = P(L * 0.02, Wt * 0.5), cR = P(L * 0.02, -Wt * 0.5), vB = P(L * 0.5, 0);
+  const shirt = `<polygon points="${pts([cL, cR, vB])}" fill="#f2ede2"/>`;
+  const lapels = `<path d="M ${num(A.x)} ${num(A.y)} L ${num(vB.x)} ${num(vB.y)} L ${num(B.x)} ${num(B.y)}" fill="none" stroke="${darker}" stroke-width="${num(r * 0.12)}" stroke-linejoin="round"/>`;
+  const bBot = P(L * 0.9, 0);
+  const button = `<line x1="${num(vB.x)}" y1="${num(vB.y)}" x2="${num(bBot.x)}" y2="${num(bBot.y)}" stroke="${darker}" stroke-width="${num(r * 0.07)}"/>`;
+  return body + shirt + lapels + button;
 }
 
 // Gravata pendurada do pescoço ao peito (ao longo da coluna).
@@ -333,6 +366,7 @@ export function poseToSVG(pose, character, options = {}) {
       : faceToSVG(hc.x, hc.y, c.headRadius, expression, lean, color, c.lineWidth);
 
   const fx = surtoLayer(hc.x, hc.y, c.headRadius, surto, phase);
+  const jacket = c.jacket ? jacketSVG(skel.points.neck, skel.points.hip, c.headRadius, c.jacketColor || '#2c3e50') : '';
   const tie = c.tie ? tieSVG(skel.points.neck, skel.points.hip, c.headRadius, c.tieColor || '#c0392b') : '';
   const hair = c.hair ? hairSVG(hc.x, hc.y, c.headRadius, c.hairColor || '#20140a', lean, c.lineWidth) : '';
   const title = titleSVG(options.title, width, height);
@@ -345,6 +379,7 @@ export function poseToSVG(pose, character, options = {}) {
     fx.back +
     halo +
     `<g stroke="${color}" stroke-width="${c.lineWidth}" stroke-linecap="round" stroke-linejoin="round" fill="none">${lines}</g>` +
+    jacket +
     tie +
     head +
     hair +

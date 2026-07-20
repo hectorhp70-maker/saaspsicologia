@@ -34,7 +34,8 @@ npm run preview    # serve o build localmente
 
 - **Editor de personagem**: troque as proporções (raio da cabeça, coluna, braço,
   antebraço, coxa, canela, espessura do traço, tamanho das mãos/pés), a cor, e
-  acessórios (**gravata** com cor), com preview ao vivo.
+  acessórios (**gravata**, **cabelo** e **paletó**, cada um com cor), com
+  preview ao vivo.
 - **Legendas por cena**: cada cena do roteiro pode ter uma legenda (fala) exibida
   no topo, incluída nas exportações — ótimo para vídeos explicativos. Presets prontos (`Anderson`, `Magrelo`, `Forte`, `Mascote
   mini`) + criar/salvar personagens customizados (localStorage) e importar/
