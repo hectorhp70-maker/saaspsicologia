@@ -532,12 +532,27 @@ const DLG_POSE = {
 const setDlgStatus = (m) => { el('dlgStatus').textContent = m; };
 let dlgTimer = null;
 
+const CAST_LETTERS = ['A', 'B', 'C', 'D'];
 function buildDialogueSelects() {
-  const opts = allCharacters().map((c) => `<option value="${c.id}">${c.nome || c.id}</option>`).join('');
-  el('dlgCharA').innerHTML = opts;
-  el('dlgCharB').innerHTML = opts;
-  el('dlgCharA').value = 'anderson-exec';
-  el('dlgCharB').value = 'ana-poupanca';
+  const chars = allCharacters();
+  const optsWith = (comNenhum) =>
+    (comNenhum ? '<option value="nenhum">— (nenhum)</option>' : '') +
+    chars.map((c) => `<option value="${c.id}">${c.nome || c.id}</option>`).join('');
+  const defaults = { A: { id: 'anderson-exec', pos: 32 }, B: { id: 'ana-poupanca', pos: 68 }, C: { id: 'nenhum', pos: 20 }, D: { id: 'nenhum', pos: 82 } };
+  const cast = el('dlgCast');
+  cast.innerHTML = '';
+  for (const L of CAST_LETTERS) {
+    const row = document.createElement('div');
+    row.className = 'row';
+    const podeNenhum = L === 'C' || L === 'D';
+    row.innerHTML = `<span class="kf-idx" style="width:14px">${L}</span>
+      <select id="dlgChar_${L}" style="flex:2">${optsWith(podeNenhum)}</select>
+      <input type="range" id="dlgPos_${L}" min="10" max="90" value="${defaults[L].pos}" title="Posição na cena" style="flex:1" />`;
+    cast.appendChild(row);
+    el(`dlgChar_${L}`).value = defaults[L].id;
+  }
+  el('dlgBg').innerHTML = BACKGROUNDS.map((b) => `<option value="${b.id}">${b.label}</option>`).join('');
+  el('dlgBg').value = 'escritorio';
 }
 
 function dlgMatchExpr(t) {
@@ -553,63 +568,85 @@ function dlgMatchExpr(t) {
 
 function parseDialogue(text) {
   const linhas = [];
+  const digitMap = { 1: 'A', 2: 'B', 3: 'C', 4: 'D' };
   for (const raw of text.split('\n')) {
-    const m = raw.match(/^\s*([ABab12])\s*:\s*(.+)$/);
+    const m = raw.match(/^\s*([A-Da-d1-4])\s*:\s*(.+)$/);
     if (!m) continue;
-    const quem = /[A1a]/.test(m[1]) ? 'A' : 'B';
-    const texto = m[2].trim();
-    linhas.push({ quem, texto, expr: dlgMatchExpr(texto) });
+    const c = m[1].toUpperCase();
+    const quem = digitMap[c] || c;
+    linhas.push({ quem, texto: m[2].trim(), expr: dlgMatchExpr(m[2].trim()) });
   }
   return linhas;
 }
 
-function dlgCharacters() {
-  const A = normalizeCharacter({ ...allCharacters().find((c) => c.id === el('dlgCharA').value), view: 'lado', facing: 'dir' });
-  const B = normalizeCharacter({ ...allCharacters().find((c) => c.id === el('dlgCharB').value), view: 'lado', facing: 'esq' });
-  return { A, B };
+// Elenco ativo do diálogo (slots A–D não vazios), com posição e direção.
+function dlgCast() {
+  const out = [];
+  for (const L of CAST_LETTERS) {
+    const id = el(`dlgChar_${L}`).value;
+    if (id === 'nenhum') continue;
+    const pos = Number(el(`dlgPos_${L}`).value);
+    const base = allCharacters().find((c) => c.id === id);
+    if (!base) continue;
+    out.push({
+      letter: L,
+      pos,
+      nome: base.nome || L,
+      character: normalizeCharacter({ ...base, view: 'lado', facing: pos < 50 ? 'dir' : 'esq' }),
+    });
+  }
+  return out;
 }
 
 // Gera as strings SVG (frames) do diálogo + a lista de legendas por fala.
 function buildDialogue() {
   const linhas = parseDialogue(el('dlgScript').value);
-  if (!linhas.length) return { svgs: [], legendas: [] };
-  const { A, B } = dlgCharacters();
-  const nomeA = A.nome || 'A', nomeB = B.nome || 'B';
+  const cast = dlgCast();
+  if (!linhas.length || !cast.length) return { svgs: [], legendas: [] };
+  const byLetter = Object.fromEntries(cast.map((c) => [c.letter, c]));
   const hold = Math.max(8, Number(el('dlgFrames').value) || 40);
-  const bg = el('bgSelect').value;
-  const title = state.titulo;
-  const OX_A = DLG_W * 0.34, OX_B = DLG_W * 0.66;
+  const bg = el('dlgBg').value;
+  const title = el('dlgTitle').value;
 
-  const frame = (poseA, poseB, quem, expr, texto) =>
+  const frame = (poses, quem, expr, texto) =>
     composeScene({
       background: bg, width: DLG_W, height: DLG_H, title,
-      caption: `${quem === 'A' ? nomeA : nomeB}: ${texto}`,
-      figuras: [
-        { pose: poseA, character: A, expression: quem === 'A' ? expr : 'neutro', originX: OX_A },
-        { pose: poseB, character: B, expression: quem === 'B' ? expr : 'neutro', originX: OX_B },
-      ],
+      caption: `${byLetter[quem] ? byLetter[quem].nome : quem}: ${texto}`,
+      figuras: cast.map((c) => ({
+        pose: poses[c.letter],
+        character: c.character,
+        expression: c.letter === quem ? expr : 'neutro',
+        originX: (DLG_W * c.pos) / 100,
+      })),
     });
 
   const svgs = [];
   const legendas = [];
-  let prevA = DLG_POSE.idle, prevB = DLG_POSE.idle;
+  const prev = {};
+  cast.forEach((c) => (prev[c.letter] = DLG_POSE.idle));
   for (const { quem, texto, expr } of linhas) {
-    const targetA = quem === 'A' ? DLG_POSE.fala : DLG_POSE.idle;
-    const targetB = quem === 'B' ? DLG_POSE.fala : DLG_POSE.idle;
-    const segA = interpolatePoses(normalizePose(prevA), normalizePose(targetA), DLG_TR);
-    const segB = interpolatePoses(normalizePose(prevB), normalizePose(targetB), DLG_TR);
+    if (!byLetter[quem]) continue; // fala de personagem inativo — ignora
+    const target = {};
+    cast.forEach((c) => (target[c.letter] = c.letter === quem ? DLG_POSE.fala : DLG_POSE.idle));
+    const segs = {};
+    cast.forEach((c) => (segs[c.letter] = interpolatePoses(normalizePose(prev[c.letter]), normalizePose(target[c.letter]), DLG_TR)));
     for (let k = 0; k < DLG_TR; k++) {
       if (k === 0 && svgs.length) continue;
-      svgs.push(frame(segA[k], segB[k], quem, expr, texto));
+      const poses = {};
+      cast.forEach((c) => (poses[c.letter] = segs[c.letter][k]));
+      svgs.push(frame(poses, quem, expr, texto));
     }
     for (let h = 0; h < hold; h++) {
-      const a = { ...targetA }, b = { ...targetB };
-      if (quem === 'A') a.spineLean += Math.sin(h / 5) * 2;
-      else b.spineLean += Math.sin(h / 5) * 2;
-      svgs.push(frame(a, b, quem, expr, texto));
+      const poses = {};
+      cast.forEach((c) => {
+        const p = { ...target[c.letter] };
+        if (c.letter === quem) p.spineLean += Math.sin(h / 5) * 2;
+        poses[c.letter] = p;
+      });
+      svgs.push(frame(poses, quem, expr, texto));
     }
-    legendas.push({ caption: `${quem === 'A' ? nomeA : nomeB}: ${texto}`, frames: DLG_TR + hold });
-    prevA = targetA; prevB = targetB;
+    legendas.push({ caption: `${byLetter[quem].nome}: ${texto}`, frames: DLG_TR + hold });
+    cast.forEach((c) => (prev[c.letter] = target[c.letter]));
   }
   return { svgs, legendas };
 }

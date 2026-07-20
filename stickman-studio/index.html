@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Stickman Studio — Surto Financeiro</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='7' r='4' fill='none' stroke='%23111' stroke-width='2'/%3E%3Cpath d='M16 11 V21 M16 14 L10 18 M16 14 L22 18 M16 21 L11 30 M16 21 L21 30' stroke='%23111' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E" />
     <link rel="stylesheet" href="/src/styles.css" />
   </head>
   <body>
@@ -123,18 +124,19 @@
           <button id="savePose" class="btn">Salvar</button>
         </div>
 
-        <h2 style="margin-top:22px">💬 Diálogo (2 personagens)</h2>
+        <h2 style="margin-top:22px">💬 Diálogo (até 4 personagens)</h2>
+        <div id="dlgCast"></div>
         <div class="row">
           <label class="col">
-            Personagem A (esq.)
-            <select id="dlgCharA"></select>
+            Cenário do diálogo
+            <select id="dlgBg"></select>
           </label>
           <label class="col">
-            Personagem B (dir.)
-            <select id="dlgCharB"></select>
+            Título do diálogo
+            <input type="text" id="dlgTitle" placeholder="(sem título)" />
           </label>
         </div>
-        <p class="hint">Uma fala por linha, no formato <b>A: texto</b> ou <b>B: texto</b>. O fundo/cenário e o título usam os controles da esquerda.</p>
+        <p class="hint">Uma fala por linha, no formato <b>A:</b>, <b>B:</b>, <b>C:</b> ou <b>D: texto</b>. Ajuste a posição de cada personagem no elenco (eles viram para o centro automaticamente).</p>
         <textarea id="dlgScript" class="ai-prompt" rows="5" placeholder="A: Ana, não sobra nada no fim do mês?
 B: É que eu pago todo mundo antes de pagar a mim mesma.
 A: Separe a reserva assim que o salário cai.
