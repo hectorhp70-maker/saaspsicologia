@@ -39,6 +39,10 @@
           </label>
         </div>
         <div id="charFields" class="char-fields"></div>
+        <label class="check-row">
+          <input type="checkbox" id="showFace" checked />
+          Mostrar rosto
+        </label>
         <div class="row">
           <input type="text" id="charName" placeholder="Nome do novo personagem" />
           <button id="saveChar" class="btn">Salvar</button>
@@ -57,6 +61,12 @@
       <!-- Coluna central: editor de pose -->
       <section class="panel editor-panel">
         <h2>Editor de pose</h2>
+        <div class="row">
+          <label class="col">
+            Expressão do rosto
+            <select id="expressionSelect"></select>
+          </label>
+        </div>
         <div id="sliders" class="sliders"></div>
         <div class="row">
           <button id="resetPose" class="btn ghost">Zerar ângulos</button>
@@ -81,25 +91,24 @@
           </label>
         </div>
 
-        <h2>Animação (interpolação)</h2>
+        <h2>Animação (quadros-chave)</h2>
+        <p class="hint">
+          Monte a pose no editor e clique em <b>+ Adicionar quadro-chave</b>. A
+          animação interpola cada trecho entre quadros consecutivos.
+        </p>
+        <ol id="timeline" class="timeline"></ol>
         <div class="row">
-          <label class="col">
-            Pose inicial
-            <select id="fromPose"></select>
-          </label>
-          <label class="col">
-            Pose final
-            <select id="toPose"></select>
-          </label>
+          <button id="addKeyframe" class="btn">+ Adicionar quadro-chave</button>
+          <button id="clearTimeline" class="btn ghost small">Limpar</button>
         </div>
         <div class="row">
           <label class="col">
-            Quadros
-            <input type="number" id="frames" value="24" min="2" max="240" />
-          </label>
-          <label class="col">
             FPS
             <input type="number" id="fps" value="12" min="1" max="60" />
+          </label>
+          <label class="check-row" style="flex:1">
+            <input type="checkbox" id="loopAnim" checked />
+            Repetir (loop)
           </label>
         </div>
         <div class="row">

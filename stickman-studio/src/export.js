@@ -60,7 +60,8 @@ export async function exportPNGSequence(frames, character, options, onProgress) 
   const pad = String(frames.length).length;
 
   for (let i = 0; i < frames.length; i++) {
-    const svg = poseToSVG(frames[i], character, options);
+    const f = frames[i];
+    const svg = poseToSVG(f.angles, character, { ...options, expression: f.expression });
     const canvas = await svgToCanvas(svg, width, height, bg);
     const blob = await canvasToBlob(canvas, 'image/png');
     const name = `frame_${String(i + 1).padStart(pad, '0')}.png`;
@@ -90,7 +91,8 @@ export async function exportWebM(frames, character, options, fps = 12, onProgres
   // Pré-renderiza cada frame como imagem para desenho síncrono.
   const images = [];
   for (let i = 0; i < frames.length; i++) {
-    const svg = poseToSVG(frames[i], character, options);
+    const f = frames[i];
+    const svg = poseToSVG(f.angles, character, { ...options, expression: f.expression });
     const c = await svgToCanvas(svg, width, height, bg);
     images.push(c);
   }

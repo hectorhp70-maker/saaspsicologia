@@ -32,12 +32,18 @@ npm run preview    # serve o build localmente
   exportar JSON. As poses valem para qualquer personagem.
 - **Editor de pose**: sliders para cada ângulo (ombro E/D, cotovelo E/D, quadril
   E/D, joelho E/D e inclinação da coluna) com preview SVG ao vivo.
+- **Expressões faciais**: seletor de rosto (neutro, feliz, triste, bravo,
+  surpreso, preocupado, tonto). O rosto acompanha a inclinação da cabeça e pode
+  ser desligado no personagem (checkbox "Mostrar rosto"). A expressão é salva
+  junto com a pose.
 - **Biblioteca de poses**: poses base prontas (`idle`, `wave`, `walk`, `run`,
   `jump`, `point`, `shrug`, `sit`, `think`) + criar/salvar poses customizadas
   com nome (persistidas no `localStorage`).
-- **Interpolação**: escolha pose inicial e final + número de quadros e o app gera
-  os frames intermediários por interpolação linear dos ângulos. Botão para
-  pré-visualizar a animação.
+- **Animação por quadros-chave (timeline)**: monte uma pose no editor e clique em
+  **+ Adicionar quadro-chave** quantas vezes quiser. Cada trecho entre quadros
+  consecutivos é interpolado linearmente (com o número de quadros ajustável por
+  trecho). Pré-visualização com FPS e loop. Cada trecho usa a expressão do seu
+  quadro-chave inicial.
 - **Exportação**:
   - SVG único da pose atual;
   - Sequência de PNGs em `.zip` (400×500, fundo branco ou transparente);
@@ -78,6 +84,7 @@ Edite `src/poses.js` e adicione um objeto no array `defaultPoses`:
 {
   id: 'facepalm',            // id único
   nome: 'Facepalm',          // rótulo exibido
+  expression: 'preocupado',  // opcional (padrão: 'neutro')
   angles: {
     spineLean: 0,
     shoulderL: -12, elbowL: 8,

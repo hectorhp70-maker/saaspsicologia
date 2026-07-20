@@ -1,6 +1,7 @@
-// main.js — orquestra o editor, a biblioteca de poses, a animação e a exportação.
+// main.js — orquestra o editor, os personagens, a biblioteca de poses,
+// a timeline de quadros-chave e a exportação.
 
-import { defaultCharacter, ANGLE_KEYS, ANGLE_META, normalizePose, poseToSVG } from './skeleton.js';
+import { ANGLE_KEYS, ANGLE_META, EXPRESSIONS, normalizePose, poseToSVG } from './skeleton.js';
 import { defaultCharacters, CHARACTER_FIELDS, normalizeCharacter } from './characters.js';
 import { defaultPoses } from './poses.js';
 import { interpolatePoses } from './interpolate.js';
@@ -15,18 +16,23 @@ const state = {
   character: normalizeCharacter(defaultCharacters[0]),
   activeCharacterId: defaultCharacters[0].id,
   pose: normalizePose(defaultPoses[0].angles),
+  expression: defaultPoses[0].expression || 'neutro',
   activePoseId: 'idle',
+  timeline: [], // [{ angles, expression, frames }]
   playing: false,
 };
 
 const el = (id) => document.getElementById(id);
 const stage = el('stage');
 const statusEl = el('status');
+const exprLabel = (id) => (EXPRESSIONS.find((e) => e.id === id) || {}).label || id;
+function setStatus(msg) { statusEl.textContent = msg; }
 
 function renderOptions() {
   return {
     background: el('bgSelect').value,
     color: el('colorInput').value,
+    expression: state.expression,
     width: 400,
     height: 500,
   };
@@ -36,7 +42,12 @@ function renderPreview() {
   stage.innerHTML = poseToSVG(state.pose, state.character, renderOptions());
 }
 
-// ---------- Sliders ----------
+function slugify(s) {
+  return s.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'item';
+}
+
+// ---------- Sliders + expressão ----------
 function buildSliders() {
   const container = el('sliders');
   container.innerHTML = '';
@@ -66,6 +77,12 @@ function syncSliders() {
       el(`val_${key}`).textContent = `${Math.round(state.pose[key])}°`;
     }
   }
+}
+
+function buildExpressionSelect() {
+  const sel = el('expressionSelect');
+  sel.innerHTML = EXPRESSIONS.map((e) => `<option value="${e.id}">${e.label}</option>`).join('');
+  sel.value = state.expression;
 }
 
 // ---------- Personagens ----------
@@ -104,6 +121,7 @@ function syncCharFields() {
     if (input) input.value = state.character[f.key];
   }
   el('colorInput').value = state.character.color || '#111111';
+  el('showFace').checked = state.character.showFace !== false;
 }
 
 function refreshCharSelect() {
@@ -127,10 +145,7 @@ function applyCharacter(id) {
 
 function saveCurrentCharacter() {
   const nome = el('charName').value.trim();
-  if (!nome) {
-    setStatus('Dê um nome para o personagem antes de salvar.');
-    return;
-  }
+  if (!nome) { setStatus('Dê um nome para o personagem antes de salvar.'); return; }
   const id = slugify(nome) + '-' + Date.now().toString(36).slice(-4);
   const char = normalizeCharacter({ ...state.character, id, nome });
   upsertCustomCharacter(char);
@@ -141,7 +156,7 @@ function saveCurrentCharacter() {
   setStatus(`Personagem "${nome}" salvo localmente.`);
 }
 
-// ---------- Biblioteca ----------
+// ---------- Biblioteca de poses ----------
 function allPoses() {
   const custom = loadCustomPoses().map((p) => ({ ...p, custom: true }));
   return [...defaultPoses.map((p) => ({ ...p, custom: false })), ...custom];
@@ -149,8 +164,10 @@ function allPoses() {
 
 function applyPose(pose, id) {
   state.pose = normalizePose(pose.angles);
+  state.expression = pose.expression || 'neutro';
   state.activePoseId = id;
   syncSliders();
+  el('expressionSelect').value = state.expression;
   renderPreview();
   renderPoseList();
 }
@@ -176,44 +193,104 @@ function renderPoseList() {
     b.addEventListener('click', () => {
       removeCustomPose(b.dataset.del);
       renderPoseList();
-      refreshAnimSelectors();
     })
   );
 }
 
-// ---------- Seletores de animação ----------
-function refreshAnimSelectors() {
-  const poses = allPoses();
-  for (const selId of ['fromPose', 'toPose']) {
-    const sel = el(selId);
-    const prev = sel.value;
-    sel.innerHTML = poses.map((p) => `<option value="${p.id}">${p.nome || p.id}</option>`).join('');
-    if (poses.some((p) => p.id === prev)) sel.value = prev;
-  }
-  el('fromPose').value = 'idle';
-  el('toPose').value = 'wave';
+function saveCurrentPose() {
+  const nome = el('poseName').value.trim();
+  if (!nome) { setStatus('Dê um nome para a pose antes de salvar.'); return; }
+  const id = slugify(nome) + '-' + Date.now().toString(36).slice(-4);
+  upsertCustomPose({ id, nome, expression: state.expression, angles: { ...state.pose } });
+  el('poseName').value = '';
+  state.activePoseId = id;
+  renderPoseList();
+  setStatus(`Pose "${nome}" salva localmente.`);
 }
 
-function getFrames() {
-  const poses = allPoses();
-  const from = poses.find((p) => p.id === el('fromPose').value)?.angles;
-  const to = poses.find((p) => p.id === el('toPose').value)?.angles;
-  const n = Number(el('frames').value) || 24;
-  return interpolatePoses(normalizePose(from || {}), normalizePose(to || {}), n);
+// ---------- Timeline de quadros-chave ----------
+function addKeyframe() {
+  state.timeline.push({ angles: { ...state.pose }, expression: state.expression, frames: 16 });
+  renderTimeline();
+  setStatus(`Quadro-chave ${state.timeline.length} adicionado.`);
+}
+
+function renderTimeline() {
+  const ol = el('timeline');
+  ol.innerHTML = '';
+  state.timeline.forEach((kf, i) => {
+    const isLast = i === state.timeline.length - 1;
+    const li = document.createElement('li');
+    li.innerHTML = `
+      <span class="kf-idx">${i + 1}</span>
+      <span class="kf-name"><b>${exprLabel(kf.expression)}</b> · incl. ${Math.round(kf.angles.spineLean)}°</span>
+      <span class="kf-frames">${isLast ? '' : `<input type="number" min="2" max="240" value="${kf.frames}" data-frames="${i}" title="Quadros até o próximo" />`}</span>
+      <span class="kf-actions">
+        <button class="mini" data-apply="${i}" title="Carregar no editor">✎</button>
+        <button class="mini del" data-del="${i}" title="Remover">✕</button>
+      </span>`;
+    ol.appendChild(li);
+  });
+
+  ol.querySelectorAll('input[data-frames]').forEach((inp) =>
+    inp.addEventListener('input', () => {
+      state.timeline[Number(inp.dataset.frames)].frames = Math.max(2, Number(inp.value) || 2);
+    })
+  );
+  ol.querySelectorAll('[data-apply]').forEach((b) =>
+    b.addEventListener('click', () => {
+      const kf = state.timeline[Number(b.dataset.apply)];
+      state.pose = normalizePose(kf.angles);
+      state.expression = kf.expression;
+      state.activePoseId = null;
+      syncSliders();
+      el('expressionSelect').value = state.expression;
+      renderPreview();
+      renderPoseList();
+    })
+  );
+  ol.querySelectorAll('[data-del]').forEach((b) =>
+    b.addEventListener('click', () => {
+      state.timeline.splice(Number(b.dataset.del), 1);
+      renderTimeline();
+    })
+  );
+}
+
+// Concatena a interpolação de cada trecho. Retorna [{ angles, expression }].
+function timelineFrames() {
+  const tl = state.timeline;
+  if (tl.length === 0) return [{ angles: { ...state.pose }, expression: state.expression }];
+  if (tl.length === 1) return [{ angles: { ...tl[0].angles }, expression: tl[0].expression }];
+  const out = [];
+  for (let i = 0; i < tl.length - 1; i++) {
+    const seg = interpolatePoses(normalizePose(tl[i].angles), normalizePose(tl[i + 1].angles), tl[i].frames);
+    let frames = seg.map((a) => ({ angles: a, expression: tl[i].expression }));
+    if (i > 0) frames = frames.slice(1); // evita duplicar o quadro de junção
+    out.push(...frames);
+  }
+  return out;
 }
 
 // ---------- Animação (preview) ----------
 let animTimer = null;
 function playAnimation() {
   stopAnimation();
-  const frames = getFrames();
+  const frames = timelineFrames();
+  if (frames.length === 0) return;
   const fps = Number(el('fps').value) || 12;
+  const loop = el('loopAnim').checked;
   state.playing = true;
   let i = 0;
   animTimer = setInterval(() => {
     if (!state.playing) return;
-    stage.innerHTML = poseToSVG(frames[i], state.character, renderOptions());
-    i = (i + 1) % frames.length;
+    const f = frames[i];
+    stage.innerHTML = poseToSVG(f.angles, state.character, { ...renderOptions(), expression: f.expression });
+    i++;
+    if (i >= frames.length) {
+      if (loop) i = 0;
+      else stopAnimation();
+    }
   }, 1000 / fps);
 }
 function stopAnimation() {
@@ -223,45 +300,22 @@ function stopAnimation() {
   renderPreview();
 }
 
-// ---------- Salvar pose ----------
-function slugify(s) {
-  return s.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'pose';
-}
-
-function saveCurrentPose() {
-  const nome = el('poseName').value.trim();
-  if (!nome) {
-    setStatus('Dê um nome para a pose antes de salvar.');
-    return;
-  }
-  const id = slugify(nome) + '-' + Date.now().toString(36).slice(-4);
-  upsertCustomPose({ id, nome, angles: { ...state.pose } });
-  el('poseName').value = '';
-  state.activePoseId = id;
-  renderPoseList();
-  refreshAnimSelectors();
-  setStatus(`Pose "${nome}" salva localmente.`);
-}
-
 // ---------- Exportação ----------
-function setStatus(msg) { statusEl.textContent = msg; }
-
 async function doExportPng() {
-  const frames = getFrames();
+  const frames = timelineFrames();
   setStatus(`Renderizando ${frames.length} PNGs...`);
   try {
     await exportPNGSequence(frames, state.character, renderOptions(), (i, t) =>
       setStatus(`Renderizando PNG ${i}/${t}...`)
     );
-    setStatus('Zip de PNGs exportado.');
+    setStatus(`Zip com ${frames.length} PNGs exportado.`);
   } catch (e) {
     setStatus('Erro ao exportar PNGs: ' + e.message);
   }
 }
 
 async function doExportWebm() {
-  const frames = getFrames();
+  const frames = timelineFrames();
   const fps = Number(el('fps').value) || 12;
   setStatus('Gravando vídeo .webm...');
   try {
@@ -274,23 +328,38 @@ async function doExportWebm() {
   }
 }
 
-// ---------- Wire up ----------
+// ---------- Init ----------
 function init() {
   buildSliders();
+  buildExpressionSelect();
   buildCharFields();
   refreshCharSelect();
-  renderPreview();
   renderPoseList();
-  refreshAnimSelectors();
+
+  // timeline inicial de demonstração: idle -> wave
+  state.timeline = [
+    { angles: normalizePose(defaultPoses[0].angles), expression: defaultPoses[0].expression, frames: 16 },
+    { angles: normalizePose(defaultPoses[1].angles), expression: defaultPoses[1].expression, frames: 16 },
+  ];
+  renderTimeline();
+  renderPreview();
 
   el('bgSelect').addEventListener('change', renderPreview);
   el('colorInput').addEventListener('input', () => {
     state.character.color = el('colorInput').value;
     renderPreview();
   });
+  el('expressionSelect').addEventListener('change', (e) => {
+    state.expression = e.target.value;
+    renderPreview();
+  });
 
   // Personagem
   el('charSelect').addEventListener('change', (e) => applyCharacter(e.target.value));
+  el('showFace').addEventListener('change', (e) => {
+    state.character.showFace = e.target.checked;
+    renderPreview();
+  });
   el('saveChar').addEventListener('click', saveCurrentCharacter);
   el('resetChar').addEventListener('click', () => {
     const base = allCharacters().find((c) => c.id === state.activeCharacterId);
@@ -320,6 +389,8 @@ function init() {
     }
     e.target.value = '';
   });
+
+  // Pose
   el('resetPose').addEventListener('click', () => {
     for (const k of ANGLE_KEYS) state.pose[k] = 0;
     state.activePoseId = null;
@@ -328,17 +399,6 @@ function init() {
     renderPoseList();
   });
   el('savePose').addEventListener('click', saveCurrentPose);
-
-  el('playAnim').addEventListener('click', playAnimation);
-  el('stopAnim').addEventListener('click', stopAnimation);
-
-  el('exportSvg').addEventListener('click', () => {
-    exportSVG(state.pose, state.character, renderOptions());
-    setStatus('SVG exportado.');
-  });
-  el('exportPng').addEventListener('click', doExportPng);
-  el('exportWebm').addEventListener('click', doExportWebm);
-
   el('exportPosesJson').addEventListener('click', exportCustomPosesFile);
   el('importPosesJson').addEventListener('change', async (e) => {
     const file = e.target.files?.[0];
@@ -346,13 +406,30 @@ function init() {
     try {
       await importCustomPosesFile(file);
       renderPoseList();
-      refreshAnimSelectors();
       setStatus('Poses importadas.');
     } catch (err) {
       setStatus('Erro ao importar: ' + err.message);
     }
     e.target.value = '';
   });
+
+  // Timeline
+  el('addKeyframe').addEventListener('click', addKeyframe);
+  el('clearTimeline').addEventListener('click', () => {
+    state.timeline = [];
+    renderTimeline();
+    setStatus('Timeline limpa.');
+  });
+  el('playAnim').addEventListener('click', playAnimation);
+  el('stopAnim').addEventListener('click', stopAnimation);
+
+  // Export
+  el('exportSvg').addEventListener('click', () => {
+    exportSVG(state.pose, state.character, renderOptions());
+    setStatus('SVG exportado.');
+  });
+  el('exportPng').addEventListener('click', doExportPng);
+  el('exportWebm').addEventListener('click', doExportWebm);
 }
 
 init();
