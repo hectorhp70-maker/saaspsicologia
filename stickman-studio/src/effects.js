@@ -12,10 +12,14 @@ export const BACKGROUNDS = [
   { id: 'parque', label: 'Cenário: Parque' },
   { id: 'escritorio', label: 'Cenário: Escritório' },
   { id: 'noite', label: 'Cenário: Cidade à noite' },
+  { id: 'quarto', label: 'Cenário: Quarto' },
+  { id: 'banco', label: 'Cenário: Banco/Agência' },
+  { id: 'mercado', label: 'Cenário: Mercado' },
+  { id: 'academia', label: 'Cenário: Academia' },
 ];
 
 export const DARK_BACKGROUNDS = ['dramatico', 'explosao', 'noite'];
-export const SCENARIOS = ['rua', 'parque', 'escritorio', 'noite'];
+export const SCENARIOS = ['rua', 'parque', 'escritorio', 'noite', 'quarto', 'banco', 'mercado', 'academia'];
 
 // Objetos que o personagem pode segurar na mão.
 export const PROPS = [
@@ -35,13 +39,20 @@ function rnd(seed) {
   return x - Math.floor(x);
 }
 
-// Retorna { defs, rect } para o fundo escolhido.
-export function backgroundSVG(id, w, h) {
+// Retorna { defs, rect } para o fundo escolhido. `scroll` (px) desloca o
+// midground dos cenários (personagem "cruza" a cena com o fundo rolando).
+export function backgroundSVG(id, w, h, scroll = 0) {
   if (id === 'transparent') return { defs: '', rect: '' };
   if (id === 'white') {
     return { defs: '', rect: `<rect x="0" y="0" width="${w}" height="${h}" fill="#ffffff"/>` };
   }
-  if (SCENARIOS.includes(id)) return scenarioSVG(id, w, h);
+  if (SCENARIOS.includes(id)) {
+    const { defs, base, mid } = scenarioParts(id, w, h);
+    if (!scroll) return { defs, rect: base + mid };
+    const off = ((scroll % w) + w) % w;
+    const scrolled = `<g transform="translate(${num(-off)} 0)">${mid}</g><g transform="translate(${num(w - off)} 0)">${mid}</g>`;
+    return { defs, rect: base + scrolled };
+  }
   const cx = w / 2;
   const cy = h * 0.42;
   const defs = `
@@ -69,11 +80,14 @@ export function backgroundSVG(id, w, h) {
   return { defs, rect };
 }
 
-// Cenários vetoriais. Chão em ~0.84h para o personagem "pisar".
-function scenarioSVG(id, w, h) {
-  const g = h * 0.84; // linha do chão
+// Cenários vetoriais. Retorna { defs, base, mid }: `base` é fixo (céu/parede +
+// chão/piso), `mid` é o midground que pode rolar (prédios, árvores, móveis).
+// Chão em ~0.84h para o personagem "pisar".
+function scenarioParts(id, w, h) {
+  const g = h * 0.84;
   const R = (x, y, ww, hh, fill) => `<rect x="${num(x)}" y="${num(y)}" width="${num(ww)}" height="${num(hh)}" fill="${fill}"/>`;
   const C = (cx, cy, r, fill) => `<circle cx="${num(cx)}" cy="${num(cy)}" r="${num(r)}" fill="${fill}"/>`;
+  const L = (x1, y1, x2, y2, st, sw) => `<line x1="${num(x1)}" y1="${num(y1)}" x2="${num(x2)}" y2="${num(y2)}" stroke="${st}" stroke-width="${sw}"/>`;
 
   if (id === 'rua') {
     const defs = `<linearGradient id="skyRua" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#8ecbf0"/><stop offset="100%" stop-color="#dff0fb"/></linearGradient>`;
@@ -81,57 +95,79 @@ function scenarioSVG(id, w, h) {
       Array.from({ length: Math.floor(hh / 26) }, (_, r) =>
         Array.from({ length: Math.floor(ww / 22) }, (_, cc) => R(x + 8 + cc * 22, g - hh + 10 + r * 26, 10, 14, '#bcd3e6')).join('')
       ).join('');
-    const scene =
-      R(0, 0, w, h, 'url(#skyRua)') +
-      C(w * 0.82, h * 0.16, 26, '#ffe9a8') +
-      bld(w * 0.02, 90, 220, '#6d7f92') + bld(w * 0.3, 70, 160, '#8496a8') + bld(w * 0.62, 110, 250, '#5f7183') + bld(w * 0.86, 60, 190, '#7c8ea0') +
-      R(0, g, w, h - g, '#9aa3ab') + // calçada
-      R(0, g, w, 6, '#c3ccd3');
-    return { defs, rect: scene };
+    const base = R(0, 0, w, h, 'url(#skyRua)') + C(w * 0.82, h * 0.16, 26, '#ffe9a8') + R(0, g, w, h - g, '#9aa3ab') + R(0, g, w, 6, '#c3ccd3');
+    const mid = bld(w * 0.02, 90, 220, '#6d7f92') + bld(w * 0.3, 70, 160, '#8496a8') + bld(w * 0.62, 110, 250, '#5f7183') + bld(w * 0.86, 60, 190, '#7c8ea0');
+    return { defs, base, mid };
   }
 
   if (id === 'parque') {
     const defs = `<linearGradient id="skyPq" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#9fd8f2"/><stop offset="100%" stop-color="#e6f6ff"/></linearGradient>`;
     const tree = (x) => R(x - 7, g - 70, 14, 74, '#7a5230') + C(x, g - 88, 40, '#4a9d5a') + C(x - 28, g - 74, 28, '#57ab66') + C(x + 28, g - 74, 28, '#57ab66');
-    const scene =
-      R(0, 0, w, h, 'url(#skyPq)') +
-      C(w * 0.16, h * 0.16, 28, '#ffe58a') +
-      C(w * 0.62, h * 0.2, 20, '#ffffff') + C(w * 0.68, h * 0.2, 24, '#ffffff') + C(w * 0.74, h * 0.2, 18, '#ffffff') +
-      R(0, g, w, h - g, '#7cc36a') +
-      tree(w * 0.86) + tree(w * 0.08);
-    return { defs, rect: scene };
+    const base = R(0, 0, w, h, 'url(#skyPq)') + C(w * 0.16, h * 0.16, 28, '#ffe58a') + R(0, g, w, h - g, '#7cc36a');
+    const mid = C(w * 0.62, h * 0.2, 20, '#ffffff') + C(w * 0.68, h * 0.2, 24, '#ffffff') + C(w * 0.74, h * 0.2, 18, '#ffffff') + tree(w * 0.86) + tree(w * 0.18);
+    return { defs, base, mid };
   }
 
   if (id === 'escritorio') {
-    const scene =
-      R(0, 0, w, h, '#d9cdb8') + // parede
-      R(w * 0.12, h * 0.16, w * 0.34, h * 0.32, '#a9c7dd') + // janela
-      R(w * 0.12, h * 0.16, w * 0.34, h * 0.32, 'none') +
-      `<rect x="${num(w * 0.12)}" y="${num(h * 0.16)}" width="${num(w * 0.34)}" height="${num(h * 0.32)}" fill="none" stroke="#8a7f6b" stroke-width="6"/>` +
-      `<line x1="${num(w * 0.29)}" y1="${num(h * 0.16)}" x2="${num(w * 0.29)}" y2="${num(h * 0.48)}" stroke="#8a7f6b" stroke-width="4"/>` +
-      `<line x1="${num(w * 0.12)}" y1="${num(h * 0.32)}" x2="${num(w * 0.46)}" y2="${num(h * 0.32)}" stroke="#8a7f6b" stroke-width="4"/>` +
-      C(w * 0.78, h * 0.34, 22, '#5aa06a') + R(w * 0.75, h * 0.34, 6, 50, '#7a5230') + // plantinha
-      R(0, g, w, h - g, '#b08d5c'); // piso
-    return { defs: '', rect: scene };
+    const base = R(0, 0, w, h, '#d9cdb8') + R(0, g, w, h - g, '#b08d5c');
+    const mid =
+      `<rect x="${num(w * 0.12)}" y="${num(h * 0.16)}" width="${num(w * 0.34)}" height="${num(h * 0.32)}" fill="#a9c7dd" stroke="#8a7f6b" stroke-width="6"/>` +
+      L(w * 0.29, h * 0.16, w * 0.29, h * 0.48, '#8a7f6b', 4) + L(w * 0.12, h * 0.32, w * 0.46, h * 0.32, '#8a7f6b', 4) +
+      C(w * 0.78, h * 0.34, 22, '#5aa06a') + R(w * 0.75, h * 0.34, 6, 50, '#7a5230');
+    return { defs: '', base, mid };
   }
 
-  // noite (cidade)
-  const defs = `<linearGradient id="skyNoite" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b1030"/><stop offset="100%" stop-color="#2a2350"/></linearGradient>`;
-  const stars = Array.from({ length: 30 }, (_, i) => {
-    const x = ((i * 137) % w), y = ((i * 89) % (h * 0.6));
-    return C(x, y, 1.4, '#ffffff');
-  }).join('');
-  const bld = (x, ww, hh) => R(x, g - hh, ww, hh, '#141a33') +
-    Array.from({ length: Math.floor(hh / 24) }, (_, r) =>
-      Array.from({ length: Math.floor(ww / 20) }, (_, cc) => (((r + cc + x) | 0) % 2 ? R(x + 6 + cc * 20, g - hh + 8 + r * 24, 8, 12, '#ffd97a') : '')).join('')
-    ).join('');
-  const scene =
-    R(0, 0, w, h, 'url(#skyNoite)') +
-    C(w * 0.8, h * 0.16, 24, '#f4f0d0') +
-    stars +
-    bld(w * 0.02, 90, 240) + bld(w * 0.32, 70, 180) + bld(w * 0.6, 110, 260) + bld(w * 0.85, 70, 200) +
-    R(0, g, w, h - g, '#0a0d1c');
-  return { defs, rect: scene };
+  if (id === 'noite') {
+    const defs = `<linearGradient id="skyNoite" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b1030"/><stop offset="100%" stop-color="#2a2350"/></linearGradient>`;
+    const stars = Array.from({ length: 30 }, (_, i) => C((i * 137) % w, (i * 89) % (h * 0.6), 1.4, '#ffffff')).join('');
+    const bld = (x, ww, hh) => R(x, g - hh, ww, hh, '#141a33') +
+      Array.from({ length: Math.floor(hh / 24) }, (_, r) =>
+        Array.from({ length: Math.floor(ww / 20) }, (_, cc) => (((r + cc + x) | 0) % 2 ? R(x + 6 + cc * 20, g - hh + 8 + r * 24, 8, 12, '#ffd97a') : '')).join('')
+      ).join('');
+    const base = R(0, 0, w, h, 'url(#skyNoite)') + C(w * 0.8, h * 0.16, 24, '#f4f0d0') + stars + R(0, g, w, h - g, '#0a0d1c');
+    const mid = bld(w * 0.02, 90, 240) + bld(w * 0.32, 70, 180) + bld(w * 0.6, 110, 260) + bld(w * 0.85, 70, 200);
+    return { defs, base, mid };
+  }
+
+  if (id === 'quarto') {
+    const base = R(0, 0, w, h, '#c7d6e6') + R(0, g, w, h - g, '#c79a6b'); // parede azul + piso madeira
+    const mid =
+      R(w * 0.55, g - 120, w * 0.42, 120, '#8a6a4a') + R(w * 0.55, g - 140, w * 0.42, 24, '#a5825d') + // cama
+      R(w * 0.56, g - 156, 40, 24, '#f5f0e6') + // travesseiro
+      `<rect x="${num(w * 0.1)}" y="${num(h * 0.16)}" width="${num(w * 0.26)}" height="${num(h * 0.24)}" fill="#7fb0d8" stroke="#5f7e94" stroke-width="6"/>` + // janela
+      C(w * 0.23, h * 0.12, 12, '#f2d98a') + // lampada? decor
+      R(w * 0.02, g - 90, 26, 90, '#9a6b3a'); // criado/estante
+    return { defs: '', base, mid };
+  }
+
+  if (id === 'banco') {
+    const base = R(0, 0, w, h, '#e7e2d6') + R(0, g, w, h - g, '#9fa7ac'); // parede clara + piso cinza
+    const mid =
+      R(w * 0.08, g - 70, w * 0.5, 70, '#5a6b7a') + R(w * 0.08, g - 82, w * 0.5, 16, '#48586a') + // balcão
+      R(w * 0.62, h * 0.2, w * 0.3, h * 0.14, '#2f5d8a') + // painel/logo
+      `<text x="${num(w * 0.77)}" y="${num(h * 0.29)}" font-family="Arial" font-weight="bold" font-size="18" text-anchor="middle" fill="#ffffff">BANCO</text>` +
+      C(w * 0.2, h * 0.24, 14, '#c9a24a') + C(w * 0.2, h * 0.24, 8, '#e6c869'); // relógio/moeda
+    return { defs: '', base, mid };
+  }
+
+  if (id === 'mercado') {
+    const base = R(0, 0, w, h, '#eef1e6') + R(0, g, w, h - g, '#cfd3cf');
+    const shelf = (x) => R(x, g - 150, w * 0.26, 150, '#b9a07a') +
+      [0, 1, 2, 3].map((r) => R(x, g - 150 + r * 38, w * 0.26, 8, '#8a795a') +
+        [0, 1, 2, 3].map((cc) => R(x + 6 + cc * 20, g - 150 + r * 38 - 20, 14, 20, ['#d55','#5a9','#59d','#dc5'][(r + cc) % 4])).join('')).join('');
+    const mid = shelf(w * 0.04) + shelf(w * 0.4) + shelf(w * 0.76);
+    return { defs: '', base, mid };
+  }
+
+  // academia
+  const base = R(0, 0, w, h, '#cdd3da') + R(0, g, w, h - g, '#5b5f66');
+  const dumbbell = (x, y) => C(x - 20, y, 12, '#2b2f36') + C(x + 20, y, 12, '#2b2f36') + R(x - 20, y - 4, 40, 8, '#4a4f57');
+  const mid =
+    R(w * 0.05, g - 120, 40, 120, '#3a3f47') + R(w * 0.02, g - 130, 46, 16, '#2b2f36') + // rack
+    dumbbell(w * 0.3, g - 20) + dumbbell(w * 0.5, g - 20) +
+    R(w * 0.62, g - 70, w * 0.3, 70, '#33383f') + R(w * 0.62, g - 82, w * 0.3, 16, '#22262c') + // banco supino
+    `<text x="${num(w * 0.5)}" y="${num(h * 0.2)}" font-family="Arial" font-weight="bold" font-size="16" text-anchor="middle" fill="#8a9099">ACADEMIA</text>`;
+  return { defs: '', base, mid };
 }
 
 // --- Símbolos vetoriais -------------------------------------------------------

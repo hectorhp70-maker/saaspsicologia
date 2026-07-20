@@ -116,11 +116,11 @@ export const ANGLE_META = {
 
 // Calcula todos os pontos do esqueleto para uma pose + personagem.
 // origin = ponto do quadril (pelve). Se omitido, centraliza numa área width/height.
-export function buildSkeleton(pose, character, width = 400, height = 500) {
+export function buildSkeleton(pose, character, width = 400, height = 500, originX = null) {
   const c = { ...defaultCharacter, ...character };
   const a = normalizePose(pose);
 
-  const hip = { x: width / 2, y: height * 0.6 };
+  const hip = { x: originX == null ? width / 2 : originX, y: height * 0.6 };
 
   const spineUp = 180 + a.spineLean; // coluna aponta para cima
   const neck = project(hip, spineUp, c.spineLength);
@@ -503,37 +503,27 @@ export function profileFaceSVG(cx, cy, r, expression, rot, color, lineWidth) {
   return `<g transform="translate(${num(cx)} ${num(cy)}) rotate(${num(rot)})">${nose}${eyeEl}${extra}${mouth}</g>`;
 }
 
-// Gera a string SVG da pose atual.
-// options: {
-//   background: 'white'|'transparent'|'dramatico'|'explosao',
-//   color, width, height,
-//   surto: 0..10 (intensidade do efeito Surto Financeiro),
-//   phase: 0..1 (fase p/ animar os efeitos),
-// }
-export function poseToSVG(pose, character, options = {}) {
-  const width = options.width ?? 400;
-  const height = options.height ?? 500;
-  const bg = options.background ?? 'white';
-  const surto = options.surto ?? 0;
-  const phase = options.phase ?? 0;
-  const skel = buildSkeleton(pose, character, width, height);
+// Renderiza APENAS a figura do personagem (sem fundo/legenda), já posicionada
+// pelo `skel`. Retorna { figure, fx } — fx são as partículas do surto (atrás/à
+// frente) para o caller ordenar. `flipWidth` é a largura usada no espelhamento.
+function renderFigure(skel, options = {}) {
   const c = skel.character;
   const color = options.color ?? c.color ?? '#111111';
-  const isDark = DARK_BACKGROUNDS.includes(bg);
+  const isDark = options.dark ?? false;
+  const expression = options.expression ?? 'neutro';
+  const lean = options.lean ?? 0;
+  const surto = options.surto ?? 0;
+  const phase = options.phase ?? 0;
+  const flipWidth = options.flipWidth ?? 400;
+  const hc = skel.points.headCenter;
 
-  const { defs, rect } = backgroundSVG(bg, width, height);
-
-  const lineStr = (p1, p2) =>
-    `<line x1="${num(p1.x)}" y1="${num(p1.y)}" x2="${num(p2.x)}" y2="${num(p2.y)}"/>`;
-  const lines = skel.segments.map(([p1, p2]) => lineStr(p1, p2)).join('');
-
+  const lines = skel.segments
+    .map(([p1, p2]) => `<line x1="${num(p1.x)}" y1="${num(p1.y)}" x2="${num(p2.x)}" y2="${num(p2.y)}"/>`)
+    .join('');
   const dots = skel.dots
     .map((p) => `<circle cx="${num(p.x)}" cy="${num(p.y)}" r="${c.jointRadius}" fill="${color}"/>`)
     .join('');
 
-  const hc = skel.points.headCenter;
-  // Em fundo escuro, dá tratamento "adesivo": halo claro atrás do corpo e
-  // cabeça preenchida (tom claro), para o personagem escuro se destacar.
   const headFill = isDark ? '#f6efe1' : 'none';
   let halo = '';
   if (isDark) {
@@ -543,11 +533,8 @@ export function poseToSVG(pose, character, options = {}) {
       `<circle cx="${num(hc.x)}" cy="${num(hc.y)}" r="${c.headRadius}" fill="#ffffff" stroke="#ffffff" stroke-width="${haloW}"/>` +
       skel.dots.map((p) => `<circle cx="${num(p.x)}" cy="${num(p.y)}" r="${c.jointRadius + haloW / 2}" fill="#ffffff"/>`).join('');
   }
-
   const head = `<circle cx="${num(hc.x)}" cy="${num(hc.y)}" r="${c.headRadius}" fill="${headFill}" stroke="${color}" stroke-width="${c.lineWidth}"/>`;
 
-  const expression = options.expression ?? 'neutro';
-  const lean = normalizePose(pose).spineLean;
   const isProfile = c.view === 'lado';
   const face =
     c.showFace === false
@@ -556,42 +543,97 @@ export function poseToSVG(pose, character, options = {}) {
         ? profileFaceSVG(hc.x, hc.y, c.headRadius, expression, lean, color, c.lineWidth)
         : faceToSVG(hc.x, hc.y, c.headRadius, expression, lean, color, c.lineWidth);
 
-  const fx = surtoLayer(hc.x, hc.y, c.headRadius, surto, phase);
   const prop =
     c.prop && c.prop !== 'none'
       ? propSVG(skel.points.handR.x, skel.points.handR.y, c.headRadius * 0.8, c.prop)
       : '';
-  // Roupa (compat.: projetos antigos usavam `jacket`).
   const outfit = c.outfit && c.outfit !== 'nenhum' ? c.outfit : c.jacket ? 'paleto' : 'nenhum';
   const outfitColor = c.outfitColor || c.jacketColor || '#2c3e50';
   const clothes = outfit !== 'nenhum'
     ? outfitSVG(outfit, skel.points.neck, skel.points.hip, c.headRadius, c.thigh, outfitColor)
     : '';
   const tie = c.tie ? tieSVG(skel.points.neck, skel.points.hip, c.headRadius, c.tieColor || '#c0392b') : '';
-  const hairStyle = c.hairStyle || 'curto';
-  const hair = c.hair ? hairSVG(hairStyle, hc.x, hc.y, c.headRadius, c.hairColor || '#20140a', lean, c.lineWidth) : { back: '', front: '' };
-  const title = titleSVG(options.title, width, height);
-  const caption = captionSVG(options.caption, width);
+  const hair = c.hair ? hairSVG(c.hairStyle || 'curto', hc.x, hc.y, c.headRadius, c.hairColor || '#20140a', lean, c.lineWidth) : { back: '', front: '' };
 
-  // Conjunto do personagem (pode ser espelhado para mudar a direção no perfil).
-  const figure =
+  const inner =
     halo +
     `<g stroke="${color}" stroke-width="${c.lineWidth}" stroke-linecap="round" stroke-linejoin="round" fill="none">${lines}</g>` +
     clothes + tie + hair.back + head + hair.front + face + dots + prop;
   const flip = isProfile && c.facing === 'esq';
-  const figureWrapped = flip
-    ? `<g transform="translate(${num(width)} 0) scale(-1 1)">${figure}</g>`
-    : figure;
+  // Espelha em torno do próprio eixo do personagem (hip.x), para funcionar
+  // também quando há vários personagens fora do centro.
+  const pivot = skel.points.hip.x;
+  const figure = flip ? `<g transform="translate(${num(2 * pivot)} 0) scale(-1 1)">${inner}</g>` : inner;
+  const fx = surtoLayer(hc.x, hc.y, c.headRadius, surto, phase);
+  return { figure, fx };
+}
+
+// Gera a string SVG de UM personagem (uso principal).
+export function poseToSVG(pose, character, options = {}) {
+  const width = options.width ?? 400;
+  const height = options.height ?? 500;
+  const bg = options.background ?? 'white';
+  const skel = buildSkeleton(pose, character, width, height, options.originX);
+  const c = skel.character;
+  const isDark = DARK_BACKGROUNDS.includes(bg);
+  const { defs, rect } = backgroundSVG(bg, width, height, options.scroll ?? 0);
+
+  const { figure, fx } = renderFigure(skel, {
+    color: options.color,
+    dark: isDark,
+    expression: options.expression ?? 'neutro',
+    lean: normalizePose(pose).spineLean,
+    surto: options.surto ?? 0,
+    phase: options.phase ?? 0,
+    flipWidth: width,
+  });
 
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">` +
     (defs ? `<defs>${defs}</defs>` : '') +
-    rect +
-    fx.back +
-    figureWrapped +
-    fx.front +
-    caption +
-    title +
+    rect + fx.back + figure + fx.front +
+    captionSVG(options.caption, width) + titleSVG(options.title, width, height) +
+    `</svg>`
+  );
+}
+
+// Compõe uma CENA com vários personagens no mesmo quadro (para diálogos).
+// scene = {
+//   width, height, background, scroll,
+//   caption, title,
+//   figuras: [{ pose, character, expression, originX, color, surto }]
+// }
+export function composeScene(scene = {}) {
+  const width = scene.width ?? 400;
+  const height = scene.height ?? 500;
+  const bg = scene.background ?? 'white';
+  const isDark = DARK_BACKGROUNDS.includes(bg);
+  const { defs, rect } = backgroundSVG(bg, width, height, scene.scroll ?? 0);
+
+  let backLayer = '';
+  let midLayer = '';
+  let frontLayer = '';
+  for (const f of scene.figuras || []) {
+    const skel = buildSkeleton(f.pose, f.character, width, height, f.originX);
+    const { figure, fx } = renderFigure(skel, {
+      color: f.color,
+      dark: isDark,
+      expression: f.expression ?? 'neutro',
+      lean: normalizePose(f.pose).spineLean,
+      surto: f.surto ?? 0,
+      phase: scene.phase ?? 0,
+      flipWidth: width,
+    });
+    backLayer += fx.back;
+    midLayer += figure;
+    frontLayer += fx.front;
+  }
+
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">` +
+    (defs ? `<defs>${defs}</defs>` : '') +
+    rect + backLayer + midLayer + frontLayer +
+    captionSVG(scene.caption, width) + titleSVG(scene.title, width, height) +
     `</svg>`
   );
 }

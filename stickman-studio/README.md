@@ -63,8 +63,14 @@ npm run preview    # serve o build localmente
   ou esquerda — ideal para andar/correr em cena.
 - **Movimentos humanizados**: animações prontas `Andar (perfil)` e
   `Correr (perfil)` com ciclos de passada e balanço de braços naturais.
-- **Cenários**: fundos ilustrados com chão — `Rua`, `Parque`, `Escritório` e
-  `Cidade à noite`.
+- **Cenários** (8): fundos ilustrados com chão — `Rua`, `Parque`, `Escritório`,
+  `Cidade à noite`, `Quarto`, `Banco/Agência`, `Mercado` e `Academia`.
+- **Deslocamento pela cena**: a opção `scroll` (px) desloca o midground do
+  cenário — o personagem "cruza" a tela com o fundo rolando (usado na geração
+  de vídeo via `poseToSVG(..., { scroll })`).
+- **Dois personagens no mesmo quadro**: `composeScene({ figuras: [...] })`
+  compõe vários personagens (com `originX` e direção própria) sobre um fundo —
+  para diálogos de verdade, um encarando o outro.
 - **Tema Surto Financeiro**: fundos `Dramático (escuro)` e `Explosão (raios)`,
   além do slider **💥 Efeito Surto** (0–10) que espalha dinheiro, moedas e
   cérebro ao redor da cabeça, com linhas de impacto e gotas de suor. Em fundo
@@ -135,11 +141,21 @@ python narrar.py --list-vozes           # vozes pt-BR sugeridas
 python narrar.py --project p.json --dry-run   # só mostra o plano
 ```
 
-Vozes sugeridas: `pt-BR-AntonioNeural` (Anderson) e `pt-BR-FranciscaNeural`
-(Ana). Use `--rate` para acelerar/desacelerar (ex.: `--rate=-10%`). Com
-`--concat narracao.mp3` e o **ffmpeg** instalado, ele também junta tudo numa
-faixa só. Fluxo típico: exporte o vídeo `.webm` + as **legendas .srt** no
-estúdio, gere a narração aqui e junte áudio+vídeo no seu editor (ou com ffmpeg).
+**Vozes por personagem**: se a fala vier como `Nome: texto` (ex.: `Ana: ...`),
+o script usa a voz do personagem automaticamente (`anderson`→AntonioNeural,
+`ana`→FranciscaNeural). Personalize com `--vozes "ana=pt-BR-ThalitaNeural,..."`.
+
+**Juntar narração + vídeo num .mp4** (requer ffmpeg): cada fala entra no tempo
+certo da cena e é mixada numa faixa, e o vídeo é recodificado para H.264/AAC:
+
+```bash
+python narrar.py --srt dialogo.srt --video dialogo.webm --mux final.mp4
+python narrar.py --project p.json --video v.webm --mux final.mp4 --dry-run  # mostra o comando
+```
+
+Use `--rate` para acelerar/desacelerar (ex.: `--rate=-10%`) e `--concat
+narracao.mp3` para uma faixa única simples. Fluxo típico: exporte o `.webm` + as
+**legendas .srt** no estúdio → gere a narração e o `.mp4` final aqui.
 
 > Observação: a síntese precisa de acesso ao serviço de voz da Microsoft — roda
 > direto na sua VPS/máquina. Em ambientes com proxy que bloqueia esse endpoint,
