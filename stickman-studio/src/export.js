@@ -19,6 +19,22 @@ export function exportSVG(pose, character, options) {
   download(new Blob([svg], { type: 'image/svg+xml' }), 'stickman.svg');
 }
 
+// --- Thumbnail PNG em alta (vetor rasterizado em `scale`x) --------------------
+export async function exportThumbnail(pose, character, options, scale = 2) {
+  const w = options.width ?? 400;
+  const h = options.height ?? 500;
+  // Aumenta só os atributos width/height do <svg> (viewBox mantém as coords),
+  // então o SVG rasteriza nítido na resolução maior.
+  const svg = poseToSVG(pose, character, options).replace(
+    `width="${w}" height="${h}"`,
+    `width="${w * scale}" height="${h * scale}"`
+  );
+  const fbg = options.background ?? 'white';
+  const canvas = await svgToCanvas(svg, w * scale, h * scale, fbg);
+  const blob = await canvasToBlob(canvas, 'image/png');
+  download(blob, 'thumbnail.png');
+}
+
 // Converte uma string SVG num canvas (Promise). background 'transparent' mantém alfa.
 function svgToCanvas(svg, width, height, background) {
   return new Promise((resolve, reject) => {
@@ -56,14 +72,15 @@ export async function exportPNGSequence(frames, character, options, onProgress) 
   const zip = new JSZip();
   const width = options.width ?? 400;
   const height = options.height ?? 500;
-  const bg = options.background ?? 'white';
   const pad = String(frames.length).length;
 
   for (let i = 0; i < frames.length; i++) {
     const f = frames[i];
     const phase = frames.length > 1 ? i / frames.length : 0;
-    const svg = poseToSVG(f.angles, character, { ...options, expression: f.expression, phase });
-    const canvas = await svgToCanvas(svg, width, height, bg);
+    const fbg = f.bg ?? options.background ?? 'white';
+    const fsurto = f.surto ?? options.surto ?? 0;
+    const svg = poseToSVG(f.angles, character, { ...options, expression: f.expression, background: fbg, surto: fsurto, phase });
+    const canvas = await svgToCanvas(svg, width, height, fbg);
     const blob = await canvasToBlob(canvas, 'image/png');
     const name = `frame_${String(i + 1).padStart(pad, '0')}.png`;
     zip.file(name, blob);
@@ -82,7 +99,6 @@ export async function exportWebM(frames, character, options, fps = 12, onProgres
   }
   const width = options.width ?? 400;
   const height = options.height ?? 500;
-  const bg = options.background ?? 'white';
 
   const canvas = document.createElement('canvas');
   canvas.width = width;
@@ -91,12 +107,16 @@ export async function exportWebM(frames, character, options, fps = 12, onProgres
 
   // Pré-renderiza cada frame como imagem para desenho síncrono.
   const images = [];
+  const bgs = [];
   for (let i = 0; i < frames.length; i++) {
     const f = frames[i];
     const phase = frames.length > 1 ? i / frames.length : 0;
-    const svg = poseToSVG(f.angles, character, { ...options, expression: f.expression, phase });
-    const c = await svgToCanvas(svg, width, height, bg);
+    const fbg = f.bg ?? options.background ?? 'white';
+    const fsurto = f.surto ?? options.surto ?? 0;
+    const svg = poseToSVG(f.angles, character, { ...options, expression: f.expression, background: fbg, surto: fsurto, phase });
+    const c = await svgToCanvas(svg, width, height, fbg);
     images.push(c);
+    bgs.push(fbg);
   }
 
   const stream = canvas.captureStream(fps);
@@ -114,7 +134,7 @@ export async function exportWebM(frames, character, options, fps = 12, onProgres
   recorder.start();
   const frameDelay = 1000 / fps;
   for (let i = 0; i < images.length; i++) {
-    if (bg === 'white') {
+    if (bgs[i] === 'white') {
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, width, height);
     } else {

@@ -133,6 +133,18 @@ export function normalizePose(pose) {
 
 const num = (n) => Number(n.toFixed(2));
 
+function escapeXml(s) {
+  return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+// Título estilo canal (dourado com contorno escuro) no rodapé.
+function titleSVG(text, w, h) {
+  if (!text) return '';
+  const len = Math.max(6, text.length);
+  const fs = Math.max(15, Math.min(32, (w * 0.92) / len * 1.55));
+  return `<text x="${num(w / 2)}" y="${num(h - 22)}" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="${num(fs)}" text-anchor="middle" fill="#f6c945" stroke="#1a1206" stroke-width="4.5" paint-order="stroke" letter-spacing="0.5">${escapeXml(text)}</text>`;
+}
+
 // Desenha o rosto dentro da cabeça. Coordenadas locais (origem no centro da
 // cabeça, y para baixo); o grupo é rotacionado por `rot` graus para acompanhar
 // a inclinação da cabeça.
@@ -261,6 +273,7 @@ export function poseToSVG(pose, character, options = {}) {
       : faceToSVG(hc.x, hc.y, c.headRadius, expression, lean, color, c.lineWidth);
 
   const fx = surtoLayer(hc.x, hc.y, c.headRadius, surto, phase);
+  const title = titleSVG(options.title, width, height);
 
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">` +
@@ -273,6 +286,7 @@ export function poseToSVG(pose, character, options = {}) {
     face +
     dots +
     fx.front +
+    title +
     `</svg>`
   );
 }

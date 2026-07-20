@@ -66,6 +66,32 @@ npm run preview    # serve o build localmente
   - Vídeo `.webm` da sequência, com FPS ajustável.
 - **Importar/exportar** as poses customizadas como arquivo JSON.
 
+## 🤖 Diretor de IA (texto → animação)
+
+No topo da coluna direita, o **Diretor de IA** transforma uma descrição em um
+roteiro de cenas (poses + expressão + fundo + efeito surto + título), montado
+direto na timeline — é só tocar ▶ ou exportar.
+
+- **Gerar roteiro (local)**: agente por regras, 100% local, sem chave/API.
+  Entende pt-BR (ex.: *"boneco surtando com as dívidas do cartão"* → arco
+  neutro → surpreso → furioso+explosão → preocupado; *"acenando feliz"* → ação
+  simples). Detecta pose, expressão, fundo, intensidade do surto e monta o
+  título.
+- **Gerar com IA (Hermes)**: conector opcional para um LLM. Em **Config IA**
+  informe um endpoint compatível com OpenAI (`/v1/chat/completions`) — ex.:
+  **OpenRouter/Together** servindo um modelo **Hermes** (`nousresearch/hermes-3-…`),
+  ou **Ollama local** em `http://localhost:11434/v1/chat/completions`. A chamada
+  roda no seu navegador e a chave fica só no `localStorage`. A IA devolve o
+  mesmo formato de roteiro (JSON) e cai na timeline.
+
+O roteiro define **fundo e surto por cena** (a timeline interpola tudo), e o
+**Título na tela** aparece no rodapé (dourado) — editável e incluído nas
+exportações. Use **Thumbnail PNG (2x)** para uma capa em alta da cena atual.
+
+> Observação honesta: o "nível pintado" das referências é ilustração/IA de
+> imagem. Este Diretor gera a **direção e a animação** do stickman (o que dá pra
+> automatizar no estúdio), não arte pintada.
+
 ## Como o boneco é construído (esqueleto paramétrico)
 
 Nenhuma coordenada de membro é fixa. Tudo é calculado por trigonometria a partir
@@ -158,6 +184,7 @@ stickman-studio/
 │   ├── poses.js        # biblioteca de poses base (JSON)
 │   ├── animations.js   # animações prontas (timelines nomeadas)
 │   ├── effects.js      # tema Surto Financeiro (fundos + partículas)
+│   ├── director.js     # Diretor de IA (agente local + conector Hermes/LLM)
 │   ├── interpolate.js  # interpolação linear entre poses
 │   ├── storage.js      # persistência (localStorage) + import/export JSON
 │   ├── export.js       # SVG / PNG(zip) / WebM

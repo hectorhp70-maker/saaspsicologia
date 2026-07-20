@@ -139,4 +139,14 @@ input[type='color'] { border: 1px solid var(--border); border-radius: 8px; backg
 .timeline .mini.del:hover { color: #ff6b6b; }
 .timeline .seg-frames { grid-column: 1 / -1; font-size: 10px; color: var(--muted); }
 
+.ai-prompt {
+  width: 100%; resize: vertical; background: var(--panel-2); color: var(--text);
+  border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 13px;
+  font-family: inherit;
+}
+.ai-config { margin-top: 10px; border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; }
+.ai-config summary { cursor: pointer; font-size: 12px; color: var(--muted); }
+.ai-config input { margin-top: 6px; font-size: 12px; }
+.ai-config code { background: var(--panel-2); padding: 1px 4px; border-radius: 4px; font-size: 11px; }
+
 .status { font-size: 13px; color: var(--muted); min-height: 18px; margin: 10px 0 0; }

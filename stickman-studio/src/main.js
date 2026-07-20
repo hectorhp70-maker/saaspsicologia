@@ -7,12 +7,14 @@ import { defaultCharacters, CHARACTER_FIELDS, normalizeCharacter } from './chara
 import { defaultPoses } from './poses.js';
 import { defaultAnimations, cloneKeyframes } from './animations.js';
 import { interpolatePoses } from './interpolate.js';
+import { roteiroLocal, scriptToTimeline, callLLM } from './director.js';
 import {
   loadCustomPoses, upsertCustomPose, removeCustomPose, exportCustomPosesFile, importCustomPosesFile,
   loadCustomCharacters, upsertCustomCharacter, removeCustomCharacter, exportCustomCharactersFile, importCustomCharactersFile,
   loadCustomAnimations, upsertCustomAnimation, removeCustomAnimation, exportCustomAnimationsFile, importCustomAnimationsFile,
+  loadAIConfig, saveAIConfig,
 } from './storage.js';
-import { exportSVG, exportPNGSequence, exportWebM } from './export.js';
+import { exportSVG, exportThumbnail, exportPNGSequence, exportWebM } from './export.js';
 
 // ---------- Estado ----------
 const state = {
@@ -24,6 +26,7 @@ const state = {
   timeline: [], // [{ angles, expression, frames }]
   surto: 0, // intensidade do efeito Surto Financeiro (0..10)
   phase: 0, // fase p/ animar os efeitos
+  titulo: '', // título exibido na tela (vazio = sem título)
   playing: false,
 };
 
@@ -40,6 +43,7 @@ function renderOptions() {
     expression: state.expression,
     surto: state.surto,
     phase: state.phase,
+    title: state.titulo,
     width: 400,
     height: 500,
   };
@@ -324,19 +328,70 @@ function renderTimeline() {
   );
 }
 
-// Concatena a interpolação de cada trecho. Retorna [{ angles, expression }].
+// Concatena a interpolação de cada trecho. Retorna
+// [{ angles, expression, bg, surto }] — bg/surto podem ser null (usa a UI).
+const lerp = (a, b, t) => a + (b - a) * t;
 function timelineFrames() {
   const tl = state.timeline;
-  if (tl.length === 0) return [{ angles: { ...state.pose }, expression: state.expression }];
-  if (tl.length === 1) return [{ angles: { ...tl[0].angles }, expression: tl[0].expression }];
+  if (tl.length === 0) return [{ angles: { ...state.pose }, expression: state.expression, bg: null, surto: null }];
+  if (tl.length === 1) {
+    const k = tl[0];
+    return [{ angles: { ...k.angles }, expression: k.expression, bg: k.bg ?? null, surto: k.surto ?? null }];
+  }
   const out = [];
   for (let i = 0; i < tl.length - 1; i++) {
-    const seg = interpolatePoses(normalizePose(tl[i].angles), normalizePose(tl[i + 1].angles), tl[i].frames);
-    let frames = seg.map((a) => ({ angles: a, expression: tl[i].expression }));
+    const from = tl[i];
+    const to = tl[i + 1];
+    const seg = interpolatePoses(normalizePose(from.angles), normalizePose(to.angles), from.frames);
+    const hasSurto = from.surto != null || to.surto != null;
+    let frames = seg.map((a, k) => {
+      const t = seg.length > 1 ? k / (seg.length - 1) : 0;
+      const surto = hasSurto ? lerp(from.surto ?? 0, to.surto ?? from.surto ?? 0, t) : null;
+      return { angles: a, expression: from.expression, bg: from.bg ?? null, surto };
+    });
     if (i > 0) frames = frames.slice(1); // evita duplicar o quadro de junção
     out.push(...frames);
   }
   return out;
+}
+
+// ---------- Diretor de IA ----------
+function applyScript(script) {
+  const resolve = (id) => allPoses().find((p) => p.id === id)?.angles || null;
+  state.timeline = scriptToTimeline(script, resolve);
+  if (script.titulo) {
+    state.titulo = script.titulo;
+    el('titleInput').value = script.titulo;
+  }
+  const first = state.timeline[0];
+  if (first) {
+    if (first.bg) el('bgSelect').value = first.bg;
+    if (first.surto != null) {
+      state.surto = first.surto;
+      el('surtoRange').value = first.surto;
+      el('surtoVal').textContent = String(Math.round(first.surto));
+    }
+    state.pose = normalizePose(first.angles);
+    state.expression = first.expression;
+    state.activePoseId = null;
+    syncSliders();
+    el('expressionSelect').value = state.expression;
+  }
+  renderTimeline();
+  renderPreview();
+}
+
+async function generateWithAI() {
+  const prompt = el('aiPrompt').value.trim();
+  if (!prompt) { setStatus('Escreva uma descrição para o Diretor.'); return; }
+  setStatus('Consultando a IA...');
+  try {
+    const script = await callLLM(loadAIConfig(), prompt);
+    applyScript(script);
+    setStatus(`Roteiro da IA: ${script.cenas.length} cenas. Toque ▶ ou exporte.`);
+  } catch (e) {
+    setStatus('IA: ' + e.message + ' — use "Gerar roteiro" (local) enquanto isso.');
+  }
 }
 
 // ---------- Animação (preview) ----------
@@ -353,7 +408,14 @@ function playAnimation() {
     if (!state.playing) return;
     const f = frames[i];
     const phase = frames.length > 1 ? i / frames.length : 0;
-    stage.innerHTML = poseToSVG(f.angles, state.character, { ...renderOptions(), expression: f.expression, phase });
+    const opts = renderOptions();
+    stage.innerHTML = poseToSVG(f.angles, state.character, {
+      ...opts,
+      expression: f.expression,
+      background: f.bg ?? opts.background,
+      surto: f.surto ?? opts.surto,
+      phase,
+    });
     i++;
     if (i >= frames.length) {
       if (loop) i = 0;
@@ -489,6 +551,31 @@ function init() {
     e.target.value = '';
   });
 
+  // Diretor de IA
+  const aiCfg = loadAIConfig();
+  el('aiEndpoint').value = aiCfg.endpoint || '';
+  el('aiModel').value = aiCfg.model || '';
+  el('aiKey').value = aiCfg.apiKey || '';
+  el('titleInput').addEventListener('input', (e) => {
+    state.titulo = e.target.value;
+    renderPreview();
+  });
+  el('genLocal').addEventListener('click', () => {
+    const prompt = el('aiPrompt').value.trim();
+    if (!prompt) { setStatus('Escreva uma descrição para o Diretor.'); return; }
+    applyScript(roteiroLocal(prompt));
+    setStatus('Roteiro gerado (local). Toque ▶ ou exporte.');
+  });
+  el('genAI').addEventListener('click', generateWithAI);
+  el('aiSave').addEventListener('click', () => {
+    saveAIConfig({
+      endpoint: el('aiEndpoint').value.trim(),
+      model: el('aiModel').value.trim(),
+      apiKey: el('aiKey').value.trim(),
+    });
+    setStatus('Config da IA salva.');
+  });
+
   // Animações prontas
   el('animSelect').addEventListener('change', () => {
     el('delAnim').disabled = !isActiveAnimCustom();
@@ -529,6 +616,15 @@ function init() {
   el('exportSvg').addEventListener('click', () => {
     exportSVG(state.pose, state.character, renderOptions());
     setStatus('SVG exportado.');
+  });
+  el('exportThumb').addEventListener('click', async () => {
+    setStatus('Gerando thumbnail...');
+    try {
+      await exportThumbnail(state.pose, state.character, renderOptions(), 2);
+      setStatus('Thumbnail PNG (2x) exportada.');
+    } catch (e) {
+      setStatus('Erro na thumbnail: ' + e.message);
+    }
   });
   el('exportPng').addEventListener('click', doExportPng);
   el('exportWebm').addEventListener('click', doExportWebm);

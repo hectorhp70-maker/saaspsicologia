@@ -4,6 +4,7 @@
 const KEY = 'stickman-studio:custom-poses:v1';
 const CHAR_KEY = 'stickman-studio:custom-characters:v1';
 const ANIM_KEY = 'stickman-studio:custom-animations:v1';
+const AI_KEY = 'stickman-studio:ai-config:v1';
 
 export function loadCustomPoses() {
   try {
@@ -176,4 +177,17 @@ export async function importCustomAnimationsFile(file) {
   }
   saveCustomAnimations(anims);
   return anims;
+}
+
+// ---------- Config da IA (Diretor) ----------
+export function loadAIConfig() {
+  try {
+    return JSON.parse(localStorage.getItem(AI_KEY)) || {};
+  } catch {
+    return {};
+  }
+}
+
+export function saveAIConfig(cfg) {
+  localStorage.setItem(AI_KEY, JSON.stringify(cfg || {}));
 }

@@ -83,6 +83,25 @@
 
       <!-- Coluna direita: biblioteca + animação + export -->
       <section class="panel side-panel">
+        <h2>🤖 Diretor de IA</h2>
+        <textarea id="aiPrompt" class="ai-prompt" rows="2" placeholder="Descreva a cena/vídeo... ex: boneco surtando com as dívidas do cartão"></textarea>
+        <div class="row">
+          <button id="genLocal" class="btn">Gerar roteiro</button>
+          <button id="genAI" class="btn ghost">Gerar com IA</button>
+        </div>
+        <label class="col" style="margin-top:8px">
+          Título na tela
+          <input type="text" id="titleInput" placeholder="(sem título)" />
+        </label>
+        <details class="ai-config">
+          <summary>Config IA (Hermes / OpenAI-compat.)</summary>
+          <input type="text" id="aiEndpoint" placeholder="Endpoint, ex: https://openrouter.ai/api/v1/chat/completions" />
+          <input type="text" id="aiModel" placeholder="Modelo, ex: nousresearch/hermes-3-llama-3.1-70b" />
+          <input type="password" id="aiKey" placeholder="API key (deixe vazio p/ Ollama local)" />
+          <button id="aiSave" class="btn ghost small">Salvar config</button>
+          <p class="hint">Compatível com OpenRouter/Together (servindo Hermes) ou Ollama local em <code>http://localhost:11434/v1/chat/completions</code>. Roda no seu navegador; a chave fica só no localStorage.</p>
+        </details>
+
         <h2>Biblioteca de poses</h2>
         <ul id="poseList" class="pose-list"></ul>
         <div class="row">
@@ -142,6 +161,7 @@
         <h2>Exportar</h2>
         <div class="row wrap">
           <button id="exportSvg" class="btn">SVG (pose atual)</button>
+          <button id="exportThumb" class="btn">Thumbnail PNG (2x)</button>
           <button id="exportPng" class="btn">PNG sequência (zip)</button>
           <button id="exportWebm" class="btn">Vídeo .webm</button>
         </div>
