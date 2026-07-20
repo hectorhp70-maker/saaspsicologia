@@ -1,7 +1,7 @@
 // main.js — orquestra o editor, os personagens, a biblioteca de poses,
 // a timeline de quadros-chave e a exportação.
 
-import { ANGLE_KEYS, ANGLE_META, EXPRESSIONS, normalizePose, poseToSVG } from './skeleton.js';
+import { ANGLE_KEYS, ANGLE_META, EXPRESSIONS, HAIR_STYLES, OUTFITS, normalizePose, poseToSVG } from './skeleton.js';
 import { BACKGROUNDS, PROPS } from './effects.js';
 import { defaultCharacters, CHARACTER_FIELDS, normalizeCharacter } from './characters.js';
 import { defaultPoses } from './poses.js';
@@ -128,6 +128,13 @@ function buildPropSelect() {
   sel.value = state.character.prop || 'none';
 }
 
+function buildWardrobeSelects() {
+  el('hairStyle').innerHTML = HAIR_STYLES.map((h) => `<option value="${h.id}">${h.label}</option>`).join('');
+  el('outfitSelect').innerHTML = OUTFITS.map((o) => `<option value="${o.id}">${o.label}</option>`).join('');
+  el('hairStyle').value = state.character.hairStyle || 'curto';
+  el('outfitSelect').value = state.character.outfit || (state.character.jacket ? 'paleto' : 'nenhum');
+}
+
 function buildCharFields() {
   const container = el('charFields');
   container.innerHTML = '';
@@ -159,8 +166,9 @@ function syncCharFields() {
   el('tieColor').value = state.character.tieColor || '#c0392b';
   el('hairToggle').checked = !!state.character.hair;
   el('hairColor').value = state.character.hairColor || '#20140a';
-  el('jacketToggle').checked = !!state.character.jacket;
-  el('jacketColor').value = state.character.jacketColor || '#2c3e50';
+  el('hairStyle').value = state.character.hairStyle || 'curto';
+  el('outfitSelect').value = state.character.outfit || (state.character.jacket ? 'paleto' : 'nenhum');
+  el('outfitColor').value = state.character.outfitColor || state.character.jacketColor || '#2c3e50';
   el('propSelect').value = state.character.prop || 'none';
 }
 
@@ -520,6 +528,7 @@ function init() {
   buildBgSelect();
   buildCharFields();
   buildPropSelect();
+  buildWardrobeSelects();
   refreshCharSelect();
   refreshAnimSelect();
   renderPoseList();
@@ -570,13 +579,19 @@ function init() {
     state.character.hairColor = e.target.value;
     if (state.character.hair) renderPreview();
   });
-  el('jacketToggle').addEventListener('change', (e) => {
-    state.character.jacket = e.target.checked;
+  el('hairStyle').addEventListener('change', (e) => {
+    state.character.hairStyle = e.target.value;
+    if (state.character.hair) renderPreview();
+  });
+  el('outfitSelect').addEventListener('change', (e) => {
+    state.character.outfit = e.target.value;
+    state.character.jacket = e.target.value === 'paleto'; // compat.
     renderPreview();
   });
-  el('jacketColor').addEventListener('input', (e) => {
-    state.character.jacketColor = e.target.value;
-    if (state.character.jacket) renderPreview();
+  el('outfitColor').addEventListener('input', (e) => {
+    state.character.outfitColor = e.target.value;
+    state.character.jacketColor = e.target.value; // compat.
+    renderPreview();
   });
   el('propSelect').addEventListener('change', (e) => {
     state.character.prop = e.target.value;

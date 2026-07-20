@@ -61,11 +61,17 @@
           Cabelo
           <input type="color" id="hairColor" value="#20140a" style="height:26px;width:40px;margin-left:4px" />
         </label>
-        <label class="check-row">
-          <input type="checkbox" id="jacketToggle" />
-          Paletó
-          <input type="color" id="jacketColor" value="#2c3e50" style="height:26px;width:40px;margin-left:4px" />
-        </label>
+        <div class="row">
+          <label class="col">
+            Estilo de cabelo
+            <select id="hairStyle"></select>
+          </label>
+          <label class="col">
+            Roupa
+            <select id="outfitSelect"></select>
+          </label>
+          <input type="color" id="outfitColor" value="#2c3e50" style="height:36px;width:40px;align-self:flex-end" title="Cor da roupa" />
+        </div>
         <div class="row">
           <input type="text" id="charName" placeholder="Nome do novo personagem" />
           <button id="saveChar" class="btn">Salvar</button>

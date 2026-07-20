@@ -34,8 +34,13 @@ npm run preview    # serve o build localmente
 
 - **Editor de personagem**: troque as proporções (raio da cabeça, coluna, braço,
   antebraço, coxa, canela, espessura do traço, tamanho das mãos/pés), a cor, e
-  acessórios (**gravata**, **cabelo** e **paletó**, cada um com cor), com
-  preview ao vivo.
+  o guarda-roupa, com preview ao vivo:
+  - **Cabelos** (7 estilos): curto, ondulado, moicano, longo, chanel/bob, coque
+    e careca — inclui opções femininas e mais realistas, com cor.
+  - **Roupas** (6): paletó, camisa social, camiseta, vestido, saia + top, com cor.
+  - **Gravata** e **objeto na mão** (dinheiro/moeda/cartão/celular/sacola).
+  - Presets prontos: Anderson, Anderson Executivo, **Ana Poupança**,
+    **Ana Executiva**, Jovem casual, além dos de proporção (Magrelo, Forte…).
 - **Legendas por cena**: cada cena do roteiro pode ter uma legenda (fala) exibida
   no topo, incluída nas exportações — ótimo para vídeos explicativos.
 - **Objeto na mão**: o personagem pode segurar dinheiro, moeda, cartão, celular
