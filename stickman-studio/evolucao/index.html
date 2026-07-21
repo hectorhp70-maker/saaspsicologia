@@ -155,7 +155,13 @@
         <label><input type="checkbox" id="axOrelhas" /> Orelhas</label>
         <label><input type="checkbox" id="axCabelo" /> Cabelo</label>
         <label><input type="checkbox" id="axGravata" /> Gravata</label>
+        <label><input type="checkbox" id="axPaleto" /> Paletó</label>
       </div>
+    </div>
+
+    <div class="campo">
+      <label>Cenário de fundo</label>
+      <select id="cenario"></select>
     </div>
 
     <div class="divisor"></div>
@@ -272,8 +278,9 @@ function modeloBase() {
   return {
     nome: 'Neutro', dna: dnaBase(),
     corTraco: '#1a1d24', estilo: 'fino',
-    corCabelo: '#2a2118', corGravata: '#3a3a3a',
-    anexos: { capa: false, espada: false, chapeu: false, orelhas: false, cabelo: false, gravata: false },
+    corCabelo: '#2a2118', corGravata: '#3a3a3a', corPaleto: '#2f3a4a',
+    cenario: 'nenhum',
+    anexos: { capa: false, espada: false, chapeu: false, orelhas: false, cabelo: false, gravata: false, paleto: false },
     anguloPernaE: 0, anguloPernaD: 0,
     geracao: 0,
   };
@@ -291,9 +298,9 @@ const PRESETS_FABRICA = [
   // gravata, traço fino escuro. Combina com o preset "Anderson (canal)" do estúdio SVG.
   {
     nome: 'Anderson', corTraco: '#241a12', estilo: 'fino',
-    corCabelo: '#2a2118', corGravata: '#3a3a3a',
+    corCabelo: '#2a2118', corGravata: '#3a3a3a', corPaleto: '#2f3a4a', cenario: 'escritorio',
     dna: { tamanhoCabeca: 36, comprimentoBracos: 1.0, comprimentoPernas: 1.05, grossuraTronco: 5, inclinacaoOmbro: 4 },
-    anexos: { capa: false, espada: false, chapeu: false, orelhas: true, cabelo: true, gravata: true },
+    anexos: { capa: false, espada: false, chapeu: false, orelhas: true, cabelo: true, gravata: true, paleto: true },
   },
   { nome: 'Neutro',  dna: { tamanhoCabeca: 30, comprimentoBracos: 1.0,  comprimentoPernas: 1.0,  grossuraTronco: 8,  inclinacaoOmbro: 0 } },
   { nome: 'Herói',   dna: { tamanhoCabeca: 26, comprimentoBracos: 1.15, comprimentoPernas: 1.3,  grossuraTronco: 12, inclinacaoOmbro: 18 } },
@@ -568,12 +575,61 @@ class Gravata extends Acessorio {
   }
 }
 
+// Clareia/escurece uma cor #rrggbb por um delta (-255..255).
+function shade(hex, amt) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = clamp((n >> 16) + amt, 0, 255), g = clamp(((n >> 8) & 255) + amt, 0, 255), b = clamp((n & 255) + amt, 0, 255);
+  return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+}
+
+class Paleto extends Acessorio {
+  // Paletó social: corpo + colarinho/camisa em V + lapelas + botão. Portado do jacketSVG.
+  _geo(sk, r) {
+    const neck = fim(sk.get('tronco'));
+    const hip = { x: sk.get('tronco').x, y: sk.get('tronco').y };
+    const dx = hip.x - neck.x, dy = hip.y - neck.y, L = Math.hypot(dx, dy) || 1;
+    const ux = dx / L, uy = dy / L, px = -uy, py = ux;
+    const P = (d, w) => ({ x: neck.x + ux * d + px * w, y: neck.y + uy * d + py * w });
+    const Wt = r * 1.05, Wh = r * 0.82;
+    return { P, L, Wt, Wh };
+  }
+  desenhar(ctx, sk, r) {
+    const { P, L, Wt, Wh } = this._geo(sk, r), dk = shade(this.cor, -28);
+    const A = P(0, Wt), B = P(0, -Wt), C = P(L * 0.98, -Wh), D = P(L * 0.98, Wh);
+    const cL = P(L * 0.02, Wt * 0.5), cR = P(L * 0.02, -Wt * 0.5), vB = P(L * 0.5, 0), bBot = P(L * 0.9, 0);
+    ctx.save();
+    const poly = (arr, fill, st, sw) => {
+      ctx.beginPath(); ctx.moveTo(arr[0].x, arr[0].y); arr.slice(1).forEach(p => ctx.lineTo(p.x, p.y)); ctx.closePath();
+      ctx.fillStyle = fill; ctx.fill(); if (st) { ctx.strokeStyle = st; ctx.lineWidth = sw; ctx.stroke(); }
+    };
+    poly([A, B, C, D], this.cor, '#00000055', 1.5);   // corpo
+    poly([cL, cR, vB], '#f2ede2');                     // camisa em V
+    ctx.lineJoin = 'round';
+    ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(vB.x, vB.y); ctx.lineTo(B.x, B.y);
+    ctx.strokeStyle = dk; ctx.lineWidth = r * 0.12; ctx.stroke();               // lapelas
+    ctx.beginPath(); ctx.moveTo(vB.x, vB.y); ctx.lineTo(bBot.x, bBot.y);
+    ctx.strokeStyle = dk; ctx.lineWidth = r * 0.07; ctx.stroke();               // botão
+    ctx.restore();
+  }
+  svg(sk, r) {
+    const { P, L, Wt, Wh } = this._geo(sk, r), dk = shade(this.cor, -28);
+    const A = P(0, Wt), B = P(0, -Wt), C = P(L * 0.98, -Wh), D = P(L * 0.98, Wh);
+    const cL = P(L * 0.02, Wt * 0.5), cR = P(L * 0.02, -Wt * 0.5), vB = P(L * 0.5, 0), bBot = P(L * 0.9, 0);
+    const pts = (arr) => arr.map(p => p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ');
+    return `<polygon points="${pts([A, B, C, D])}" fill="${this.cor}" stroke="#00000055" stroke-width="1.5"/>`
+      + `<polygon points="${pts([cL, cR, vB])}" fill="#f2ede2"/>`
+      + `<path d="M ${A.x.toFixed(1)} ${A.y.toFixed(1)} L ${vB.x.toFixed(1)} ${vB.y.toFixed(1)} L ${B.x.toFixed(1)} ${B.y.toFixed(1)}" fill="none" stroke="${dk}" stroke-width="${(r * 0.12).toFixed(1)}" stroke-linejoin="round"/>`
+      + `<line x1="${vB.x.toFixed(1)}" y1="${vB.y.toFixed(1)}" x2="${bBot.x.toFixed(1)}" y2="${bBot.y.toFixed(1)}" stroke="${dk}" stroke-width="${(r * 0.07).toFixed(1)}"/>`;
+  }
+}
+
 function acessoriosDe(modelo) {
   const a = modelo.anexos || {}, lista = [];
   // camada de trás (atrás do corpo/cabeça)
   if (a.orelhas) lista.push({ tras: true, obj: new Orelhas(modelo.corTraco) });
   if (a.capa)    lista.push({ tras: true, obj: new Capa('#b23a48') });
   // camada da frente
+  if (a.paleto)  lista.push({ tras: false, obj: new Paleto(modelo.corPaleto || '#2f3a4a') });
   if (a.gravata) lista.push({ tras: false, obj: new Gravata(modelo.corGravata || '#3a3a3a') });
   if (a.espada)  lista.push({ tras: false, obj: new Espada('#c9ccd6') });
   if (a.chapeu)  lista.push({ tras: false, obj: new Chapeu('#2f6bff') });
@@ -656,6 +712,85 @@ function desenharGrade(ctx, w, h) {
   ctx.restore();
 }
 
+// Cenários de fundo (vetoriais, desenhados direto no canvas). Portados do
+// tema "Surto Financeiro". Chão em ~0.86h para o personagem "pisar".
+const CENARIOS = [
+  { id: 'nenhum', label: 'Nenhum (grade)' },
+  { id: 'creme', label: 'Creme (papel)' },
+  { id: 'escritorio', label: 'Escritório' },
+  { id: 'rua', label: 'Rua' },
+  { id: 'banco', label: 'Banco / Agência' },
+  { id: 'noite', label: 'Cidade à noite' },
+  { id: 'dramatico', label: 'Dramático (surto)' },
+];
+function desenharCenario(ctx, id, w, h) {
+  if (!id || id === 'nenhum') return;
+  const g = h * 0.86;
+  const R = (x, y, ww, hh, f) => { ctx.fillStyle = f; ctx.fillRect(x, y, ww, hh); };
+  const C = (cx, cy, r, f) => { ctx.fillStyle = f; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.fill(); };
+  const LN = (x1, y1, x2, y2, st, sw) => { ctx.strokeStyle = st; ctx.lineWidth = sw; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); };
+  const SR = (x, y, ww, hh, st, sw) => { ctx.strokeStyle = st; ctx.lineWidth = sw; ctx.strokeRect(x, y, ww, hh); };
+
+  if (id === 'creme') { R(0, 0, w, h, '#f7edc7'); return; }
+
+  if (id === 'dramatico') {
+    const gr = ctx.createRadialGradient(w / 2, h * 0.42, 0, w / 2, h * 0.42, w * 0.75);
+    gr.addColorStop(0, '#3a2140'); gr.addColorStop(0.55, '#1b1424'); gr.addColorStop(1, '#070509');
+    ctx.fillStyle = gr; ctx.fillRect(0, 0, w, h);
+    const cx = w / 2, cy = h * 0.42, RR = Math.max(w, h);
+    for (let i = 0; i < 24; i++) {
+      const a0 = (i / 24) * Math.PI * 2, a1 = a0 + Math.PI / 24;
+      ctx.fillStyle = '#e0452f'; ctx.globalAlpha = i % 2 ? 0.06 : 0.11;
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a0) * RR, cy + Math.sin(a0) * RR); ctx.lineTo(cx + Math.cos(a1) * RR, cy + Math.sin(a1) * RR); ctx.closePath(); ctx.fill();
+    }
+    ctx.globalAlpha = 1; return;
+  }
+
+  if (id === 'escritorio') {
+    R(0, 0, w, h, '#d9cdb8'); R(0, g, w, h - g, '#b08d5c');
+    R(w * 0.12, h * 0.16, w * 0.34, h * 0.32, '#a9c7dd'); SR(w * 0.12, h * 0.16, w * 0.34, h * 0.32, '#8a7f6b', 6);
+    LN(w * 0.29, h * 0.16, w * 0.29, h * 0.48, '#8a7f6b', 4); LN(w * 0.12, h * 0.32, w * 0.46, h * 0.32, '#8a7f6b', 4);
+    R(w * 0.8, g - 52, 6, 52, '#7a5230'); C(w * 0.81, g - 62, 22, '#5aa06a');   // vaso de planta
+    return;
+  }
+
+  if (id === 'rua') {
+    const gr = ctx.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#8ecbf0'); gr.addColorStop(1, '#dff0fb');
+    ctx.fillStyle = gr; ctx.fillRect(0, 0, w, h);
+    C(w * 0.82, h * 0.16, 26, '#ffe9a8');
+    const bld = (x, ww, hh, f) => {
+      R(x, g - hh, ww, hh, f);
+      for (let r = 0; r < Math.floor(hh / 26); r++) for (let cc = 0; cc < Math.floor(ww / 22); cc++) R(x + 8 + cc * 22, g - hh + 10 + r * 26, 10, 14, '#bcd3e6');
+    };
+    bld(w * 0.02, 90, 220, '#6d7f92'); bld(w * 0.3, 70, 160, '#8496a8'); bld(w * 0.62, 110, 250, '#5f7183'); bld(w * 0.86, 60, 190, '#7c8ea0');
+    R(0, g, w, h - g, '#9aa3ab'); R(0, g, w, 6, '#c3ccd3');
+    return;
+  }
+
+  if (id === 'banco') {
+    R(0, 0, w, h, '#e7e2d6'); R(0, g, w, h - g, '#9fa7ac');
+    R(w * 0.62, h * 0.2, w * 0.3, h * 0.14, '#2f5d8a');
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 18px Arial'; ctx.textAlign = 'center'; ctx.fillText('BANCO', w * 0.77, h * 0.29);
+    R(w * 0.08, g - 70, w * 0.5, 70, '#5a6b7a'); R(w * 0.08, g - 82, w * 0.5, 16, '#48586a');
+    C(w * 0.2, h * 0.24, 14, '#c9a24a'); C(w * 0.2, h * 0.24, 8, '#e6c869');
+    ctx.textAlign = 'start'; return;
+  }
+
+  if (id === 'noite') {
+    const gr = ctx.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#0b1030'); gr.addColorStop(1, '#2a2350');
+    ctx.fillStyle = gr; ctx.fillRect(0, 0, w, h);
+    C(w * 0.8, h * 0.16, 24, '#f4f0d0');
+    for (let i = 0; i < 30; i++) C((i * 137) % w, (i * 89) % (h * 0.6), 1.4, '#fff');
+    const bld = (x, ww, hh) => {
+      R(x, g - hh, ww, hh, '#141a33');
+      for (let r = 0; r < Math.floor(hh / 24); r++) for (let cc = 0; cc < Math.floor(ww / 20); cc++) if (((r + cc + x) | 0) % 2) R(x + 6 + cc * 20, g - hh + 8 + r * 24, 8, 12, '#ffd97a');
+    };
+    bld(w * 0.02, 90, 240); bld(w * 0.32, 70, 180); bld(w * 0.6, 110, 260); bld(w * 0.85, 70, 200);
+    R(0, g, w, h - g, '#0a0d1c');
+    return;
+  }
+}
+
 // Renderiza um modelo dentro de um mini-canvas (preset/preview), auto-enquadrado.
 function renderMini(canvas, modelo) {
   const ctx = canvas.getContext('2d');
@@ -728,7 +863,9 @@ function loop(now) {
 
 function render(now) {
   ctx.clearRect(0, 0, tela.width, tela.height);
-  if (document.getElementById('chkGrade').checked) desenharGrade(ctx, tela.width, tela.height);
+  const cen = modelo.cenario || 'nenhum';
+  if (cen !== 'nenhum') desenharCenario(ctx, cen, tela.width, tela.height);
+  else if (document.getElementById('chkGrade').checked) desenharGrade(ctx, tela.width, tela.height);
   // Animando: usa a pose interpolada; senão, a pose do modelo (editável por IK).
   if (animando && keyframes.length >= 2) {
     skAtual = construirPose(modelo, poseInterpolada(now)).fk(ORIGEM.x, ORIGEM.y);
@@ -759,6 +896,8 @@ function sincronizarUI() {
   document.getElementById('axOrelhas').checked = !!modelo.anexos.orelhas;
   document.getElementById('axCabelo').checked = !!modelo.anexos.cabelo;
   document.getElementById('axGravata').checked = !!modelo.anexos.gravata;
+  document.getElementById('axPaleto').checked = !!modelo.anexos.paleto;
+  document.getElementById('cenario').value = modelo.cenario || 'nenhum';
   document.getElementById('lblGeracao').textContent = modelo.geracao;
 }
 function set(id, v) { const el = document.getElementById(id); if (el.tagName === 'INPUT') el.value = v; else el.textContent = v; }
@@ -775,9 +914,14 @@ liga('sPernaD',   v => modelo.anguloPernaD = v);
 document.getElementById('corTraco').addEventListener('input', e => { modelo.corTraco = e.target.value; marcarSujo(); });
 document.getElementById('estilo').addEventListener('change', e => { modelo.estilo = e.target.value; marcarSujo(); });
 ['chkGrade', 'chkOssos'].forEach(id => document.getElementById(id).addEventListener('change', marcarSujo));
-['axCapa', 'axEspada', 'axChapeu', 'axOrelhas', 'axCabelo', 'axGravata'].forEach(id => document.getElementById(id).addEventListener('change', e => {
+['axCapa', 'axEspada', 'axChapeu', 'axOrelhas', 'axCabelo', 'axGravata', 'axPaleto'].forEach(id => document.getElementById(id).addEventListener('change', e => {
   modelo.anexos[id.replace('ax', '').toLowerCase()] = e.target.checked; marcarSujo();
 }));
+
+// Cenário de fundo
+const selCenario = document.getElementById('cenario');
+CENARIOS.forEach(c => { const o = document.createElement('option'); o.value = c.id; o.textContent = c.label; selCenario.append(o); });
+selCenario.addEventListener('change', e => { modelo.cenario = e.target.value; marcarSujo(); });
 
 // ----- Arrastar mãos/pés com o mouse (IK) ------------------------------
 let arrastando = null;
