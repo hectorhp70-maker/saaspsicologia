@@ -129,6 +129,10 @@
       <input type="color" id="corTraco" value="#1a1d24" />
     </div>
     <div class="campo">
+      <label>Expressão facial</label>
+      <select id="expressao"></select>
+    </div>
+    <div class="campo">
       <label>Estilo do traço</label>
       <select id="estilo">
         <option value="fino">Traço Fino</option>
@@ -279,7 +283,7 @@ function modeloBase() {
     nome: 'Neutro', dna: dnaBase(),
     corTraco: '#1a1d24', estilo: 'fino',
     corCabelo: '#2a2118', corGravata: '#3a3a3a', corPaleto: '#2f3a4a',
-    cenario: 'nenhum',
+    cenario: 'nenhum', expressao: 'neutro',
     anexos: { capa: false, espada: false, chapeu: false, orelhas: false, cabelo: false, gravata: false, paleto: false },
     anguloPernaE: 0, anguloPernaD: 0,
     geracao: 0,
@@ -637,6 +641,95 @@ function acessoriosDe(modelo) {
   return lista;
 }
 
+// ---- Rosto / Expressões faciais ---------------------------------------
+// Portado do faceToSVG do estúdio principal. Gera uma lista de primitivas
+// (ellipse/circle/path) neutra ao meio de saída → desenha no canvas E exporta SVG.
+const EXPRESSOES = [
+  { id: 'neutro', label: 'Neutro' }, { id: 'feliz', label: 'Feliz' },
+  { id: 'triste', label: 'Triste' }, { id: 'bravo', label: 'Bravo' },
+  { id: 'surpreso', label: 'Surpreso' }, { id: 'preocupado', label: 'Preocupado' },
+  { id: 'furioso', label: 'Furioso (surto)' }, { id: 'tonto', label: 'Tonto (X)' },
+];
+
+function construirRosto(r, expr, cor, lineWidth) {
+  const eyeDX = 0.36 * r, eyeY = -0.15 * r, exr = 0.11 * r, eyr = 0.145 * r;
+  const browY = eyeY - 0.28 * r, mouthY = 0.36 * r, mw = 0.42 * r;
+  const lw = Math.max(1.5, lineWidth * 0.5), lwB = lw * 1.35, noseCol = shade(cor, 60);
+  const P = [];
+  const path = (ops, o) => P.push({ k: 'path', ops, ...o });
+  const line = (x1, y1, x2, y2, st, sw) => path([['M', x1, y1], ['L', x2, y2]], { stroke: st, sw });
+
+  const eye = (x) => { P.push({ k: 'ellipse', x, y: eyeY, rx: exr, ry: eyr, fill: cor }); P.push({ k: 'circle', x: x - exr * 0.35, y: eyeY - eyr * 0.35, r: exr * 0.34, fill: '#fff' }); };
+  const eyes = () => { eye(-eyeDX); eye(eyeDX); };
+  const eyeWide = (x) => { P.push({ k: 'circle', x, y: eyeY, r: 0.16 * r, fill: '#fff', stroke: cor, sw: lw }); P.push({ k: 'circle', x, y: eyeY + 0.02 * r, r: 0.06 * r, fill: cor }); };
+  const eyesWide = () => { eyeWide(-eyeDX); eyeWide(eyeDX); };
+  const eyeHappy = (x) => path([['M', x - 0.13 * r, eyeY + 0.04 * r], ['Q', x, eyeY - 0.13 * r, x + 0.13 * r, eyeY + 0.04 * r]], { stroke: cor, sw: lwB });
+  const eyesHappy = () => { eyeHappy(-eyeDX); eyeHappy(eyeDX); };
+  const eyesX = () => { const d = 0.11 * r; const one = (ex) => { line(ex - d, eyeY - d, ex + d, eyeY + d, cor, lw); line(ex - d, eyeY + d, ex + d, eyeY - d, cor, lw); }; one(-eyeDX); one(eyeDX); };
+
+  const brow = (x, innerDY, outerDY) => {
+    const toC = x < 0 ? 1 : -1, outerX = x - toC * 0.16 * r, innerX = x + toC * 0.14 * r;
+    const topY = Math.min(browY + innerDY, browY + outerDY) - 0.05 * r;
+    path([['M', outerX, browY + outerDY], ['Q', x, topY, innerX, browY + innerDY]], { stroke: cor, sw: lwB });
+  };
+  const brows = (i, o) => { brow(-eyeDX, i, o); brow(eyeDX, i, o); };
+  const nose = () => path([['M', 0, 0.02 * r], ['Q', 0.05 * r, 0.1 * r, 0, 0.13 * r]], { stroke: noseCol, sw: lw * 0.9 });
+  const blush = () => { P.push({ k: 'ellipse', x: -0.44 * r, y: 0.16 * r, rx: 0.11 * r, ry: 0.06 * r, fill: '#ff8f9a', op: 0.55 }); P.push({ k: 'ellipse', x: 0.44 * r, y: 0.16 * r, rx: 0.11 * r, ry: 0.06 * r, fill: '#ff8f9a', op: 0.55 }); };
+  const sweat = (x, y) => path([['M', x, y - 0.1 * r], ['Q', x + 0.07 * r, y + 0.02 * r, x, y + 0.06 * r], ['Q', x - 0.07 * r, y + 0.02 * r, x, y - 0.1 * r]], { fill: '#5fb8ec', stroke: '#2f86c0', sw: lw * 0.5, close: true });
+
+  const openSmile = () => { path([['M', -mw * 0.85, mouthY - 0.02 * r], ['Q', 0, mouthY + 0.36 * r, mw * 0.85, mouthY - 0.02 * r], ['Q', 0, mouthY + 0.06 * r, -mw * 0.85, mouthY - 0.02 * r]], { fill: '#93404a', stroke: cor, sw: lw, close: true }); path([['M', -mw * 0.7, mouthY - 0.01 * r], ['Q', 0, mouthY + 0.03 * r, mw * 0.7, mouthY - 0.01 * r]], { stroke: '#fff', sw: lw * 0.8 }); };
+  const frown = (s = 0.18 * r) => path([['M', -mw, mouthY + 0.04 * r], ['Q', 0, mouthY - s, mw, mouthY + 0.04 * r]], { stroke: cor, sw: lwB });
+  const flat = () => line(-mw * 0.8, mouthY, mw * 0.8, mouthY, cor, lw);
+  const circleMouth = (rr = 0.14 * r) => P.push({ k: 'ellipse', x: 0, y: mouthY, rx: rr * 0.85, ry: rr, fill: '#7a3138', stroke: cor, sw: lw });
+  const wavy = () => path([['M', -mw * 0.8, mouthY], ['Q', -mw * 0.4, mouthY - 0.1 * r, 0, mouthY], ['Q', mw * 0.4, mouthY + 0.1 * r, mw * 0.8, mouthY]], { stroke: cor, sw: lw });
+
+  switch (expr) {
+    case 'feliz': brows(-0.04 * r, -0.06 * r); eyesHappy(); nose(); blush(); openSmile(); break;
+    case 'triste': brows(-0.06 * r, 0.12 * r); eyes(); nose(); frown(); sweat(-eyeDX - 0.16 * r, eyeY + 0.05 * r); break;
+    case 'bravo': brows(0.18 * r, -0.02 * r); eyes(); nose(); frown(0.22 * r); break;
+    case 'surpreso': brows(-0.14 * r, -0.14 * r); eyesWide(); circleMouth(0.15 * r); sweat(eyeDX + 0.18 * r, eyeY); break;
+    case 'preocupado': brows(-0.08 * r, 0.06 * r); eyes(); nose(); wavy(); sweat(eyeDX + 0.18 * r, eyeY); break;
+    case 'furioso':
+      brows(0.22 * r, -0.06 * r); eyes();
+      path([['M', -mw, mouthY - 0.04 * r], ['Q', 0, mouthY - 0.16 * r, mw, mouthY - 0.04 * r], ['Q', mw * 0.8, mouthY + 0.32 * r, 0, mouthY + 0.36 * r], ['Q', -mw * 0.8, mouthY + 0.32 * r, -mw, mouthY - 0.04 * r]], { fill: '#7a2e2e', stroke: cor, sw: lw, close: true });
+      line(-mw * 0.8, mouthY, mw * 0.8, mouthY, '#fff', lw * 0.7);
+      break;
+    case 'tonto': eyesX(); circleMouth(0.12 * r); break;
+    default: brows(0, 0); eyes(); nose(); flat();
+  }
+  return P;
+}
+
+function desenharRostoCanvas(ctx, cx, cy, rot, prims) {
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate(rot); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  for (const p of prims) {
+    ctx.globalAlpha = p.op != null ? p.op : 1;
+    ctx.beginPath();
+    if (p.k === 'ellipse') ctx.ellipse(p.x, p.y, p.rx, p.ry, 0, 0, Math.PI * 2);
+    else if (p.k === 'circle') ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    else for (const o of p.ops) { if (o[0] === 'M') ctx.moveTo(o[1], o[2]); else if (o[0] === 'L') ctx.lineTo(o[1], o[2]); else ctx.quadraticCurveTo(o[1], o[2], o[3], o[4]); }
+    if (p.close) ctx.closePath();
+    if (p.fill) { ctx.fillStyle = p.fill; ctx.fill(); }
+    if (p.stroke) { ctx.strokeStyle = p.stroke; ctx.lineWidth = p.sw || 1; ctx.stroke(); }
+  }
+  ctx.globalAlpha = 1; ctx.restore();
+}
+
+function rostoSVG(cx, cy, rot, prims) {
+  const f = (n) => n.toFixed(2);
+  const el = prims.map(p => {
+    const op = p.op != null ? ` opacity="${p.op}"` : '';
+    const fill = p.fill ? `fill="${p.fill}"` : 'fill="none"';
+    const st = p.stroke ? ` stroke="${p.stroke}" stroke-width="${f(p.sw || 1)}" stroke-linecap="round" stroke-linejoin="round"` : '';
+    if (p.k === 'ellipse') return `<ellipse cx="${f(p.x)}" cy="${f(p.y)}" rx="${f(p.rx)}" ry="${f(p.ry)}" ${fill}${st}${op}/>`;
+    if (p.k === 'circle') return `<circle cx="${f(p.x)}" cy="${f(p.y)}" r="${f(p.r)}" ${fill}${st}${op}/>`;
+    let d = ''; for (const o of p.ops) { if (o[0] === 'M') d += `M ${f(o[1])} ${f(o[2])} `; else if (o[0] === 'L') d += `L ${f(o[1])} ${f(o[2])} `; else d += `Q ${f(o[1])} ${f(o[2])} ${f(o[3])} ${f(o[4])} `; }
+    if (p.close) d += 'Z';
+    return `<path d="${d}" ${fill}${st}${op}/>`;
+  }).join('');
+  return `<g transform="translate(${f(cx)} ${f(cy)}) rotate(${f(rot * 180 / Math.PI)})">${el}</g>`;
+}
+
 // ---- Desenho do esqueleto (3 estilos de traço) ------------------------
 function desenharOsso(ctx, b, cor, estilo) {
   if (b.length <= 0) return;
@@ -682,6 +775,13 @@ function desenharStickman(ctx, sk, modelo, raioCabeca, mostrarOssos) {
   ctx.beginPath(); ctx.arc(c.x, c.y, raioCabeca, 0, Math.PI * 2);
   if (estilo !== 'caligrafico') ctx.fill();
   ctx.stroke();
+
+  // Rosto (expressão) — acompanha a inclinação da cabeça.
+  const rotRosto = (sk.get('cabeca').worldAngle + 90) * D2R;
+  const primsRosto = construirRosto(raioCabeca, modelo.expressao || 'neutro', cor, Math.max(3, sk.get('tronco').thickness));
+  if (estilo === 'neon') ctx.shadowBlur = 0; // rosto sem brilho para leitura
+  desenharRostoCanvas(ctx, c.x, c.y, rotRosto, primsRosto);
+  if (estilo === 'neon') { ctx.shadowBlur = 16; ctx.shadowColor = cor; }
 
   acs.filter(a => !a.tras).forEach(a => a.obj.desenhar(ctx, sk, raioCabeca)); // espada/chapéu na frente
   ctx.restore();
@@ -890,6 +990,7 @@ function sincronizarUI() {
   set('sPernaD', modelo.anguloPernaD); set('vPernaD', modelo.anguloPernaD + '°');
   document.getElementById('corTraco').value = modelo.corTraco;
   document.getElementById('estilo').value = modelo.estilo;
+  document.getElementById('expressao').value = modelo.expressao || 'neutro';
   document.getElementById('axCapa').checked = !!modelo.anexos.capa;
   document.getElementById('axEspada').checked = !!modelo.anexos.espada;
   document.getElementById('axChapeu').checked = !!modelo.anexos.chapeu;
@@ -913,6 +1014,9 @@ liga('sPernaD',   v => modelo.anguloPernaD = v);
 
 document.getElementById('corTraco').addEventListener('input', e => { modelo.corTraco = e.target.value; marcarSujo(); });
 document.getElementById('estilo').addEventListener('change', e => { modelo.estilo = e.target.value; marcarSujo(); });
+const selExpr = document.getElementById('expressao');
+EXPRESSOES.forEach(x => { const o = document.createElement('option'); o.value = x.id; o.textContent = x.label; selExpr.append(o); });
+selExpr.addEventListener('change', e => { modelo.expressao = e.target.value; marcarSujo(); });
 ['chkGrade', 'chkOssos'].forEach(id => document.getElementById(id).addEventListener('change', marcarSujo));
 ['axCapa', 'axEspada', 'axChapeu', 'axOrelhas', 'axCabelo', 'axGravata', 'axPaleto'].forEach(id => document.getElementById(id).addEventListener('change', e => {
   modelo.anexos[id.replace('ax', '').toLowerCase()] = e.target.checked; marcarSujo();
@@ -1034,6 +1138,9 @@ function gerarSVG() {
   // cabeça como <circle>
   const c = fim(sk.get('cabeca')); const [cx, cy] = T(c.x, c.y);
   el += `<circle cx="${cx}" cy="${cy}" r="${r.toFixed(1)}" fill="#fff" stroke="${cor}" stroke-width="${(sk.get('tronco').thickness * 0.6).toFixed(1)}"/>`;
+  // rosto (expressão)
+  const rotR = (sk.get('cabeca').worldAngle + 90) * D2R;
+  el += rostoSVG(+cx, +cy, rotR, construirRosto(r, modelo.expressao || 'neutro', cor, Math.max(3, sk.get('tronco').thickness)));
   // acessórios da frente
   acessoriosDe(modelo).filter(a => !a.tras).forEach(a => el += a.obj.svg(deslocar(sk, bb, m), r));
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${el}</svg>`;
