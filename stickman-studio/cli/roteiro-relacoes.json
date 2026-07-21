@@ -1,0 +1,21 @@
+{
+  "titulo": "DINHEIRO E RELAÇÕES",
+  "personagem": "anderson-canal",
+  "fps": 24,
+  "largura": 400,
+  "altura": 500,
+  "transicao": 10,
+  "cenas": [
+    { "pose": "present", "expressao": "neutro", "fundo": "creme", "objeto": "dinheiro", "quadros": 44, "fala": "Emprestar dinheiro é o jeito mais caro de descobrir quem a pessoa é." },
+    { "pose": "point", "expressao": "neutro", "fundo": "creme", "quadros": 40, "fala": "Quando entra dinheiro numa relação, o cérebro troca conta por julgamento." },
+    { "pose": "present", "expressao": "preocupado", "fundo": "creme", "objeto": "dinheiro", "quadros": 46, "fala": "Você empresta 200. Pra você é empréstimo. Pra ele, virou presente." },
+    { "pose": "think", "expressao": "neutro", "fundo": "creme", "quadros": 44, "fala": "Isso tem nome: contabilidade mental. Cada um guarda a dívida numa conta." },
+    { "pose": "sad", "expressao": "preocupado", "fundo": "creme", "quadros": 44, "fala": "E cobrar dói. Cobrar um amigo faz você parecer o vilão da história." },
+    { "pose": "shrug", "expressao": "surpreso", "fundo": "creme", "quadros": 44, "fala": "Em casal é pior: dinheiro é a briga número 1, não por falta, por segredo." },
+    { "pose": "present", "expressao": "preocupado", "fundo": "creme", "quadros": 42, "fala": "O estopim quase nunca é o valor. É a quebra de confiança." },
+    { "pose": "melt", "expressao": "furioso", "fundo": "explosao", "surto": 9, "quadros": 46, "fala": "Aí uma dívida de 200 reais vira uma briga de anos." },
+    { "pose": "point", "expressao": "neutro", "fundo": "creme", "objeto": "dinheiro", "quadros": 44, "fala": "Regra de ouro: só empreste o que você pode dar de presente." },
+    { "pose": "present", "expressao": "feliz", "fundo": "creme", "quadros": 42, "fala": "No casal, conta aberta: combinem antes, por escrito, sem vergonha." },
+    { "pose": "present", "expressao": "feliz", "fundo": "creme", "quadros": 44, "fala": "Dinheiro não destrói relação. O silêncio sobre ele, sim." }
+  ]
+}
