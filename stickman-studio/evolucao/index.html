@@ -152,6 +152,9 @@
         <label><input type="checkbox" id="axCapa" /> Capa</label>
         <label><input type="checkbox" id="axEspada" /> Espada</label>
         <label><input type="checkbox" id="axChapeu" /> Chapéu</label>
+        <label><input type="checkbox" id="axOrelhas" /> Orelhas</label>
+        <label><input type="checkbox" id="axCabelo" /> Cabelo</label>
+        <label><input type="checkbox" id="axGravata" /> Gravata</label>
       </div>
     </div>
 
@@ -269,7 +272,8 @@ function modeloBase() {
   return {
     nome: 'Neutro', dna: dnaBase(),
     corTraco: '#1a1d24', estilo: 'fino',
-    anexos: { capa: false, espada: false, chapeu: false },
+    corCabelo: '#2a2118', corGravata: '#3a3a3a',
+    anexos: { capa: false, espada: false, chapeu: false, orelhas: false, cabelo: false, gravata: false },
     anguloPernaE: 0, anguloPernaD: 0,
     geracao: 0,
   };
@@ -283,6 +287,14 @@ const FAIXAS_DNA = {
 
 // Presets de fábrica (arquétipos).
 const PRESETS_FABRICA = [
+  // Anderson Patrimônio — mascote do canal: orelhas, cabelo bagunçado (fios),
+  // gravata, traço fino escuro. Combina com o preset "Anderson (canal)" do estúdio SVG.
+  {
+    nome: 'Anderson', corTraco: '#241a12', estilo: 'fino',
+    corCabelo: '#2a2118', corGravata: '#3a3a3a',
+    dna: { tamanhoCabeca: 36, comprimentoBracos: 1.0, comprimentoPernas: 1.05, grossuraTronco: 5, inclinacaoOmbro: 4 },
+    anexos: { capa: false, espada: false, chapeu: false, orelhas: true, cabelo: true, gravata: true },
+  },
   { nome: 'Neutro',  dna: { tamanhoCabeca: 30, comprimentoBracos: 1.0,  comprimentoPernas: 1.0,  grossuraTronco: 8,  inclinacaoOmbro: 0 } },
   { nome: 'Herói',   dna: { tamanhoCabeca: 26, comprimentoBracos: 1.15, comprimentoPernas: 1.3,  grossuraTronco: 12, inclinacaoOmbro: 18 } },
   { nome: 'Cômico',  dna: { tamanhoCabeca: 52, comprimentoBracos: 0.82, comprimentoPernas: 0.78, grossuraTronco: 9,  inclinacaoOmbro: -8 } },
@@ -466,11 +478,106 @@ class Chapeu extends Acessorio {
       + `<line x1="${(c.x - r * 1.4).toFixed(1)}" y1="${y.toFixed(1)}" x2="${(c.x + r * 1.4).toFixed(1)}" y2="${y.toFixed(1)}" stroke="#141821" stroke-width="2"/>`;
   }
 }
+// --- Acessórios do personagem do canal (Anderson): orelhas, cabelo, gravata ---
+// Geometria relativa ao centro da cabeça (c) e raio r, portada do estúdio SVG.
+
+class Orelhas extends Acessorio {
+  constructor(cor, fill = '#ffffff') { super(cor); this.fill = fill; }
+  desenhar(ctx, sk, r) {
+    const c = fim(sk.get('cabeca')), lw = Math.max(1.5, sk.get('tronco').thickness * 0.55);
+    ctx.save(); ctx.strokeStyle = this.cor; ctx.fillStyle = this.fill; ctx.lineWidth = lw; ctx.lineCap = 'round';
+    const orelha = (lado) => {
+      const s = lado; // -1 esquerda, +1 direita
+      ctx.beginPath();
+      ctx.moveTo(c.x + s * r * 0.96, c.y - 0.20 * r);
+      ctx.bezierCurveTo(c.x + s * r * 1.34, c.y - 0.14 * r, c.x + s * r * 1.34, c.y + 0.22 * r, c.x + s * r * 0.96, c.y + 0.26 * r);
+      ctx.fill(); ctx.stroke();
+    };
+    orelha(-1); orelha(1); ctx.restore();
+  }
+  svg(sk, r) {
+    const c = fim(sk.get('cabeca')), lw = Math.max(1.5, sk.get('tronco').thickness * 0.55);
+    const st = `fill="${this.fill}" stroke="${this.cor}" stroke-width="${lw.toFixed(1)}" stroke-linecap="round"`;
+    const orelha = (s) => `<path d="M ${(c.x + s * r * 0.96).toFixed(1)} ${(c.y - 0.2 * r).toFixed(1)} C ${(c.x + s * r * 1.34).toFixed(1)} ${(c.y - 0.14 * r).toFixed(1)} ${(c.x + s * r * 1.34).toFixed(1)} ${(c.y + 0.22 * r).toFixed(1)} ${(c.x + s * r * 0.96).toFixed(1)} ${(c.y + 0.26 * r).toFixed(1)}" ${st}/>`;
+    return orelha(-1) + orelha(1);
+  }
+}
+
+class CabeloBaguncado extends Acessorio {
+  // Muitos fios individuais (denso, estilo caneta) — sem massa preenchida.
+  _strands(r) {
+    const rr = (s) => { const x = Math.sin(s * 91.7 + 13.1) * 43758.5453; return x - Math.floor(x); };
+    const fios = [];
+    const um = (fx, spread, layer) => {
+      const x = fx * r, inset = layer === 1 ? 0.86 : 0.99;
+      const by = -Math.sqrt(Math.max(0, r * r - x * x)) * inset;
+      const dir = fx < -0.08 ? -1 : fx > 0.08 ? 1 : (rr(fx * 7) > 0.5 ? 1 : -1);
+      const len = r * (0.4 + 0.5 * rr(fx * 3 + layer));
+      const bend = dir * r * (0.08 + 0.16 * rr(fx * 5 + layer)) * spread;
+      fios.push({ x, by, cx: x + bend * 0.35, cy: by - len * 0.62, tx: x + bend, ty: by - len });
+    };
+    const N = 20;
+    for (let i = 0; i < N; i++) um(-0.82 + (1.64 * i) / (N - 1), 0.7, 1);
+    for (let i = 0; i < N; i++) um(-0.8 + (1.6 * (i + 0.5)) / (N - 1), 1, 2);
+    return fios;
+  }
+  desenhar(ctx, sk, r) {
+    const c = fim(sk.get('cabeca')), lw = Math.max(2, sk.get('tronco').thickness * 0.5);
+    ctx.save(); ctx.strokeStyle = this.cor; ctx.lineWidth = lw; ctx.lineCap = 'round';
+    for (const f of this._strands(r)) {
+      ctx.beginPath(); ctx.moveTo(c.x + f.x, c.y + f.by);
+      ctx.quadraticCurveTo(c.x + f.cx, c.y + f.cy, c.x + f.tx, c.y + f.ty); ctx.stroke();
+    }
+    ctx.restore();
+  }
+  svg(sk, r) {
+    const c = fim(sk.get('cabeca')), lw = Math.max(2, sk.get('tronco').thickness * 0.5);
+    return this._strands(r).map(f =>
+      `<path d="M ${(c.x + f.x).toFixed(1)} ${(c.y + f.by).toFixed(1)} Q ${(c.x + f.cx).toFixed(1)} ${(c.y + f.cy).toFixed(1)} ${(c.x + f.tx).toFixed(1)} ${(c.y + f.ty).toFixed(1)}" fill="none" stroke="${this.cor}" stroke-width="${lw.toFixed(1)}" stroke-linecap="round"/>`
+    ).join('');
+  }
+}
+
+class Gravata extends Acessorio {
+  _pts(sk, r) {
+    const neck = fim(sk.get('tronco'));                       // topo do tronco (pescoço)
+    const hip = { x: sk.get('tronco').x, y: sk.get('tronco').y }; // base do tronco
+    const dx = hip.x - neck.x, dy = hip.y - neck.y, L = Math.hypot(dx, dy) || 1;
+    const ux = dx / L, uy = dy / L, px = -uy, py = ux;
+    const P = (d, w) => ({ x: neck.x + ux * d + px * w, y: neck.y + uy * d + py * w });
+    const w0 = r * 0.14, w1 = r * 0.3;
+    return {
+      no: [P(r * 0.12, w0 * 1.25), P(r * 0.12, -w0 * 1.25), P(r * 0.44, -w0), P(r * 0.44, w0)],
+      corpo: [P(r * 0.44, w0), P(r * 0.44, -w0), P(r * 1.15, -w1), P(r * 1.48, 0), P(r * 1.15, w1)],
+    };
+  }
+  desenhar(ctx, sk, r) {
+    const g = this._pts(sk, r);
+    ctx.save();
+    for (const poly of [g.no, g.corpo]) {
+      ctx.beginPath(); ctx.moveTo(poly[0].x, poly[0].y);
+      poly.slice(1).forEach(p => ctx.lineTo(p.x, p.y)); ctx.closePath();
+      ctx.fillStyle = this.cor; ctx.fill(); ctx.strokeStyle = 'rgba(0,0,0,.33)'; ctx.lineWidth = 1; ctx.stroke();
+    }
+    ctx.restore();
+  }
+  svg(sk, r) {
+    const g = this._pts(sk, r);
+    const poly = (pts) => `<polygon points="${pts.map(p => p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ')}" fill="${this.cor}" stroke="#00000055" stroke-width="1"/>`;
+    return poly(g.no) + poly(g.corpo);
+  }
+}
+
 function acessoriosDe(modelo) {
-  const lista = [];
-  if (modelo.anexos.capa)   lista.push({ tras: true,  obj: new Capa('#b23a48') });
-  if (modelo.anexos.espada) lista.push({ tras: false, obj: new Espada('#c9ccd6') });
-  if (modelo.anexos.chapeu) lista.push({ tras: false, obj: new Chapeu('#2f6bff') });
+  const a = modelo.anexos || {}, lista = [];
+  // camada de trás (atrás do corpo/cabeça)
+  if (a.orelhas) lista.push({ tras: true, obj: new Orelhas(modelo.corTraco) });
+  if (a.capa)    lista.push({ tras: true, obj: new Capa('#b23a48') });
+  // camada da frente
+  if (a.gravata) lista.push({ tras: false, obj: new Gravata(modelo.corGravata || '#3a3a3a') });
+  if (a.espada)  lista.push({ tras: false, obj: new Espada('#c9ccd6') });
+  if (a.chapeu)  lista.push({ tras: false, obj: new Chapeu('#2f6bff') });
+  if (a.cabelo)  lista.push({ tras: false, obj: new CabeloBaguncado(modelo.corCabelo || '#2a2118') });
   return lista;
 }
 
@@ -646,9 +753,12 @@ function sincronizarUI() {
   set('sPernaD', modelo.anguloPernaD); set('vPernaD', modelo.anguloPernaD + '°');
   document.getElementById('corTraco').value = modelo.corTraco;
   document.getElementById('estilo').value = modelo.estilo;
-  document.getElementById('axCapa').checked = modelo.anexos.capa;
-  document.getElementById('axEspada').checked = modelo.anexos.espada;
-  document.getElementById('axChapeu').checked = modelo.anexos.chapeu;
+  document.getElementById('axCapa').checked = !!modelo.anexos.capa;
+  document.getElementById('axEspada').checked = !!modelo.anexos.espada;
+  document.getElementById('axChapeu').checked = !!modelo.anexos.chapeu;
+  document.getElementById('axOrelhas').checked = !!modelo.anexos.orelhas;
+  document.getElementById('axCabelo').checked = !!modelo.anexos.cabelo;
+  document.getElementById('axGravata').checked = !!modelo.anexos.gravata;
   document.getElementById('lblGeracao').textContent = modelo.geracao;
 }
 function set(id, v) { const el = document.getElementById(id); if (el.tagName === 'INPUT') el.value = v; else el.textContent = v; }
@@ -665,7 +775,7 @@ liga('sPernaD',   v => modelo.anguloPernaD = v);
 document.getElementById('corTraco').addEventListener('input', e => { modelo.corTraco = e.target.value; marcarSujo(); });
 document.getElementById('estilo').addEventListener('change', e => { modelo.estilo = e.target.value; marcarSujo(); });
 ['chkGrade', 'chkOssos'].forEach(id => document.getElementById(id).addEventListener('change', marcarSujo));
-['axCapa', 'axEspada', 'axChapeu'].forEach(id => document.getElementById(id).addEventListener('change', e => {
+['axCapa', 'axEspada', 'axChapeu', 'axOrelhas', 'axCabelo', 'axGravata'].forEach(id => document.getElementById(id).addEventListener('change', e => {
   modelo.anexos[id.replace('ax', '').toLowerCase()] = e.target.checked; marcarSujo();
 }));
 
