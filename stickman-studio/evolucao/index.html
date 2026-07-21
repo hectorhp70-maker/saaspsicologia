@@ -160,6 +160,8 @@
         <label><input type="checkbox" id="axCabelo" /> Cabelo</label>
         <label><input type="checkbox" id="axGravata" /> Gravata</label>
         <label><input type="checkbox" id="axPaleto" /> Paletó</label>
+        <label><input type="checkbox" id="axCalca" /> Calça</label>
+        <label><input type="checkbox" id="axSapato" /> Sapato</label>
       </div>
     </div>
 
@@ -282,9 +284,9 @@ function modeloBase() {
   return {
     nome: 'Neutro', dna: dnaBase(),
     corTraco: '#1a1d24', estilo: 'fino',
-    corCabelo: '#2a2118', corGravata: '#3a3a3a', corPaleto: '#2f3a4a',
+    corCabelo: '#2a2118', corGravata: '#3a3a3a', corPaleto: '#2f3a4a', corCalca: '#2f3a4a', corSapato: '#20242c',
     cenario: 'nenhum', expressao: 'neutro',
-    anexos: { capa: false, espada: false, chapeu: false, orelhas: false, cabelo: false, gravata: false, paleto: false },
+    anexos: { capa: false, espada: false, chapeu: false, orelhas: false, cabelo: false, gravata: false, paleto: false, calca: false, sapato: false },
     anguloPernaE: 0, anguloPernaD: 0,
     geracao: 0,
   };
@@ -302,9 +304,9 @@ const PRESETS_FABRICA = [
   // gravata, traço fino escuro. Combina com o preset "Anderson (canal)" do estúdio SVG.
   {
     nome: 'Anderson', corTraco: '#241a12', estilo: 'fino',
-    corCabelo: '#2a2118', corGravata: '#3a3a3a', corPaleto: '#2f3a4a', cenario: 'escritorio',
+    corCabelo: '#2a2118', corGravata: '#3a3a3a', corPaleto: '#2f3a4a', corCalca: '#2b3340', corSapato: '#20242c', cenario: 'escritorio',
     dna: { tamanhoCabeca: 36, comprimentoBracos: 1.0, comprimentoPernas: 1.05, grossuraTronco: 5, inclinacaoOmbro: 4 },
-    anexos: { capa: false, espada: false, chapeu: false, orelhas: true, cabelo: true, gravata: true, paleto: true },
+    anexos: { capa: false, espada: false, chapeu: false, orelhas: true, cabelo: true, gravata: true, paleto: true, calca: true, sapato: true },
   },
   { nome: 'Neutro',  dna: { tamanhoCabeca: 30, comprimentoBracos: 1.0,  comprimentoPernas: 1.0,  grossuraTronco: 8,  inclinacaoOmbro: 0 } },
   { nome: 'Herói',   dna: { tamanhoCabeca: 26, comprimentoBracos: 1.15, comprimentoPernas: 1.3,  grossuraTronco: 12, inclinacaoOmbro: 18 } },
@@ -634,17 +636,83 @@ class Paleto extends Acessorio {
   }
 }
 
+// Calça: cobre as pernas com uma "fita" que afina da coxa até o tornozelo,
+// mais um bloco na cintura. Desenhada por cima dos ossos das pernas.
+class Calca extends Acessorio {
+  _pernas(sk) {
+    const legs = [];
+    for (const [sup, inf] of [['pernaSupE', 'pernaInfE'], ['pernaSupD', 'pernaInfD']]) {
+      legs.push([{ x: sk.get(sup).x, y: sk.get(sup).y }, fim(sk.get(sup)), fim(sk.get(inf))]);
+    }
+    return { hip: fim(sk.get('quadril')), legs };
+  }
+  _ribbon([A, B, C], wH, wK, wA) {
+    const perp = (p, q) => { const dx = q.x - p.x, dy = q.y - p.y, l = Math.hypot(dx, dy) || 1; return { x: -dy / l, y: dx / l }; };
+    const n1 = perp(A, B), n2 = perp(B, C);
+    let nm = { x: n1.x + n2.x, y: n1.y + n2.y }; const lm = Math.hypot(nm.x, nm.y) || 1; nm = { x: nm.x / lm, y: nm.y / lm };
+    const o = (p, n, w) => ({ x: p.x + n.x * w, y: p.y + n.y * w });
+    return [o(A, n1, wH), o(B, nm, wK), o(C, n2, wA), o(C, n2, -wA), o(B, nm, -wK), o(A, n1, -wH)];
+  }
+  _poly(ctx, pts, fill, st, sw) {
+    ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y); pts.slice(1).forEach(p => ctx.lineTo(p.x, p.y)); ctx.closePath();
+    ctx.fillStyle = fill; ctx.fill(); if (st) { ctx.strokeStyle = st; ctx.lineWidth = sw; ctx.stroke(); }
+  }
+  desenhar(ctx, sk, r) {
+    const { hip, legs } = this._pernas(sk), wq = r * 0.6;
+    ctx.save();
+    this._poly(ctx, [{ x: hip.x - wq, y: hip.y - r * 0.5 }, { x: hip.x + wq, y: hip.y - r * 0.5 }, { x: hip.x + wq, y: hip.y + r * 0.18 }, { x: hip.x - wq, y: hip.y + r * 0.18 }], this.cor, '#00000044', 1.2);
+    for (const leg of legs) this._poly(ctx, this._ribbon(leg, r * 0.5, r * 0.4, r * 0.34), this.cor, '#00000044', 1.2);
+    ctx.restore();
+  }
+  svg(sk, r) {
+    const { hip, legs } = this._pernas(sk), wq = r * 0.6;
+    const pol = (pts) => `<polygon points="${pts.map(p => p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ')}" fill="${this.cor}" stroke="#00000044" stroke-width="1.2"/>`;
+    return pol([{ x: hip.x - wq, y: hip.y - r * 0.5 }, { x: hip.x + wq, y: hip.y - r * 0.5 }, { x: hip.x + wq, y: hip.y + r * 0.18 }, { x: hip.x - wq, y: hip.y + r * 0.18 }])
+      + legs.map(l => pol(this._ribbon(l, r * 0.5, r * 0.4, r * 0.34))).join('');
+  }
+}
+
+// Sapato: no fim de cada perna (tornozelo), aponta para fora com um solado.
+class Sapato extends Acessorio {
+  _pes(sk, r) {
+    return [['pernaInfE', -1], ['pernaInfD', 1]].map(([inf, s]) => {
+      const ank = fim(sk.get(inf));
+      return { ank, toe: { x: ank.x + s * r * 0.8, y: ank.y }, h: r * 0.32 };
+    });
+  }
+  desenhar(ctx, sk, r) {
+    ctx.save(); ctx.lineCap = 'round';
+    for (const p of this._pes(sk, r)) {
+      ctx.strokeStyle = this.cor; ctx.lineWidth = p.h;
+      ctx.beginPath(); ctx.moveTo(p.ank.x, p.ank.y); ctx.lineTo(p.toe.x, p.toe.y); ctx.stroke();
+      ctx.strokeStyle = '#111'; ctx.lineWidth = p.h * 0.3; ctx.lineCap = 'butt';
+      ctx.beginPath(); ctx.moveTo(Math.min(p.ank.x, p.toe.x), p.ank.y + p.h * 0.45); ctx.lineTo(Math.max(p.ank.x, p.toe.x), p.ank.y + p.h * 0.45); ctx.stroke();
+      ctx.lineCap = 'round';
+    }
+    ctx.restore();
+  }
+  svg(sk, r) {
+    return this._pes(sk, r).map(p =>
+      `<line x1="${p.ank.x.toFixed(1)}" y1="${p.ank.y.toFixed(1)}" x2="${p.toe.x.toFixed(1)}" y2="${p.toe.y.toFixed(1)}" stroke="${this.cor}" stroke-width="${p.h.toFixed(1)}" stroke-linecap="round"/>`
+      + `<line x1="${Math.min(p.ank.x, p.toe.x).toFixed(1)}" y1="${(p.ank.y + p.h * 0.45).toFixed(1)}" x2="${Math.max(p.ank.x, p.toe.x).toFixed(1)}" y2="${(p.ank.y + p.h * 0.45).toFixed(1)}" stroke="#111" stroke-width="${(p.h * 0.3).toFixed(1)}"/>`
+    ).join('');
+  }
+}
+
 function acessoriosDe(modelo) {
   const a = modelo.anexos || {}, lista = [];
   // camada de trás (atrás do corpo/cabeça)
   if (a.orelhas) lista.push({ tras: true, obj: new Orelhas(modelo.corTraco) });
   if (a.capa)    lista.push({ tras: true, obj: new Capa('#b23a48') });
-  // camada da frente
+  // camada da frente (atrás dos braços)
+  if (a.calca)   lista.push({ tras: false, obj: new Calca(modelo.corCalca || '#2f3a4a') });
   if (a.paleto)  lista.push({ tras: false, obj: new Paleto(modelo.corPaleto || '#2f3a4a') });
   if (a.gravata) lista.push({ tras: false, obj: new Gravata(modelo.corGravata || '#3a3a3a') });
-  if (a.espada)  lista.push({ tras: false, sobreBracos: true, obj: new Espada('#c9ccd6') });
+  if (a.sapato)  lista.push({ tras: false, obj: new Sapato(modelo.corSapato || '#20242c') });
   if (a.chapeu)  lista.push({ tras: false, obj: new Chapeu('#2f6bff') });
   if (a.cabelo)  lista.push({ tras: false, obj: new CabeloBaguncado(modelo.corCabelo || '#2a2118') });
+  // sobre os braços
+  if (a.espada)  lista.push({ tras: false, sobreBracos: true, obj: new Espada('#c9ccd6') });
   return lista;
 }
 
@@ -1019,6 +1087,8 @@ function sincronizarUI() {
   document.getElementById('axCabelo').checked = !!modelo.anexos.cabelo;
   document.getElementById('axGravata').checked = !!modelo.anexos.gravata;
   document.getElementById('axPaleto').checked = !!modelo.anexos.paleto;
+  document.getElementById('axCalca').checked = !!modelo.anexos.calca;
+  document.getElementById('axSapato').checked = !!modelo.anexos.sapato;
   document.getElementById('cenario').value = modelo.cenario || 'nenhum';
   document.getElementById('lblGeracao').textContent = modelo.geracao;
 }
@@ -1039,7 +1109,7 @@ const selExpr = document.getElementById('expressao');
 EXPRESSOES.forEach(x => { const o = document.createElement('option'); o.value = x.id; o.textContent = x.label; selExpr.append(o); });
 selExpr.addEventListener('change', e => { modelo.expressao = e.target.value; marcarSujo(); });
 ['chkGrade', 'chkOssos'].forEach(id => document.getElementById(id).addEventListener('change', marcarSujo));
-['axCapa', 'axEspada', 'axChapeu', 'axOrelhas', 'axCabelo', 'axGravata', 'axPaleto'].forEach(id => document.getElementById(id).addEventListener('change', e => {
+['axCapa', 'axEspada', 'axChapeu', 'axOrelhas', 'axCabelo', 'axGravata', 'axPaleto', 'axCalca', 'axSapato'].forEach(id => document.getElementById(id).addEventListener('change', e => {
   modelo.anexos[id.replace('ax', '').toLowerCase()] = e.target.checked; marcarSujo();
 }));
 
