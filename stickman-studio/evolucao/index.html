@@ -324,18 +324,25 @@ function construirPose(modelo, pose) {
 function construir(modelo) {
   const d = modelo.dna, sk = new Stickman();
   const t = d.grossuraTronco, inc = d.inclinacaoOmbro;
-  const braco = 46 * d.comprimentoBracos, perna = 60 * d.comprimentoPernas;
+  const braco = 40 * d.comprimentoBracos, perna = 60 * d.comprimentoPernas;
+  const ombroW = d.tamanhoCabeca * 1.05; // meia-largura do ombro ~ borda do paletó
 
-  // Raiz (pelve) aponta para cima (-90) para o tronco subir.
+  // Coluna: pelve → tronco (até a linha dos OMBROS) → pescoço curto → cabeça.
   sk.add(new Bone('quadril', { parent: null, length: 0, angle: -90, thickness: t, grupo: 'raiz' }));
-  sk.add(new Bone('tronco',  { parent: 'quadril', length: 92, angle: 0, thickness: t, grupo: 'tronco' }));
-  sk.add(new Bone('cabeca',  { parent: 'tronco', length: d.tamanhoCabeca, angle: 0, thickness: t * 0.6, grupo: 'cabeca' }));
+  sk.add(new Bone('tronco',  { parent: 'quadril', length: 74, angle: 0, thickness: t, grupo: 'tronco' }));
+  sk.add(new Bone('pescoco', { parent: 'tronco', length: 15, angle: 0, thickness: t * 0.7, grupo: 'tronco' }));
+  sk.add(new Bone('cabeca',  { parent: 'pescoco', length: d.tamanhoCabeca, angle: 0, thickness: t * 0.6, grupo: 'cabeca' }));
 
-  // Braços (saem do topo do tronco). inclinacaoOmbro levanta/abaixa os ombros.
-  sk.add(new Bone('bracoSupE', { parent: 'tronco', length: braco, angle: -150 + inc, thickness: t * 0.8, grupo: 'braco' }));
-  sk.add(new Bone('bracoInfE', { parent: 'bracoSupE', length: braco, angle: 22, thickness: t * 0.7, grupo: 'braco' }));
-  sk.add(new Bone('bracoSupD', { parent: 'tronco', length: braco, angle: 150 - inc, thickness: t * 0.8, grupo: 'braco' }));
-  sk.add(new Bone('bracoInfD', { parent: 'bracoSupD', length: braco, angle: -22, thickness: t * 0.7, grupo: 'braco' }));
+  // Ombros: deslocam do topo do tronco para as laterais (bordas do paletó).
+  // Desenhados atrás do paletó; os braços saem dessas pontas externas.
+  sk.add(new Bone('ombroE', { parent: 'tronco', length: ombroW, angle: -90 - inc * 0.4, thickness: t * 0.85, grupo: 'ombro' }));
+  sk.add(new Bone('ombroD', { parent: 'tronco', length: ombroW, angle: 90 + inc * 0.4, thickness: t * 0.85, grupo: 'ombro' }));
+
+  // Braços a partir dos ombros externos. Antebraço um pouco mais curto → natural.
+  sk.add(new Bone('bracoSupE', { parent: 'ombroE', length: braco, angle: -80, thickness: t * 0.8, grupo: 'braco' }));
+  sk.add(new Bone('bracoInfE', { parent: 'bracoSupE', length: braco * 0.92, angle: -12, thickness: t * 0.72, grupo: 'braco' }));
+  sk.add(new Bone('bracoSupD', { parent: 'ombroD', length: braco, angle: 80, thickness: t * 0.8, grupo: 'braco' }));
+  sk.add(new Bone('bracoInfD', { parent: 'bracoSupD', length: braco * 0.92, angle: 12, thickness: t * 0.72, grupo: 'braco' }));
 
   // Pernas (saem da pelve). Ângulos-base ~para baixo, ajustados pelos sliders.
   sk.add(new Bone('pernaSupE', { parent: 'quadril', length: perna, angle: 186 + modelo.anguloPernaE, thickness: t * 0.85, grupo: 'perna' }));
@@ -635,7 +642,7 @@ function acessoriosDe(modelo) {
   // camada da frente
   if (a.paleto)  lista.push({ tras: false, obj: new Paleto(modelo.corPaleto || '#2f3a4a') });
   if (a.gravata) lista.push({ tras: false, obj: new Gravata(modelo.corGravata || '#3a3a3a') });
-  if (a.espada)  lista.push({ tras: false, obj: new Espada('#c9ccd6') });
+  if (a.espada)  lista.push({ tras: false, sobreBracos: true, obj: new Espada('#c9ccd6') });
   if (a.chapeu)  lista.push({ tras: false, obj: new Chapeu('#2f6bff') });
   if (a.cabelo)  lista.push({ tras: false, obj: new CabeloBaguncado(modelo.corCabelo || '#2a2118') });
   return lista;
@@ -761,11 +768,12 @@ function desenharStickman(ctx, sk, modelo, raioCabeca, mostrarOssos) {
 
   acs.filter(a => a.tras).forEach(a => a.obj.desenhar(ctx, sk, raioCabeca)); // capa atrás
 
-  // Ossos (pula o quadril de comprimento 0).
+  // Ossos do CORPO (tronco/pescoço/pernas). Braços ficam para o fim, para
+  // aparecerem POR CIMA do paletó (mangas visíveis); a cabeça é círculo.
+  const BRACOS = ['bracoSupE', 'bracoInfE', 'bracoSupD', 'bracoInfD'];
   for (const nome of sk.ordem) {
-    const b = sk.get(nome);
-    if (nome === 'cabeca') continue; // cabeça é círculo, desenhada abaixo
-    desenharOsso(ctx, b, cor, estilo);
+    if (nome === 'cabeca' || BRACOS.includes(nome)) continue;
+    desenharOsso(ctx, sk.get(nome), cor, estilo);
   }
 
   // Cabeça = círculo no fim do osso 'cabeca'.
@@ -783,7 +791,14 @@ function desenharStickman(ctx, sk, modelo, raioCabeca, mostrarOssos) {
   desenharRostoCanvas(ctx, c.x, c.y, rotRosto, primsRosto);
   if (estilo === 'neon') { ctx.shadowBlur = 16; ctx.shadowColor = cor; }
 
-  acs.filter(a => !a.tras).forEach(a => a.obj.desenhar(ctx, sk, raioCabeca)); // espada/chapéu na frente
+  // Acessórios da frente que ficam ATRÁS dos braços (paletó, gravata, cabelo).
+  acs.filter(a => !a.tras && !a.sobreBracos).forEach(a => a.obj.desenhar(ctx, sk, raioCabeca));
+
+  // Braços por cima do paletó (mangas).
+  for (const nome of BRACOS) desenharOsso(ctx, sk.get(nome), cor, estilo);
+
+  // Acessórios que ficam na mão / sobre os braços (espada).
+  acs.filter(a => !a.tras && a.sobreBracos).forEach(a => a.obj.desenhar(ctx, sk, raioCabeca));
   ctx.restore();
 
   // Sobreposição de ossos (debug do rig).
@@ -1133,13 +1148,14 @@ function gerarSVG() {
   let el = '';
   // capa (atrás)
   acessoriosDe(modelo).filter(a => a.tras).forEach(a => el += a.obj.svg(deslocar(sk, bb, m), r));
-  // ossos como <line>
+  // ossos do CORPO como <line> (sem braços — vão por cima do paletó)
   const cor = modelo.corTraco;
+  const BRACOS = ['bracoSupE', 'bracoInfE', 'bracoSupD', 'bracoInfD'];
+  const osso = (b) => { const [x1, y1] = T(b.x, b.y), [x2, y2] = T(b.ex, b.ey); return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${cor}" stroke-width="${b.thickness.toFixed(1)}" stroke-linecap="round"/>`; };
   for (const nome of sk.ordem) {
     const b = sk.get(nome);
-    if (b.length <= 0 || nome === 'cabeca') continue;
-    const [x1, y1] = T(b.x, b.y), [x2, y2] = T(b.ex, b.ey);
-    el += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${cor}" stroke-width="${b.thickness.toFixed(1)}" stroke-linecap="round"/>`;
+    if (b.length <= 0 || nome === 'cabeca' || BRACOS.includes(nome)) continue;
+    el += osso(b);
   }
   // cabeça como <circle>
   const c = fim(sk.get('cabeca')); const [cx, cy] = T(c.x, c.y);
@@ -1147,8 +1163,12 @@ function gerarSVG() {
   // rosto (expressão)
   const rotR = (sk.get('cabeca').worldAngle + 90) * D2R;
   el += rostoSVG(+cx, +cy, rotR, construirRosto(r, modelo.expressao || 'neutro', cor, Math.max(3, sk.get('tronco').thickness)));
-  // acessórios da frente
-  acessoriosDe(modelo).filter(a => !a.tras).forEach(a => el += a.obj.svg(deslocar(sk, bb, m), r));
+  // acessórios da frente que ficam ATRÁS dos braços (paletó, gravata, cabelo)
+  acessoriosDe(modelo).filter(a => !a.tras && !a.sobreBracos).forEach(a => el += a.obj.svg(deslocar(sk, bb, m), r));
+  // braços por cima do paletó
+  for (const nome of BRACOS) el += osso(sk.get(nome));
+  // acessórios sobre os braços (espada)
+  acessoriosDe(modelo).filter(a => !a.tras && a.sobreBracos).forEach(a => el += a.obj.svg(deslocar(sk, bb, m), r));
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${el}</svg>`;
 }
 // Devolve um esqueleto com coords já deslocadas (para os SVGs dos acessórios).
