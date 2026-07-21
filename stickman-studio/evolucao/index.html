@@ -934,18 +934,21 @@ function marcarSujo() { dirty = true; }
 function poseAtual() {
   const p = {}; if (skAtual) for (const b of skAtual.bones.values()) p[b.nome] = b.angle; return p;
 }
-// Interpola entre keyframes com lerp + suavização ease-in-out (via cosseno,
+// Interpola a POSE entre keyframes com lerp + ease-in-out (via cosseno,
 // equivalente a usar Math.sin): f = 0.5 - 0.5*cos(t*π). Faz loop pelo conjunto.
-function poseInterpolada(now) {
+// A EXPRESSÃO é discreta (não interpola): troca no meio da transição — usa a do
+// keyframe de origem até f<0.5 e a do destino depois. Retorna { pose, expr }.
+function quadroInterpolado(now) {
   const n = keyframes.length;
   const total = n * durMs;                       // fecha o ciclo (último → primeiro)
   const tt = (((now - animInicio) % total) / durMs);
   const i = Math.floor(tt) % n, j = (i + 1) % n;
-  let f = tt - Math.floor(tt);
-  f = 0.5 - 0.5 * Math.cos(f * Math.PI);         // ease-in-out
-  const a = keyframes[i], b = keyframes[j], out = {};
-  for (const k in a) { const bk = (k in b) ? b[k] : a[k]; out[k] = a[k] + (bk - a[k]) * f; }
-  return out;
+  const f0 = tt - Math.floor(tt);
+  const f = 0.5 - 0.5 * Math.cos(f0 * Math.PI);  // ease-in-out
+  const a = keyframes[i].pose, b = keyframes[j].pose, pose = {};
+  for (const k in a) { const bk = (k in b) ? b[k] : a[k]; pose[k] = a[k] + (bk - a[k]) * f; }
+  const expr = f0 < 0.5 ? keyframes[i].expr : keyframes[j].expr;
+  return { pose, expr };
 }
 
 // ----- Loop principal com requestAnimationFrame + dirty flag -----------
@@ -966,16 +969,19 @@ function render(now) {
   const cen = modelo.cenario || 'nenhum';
   if (cen !== 'nenhum') desenharCenario(ctx, cen, tela.width, tela.height);
   else if (document.getElementById('chkGrade').checked) desenharGrade(ctx, tela.width, tela.height);
-  // Animando: usa a pose interpolada; senão, a pose do modelo (editável por IK).
+  // Animando: usa pose interpolada + expressão do quadro; senão, o modelo (editável por IK).
+  let modeloRender = modelo;
   if (animando && keyframes.length >= 2) {
-    skAtual = construirPose(modelo, poseInterpolada(now)).fk(ORIGEM.x, ORIGEM.y);
+    const q = quadroInterpolado(now);
+    modeloRender = Object.assign({}, modelo, { expressao: q.expr });
+    skAtual = construirPose(modeloRender, q.pose).fk(ORIGEM.x, ORIGEM.y);
   } else {
     skAtual = construir(modelo).fk(ORIGEM.x, ORIGEM.y);
   }
   ctx.save();
   // zoom em torno do centro
   ctx.translate(tela.width / 2, tela.height / 2); ctx.scale(zoom, zoom); ctx.translate(-tela.width / 2, -tela.height / 2);
-  desenharStickman(ctx, skAtual, modelo, modelo.dna.tamanhoCabeca, document.getElementById('chkOssos').checked);
+  desenharStickman(ctx, skAtual, modeloRender, modeloRender.dna.tamanhoCabeca, document.getElementById('chkOssos').checked);
   ctx.restore();
 }
 
@@ -1192,34 +1198,34 @@ const fita = document.getElementById('fitaFrames');
 function atualizarFita() {
   document.getElementById('vFrames').textContent = keyframes.length;
   fita.innerHTML = '';
-  keyframes.forEach((pose, i) => {
+  keyframes.forEach((kf, i) => {
     const cv = document.createElement('canvas'); cv.width = 40; cv.height = 40;
-    cv.title = 'Frame ' + (i + 1) + ' (clique p/ carregar · botão direito remove)';
+    cv.title = `Frame ${i + 1} · ${kf.expr} (clique carrega · botão direito remove)`;
     cv.style.cssText = 'background:#fff;border-radius:5px;border:1px solid var(--borda);cursor:pointer';
-    // miniatura da pose
-    const skm = construirPose(modelo, pose).fk(0, 0);
-    const r = modelo.dna.tamanhoCabeca, bb = skm.getBoundingBox(r), c = cv.getContext('2d');
+    // miniatura da pose COM a expressão daquele keyframe
+    const mm = Object.assign({}, modelo, { expressao: kf.expr });
+    const skm = construirPose(mm, kf.pose).fk(0, 0);
+    const r = mm.dna.tamanhoCabeca, bb = skm.getBoundingBox(r), c = cv.getContext('2d');
     const s = Math.min(34 / (bb.largura || 1), 34 / (bb.altura || 1));
     c.translate(20, 20); c.scale(s, s); c.translate(-(bb.minX + bb.largura / 2), -(bb.minY + bb.altura / 2));
-    desenharStickman(c, skm, modelo, r, false);
-    cv.addEventListener('click', () => { aplicarPose(pose); });
+    desenharStickman(c, skm, mm, r, false);
+    cv.addEventListener('click', () => { aplicarQuadro(kf); });
     cv.addEventListener('contextmenu', (e) => { e.preventDefault(); keyframes.splice(i, 1); atualizarFita(); });
     fita.append(cv);
   });
 }
-// Aplica uma pose ao modelo atual (grava ângulos de perna; braços via IK ficam no skAtual).
-function aplicarPose(pose) {
+// Carrega um keyframe (pose + expressão) no modelo atual para edição.
+function aplicarQuadro(kf) {
   animando = false; document.getElementById('btnAnimar').textContent = '▶ Animar';
-  modelo._poseManual = JSON.parse(JSON.stringify(pose));
-  // reconstrói skAtual com a pose para permitir novos ajustes de IK
-  skAtual = construirPose(modelo, pose).fk(ORIGEM.x, ORIGEM.y);
-  if (pose.pernaSupE != null) modelo.anguloPernaE = clamp(pose.pernaSupE - 186, -45, 45);
-  if (pose.pernaSupD != null) modelo.anguloPernaD = clamp(pose.pernaSupD - 174, -45, 45);
+  modelo.expressao = kf.expr;
+  skAtual = construirPose(modelo, kf.pose).fk(ORIGEM.x, ORIGEM.y);
+  if (kf.pose.pernaSupE != null) modelo.anguloPernaE = clamp(kf.pose.pernaSupE - 186, -45, 45);
+  if (kf.pose.pernaSupD != null) modelo.anguloPernaD = clamp(kf.pose.pernaSupD - 174, -45, 45);
   sincronizarUI(); marcarSujo();
 }
 document.getElementById('btnCapturar').addEventListener('click', () => {
   if (!skAtual) render(0);
-  keyframes.push(poseAtual()); atualizarFita(); marcarSujo();
+  keyframes.push({ pose: poseAtual(), expr: modelo.expressao || 'neutro' }); atualizarFita(); marcarSujo();
 });
 document.getElementById('btnAnimar').addEventListener('click', (e) => {
   if (keyframes.length < 2) { alert('Capture ao menos 2 keyframes para animar.'); return; }
