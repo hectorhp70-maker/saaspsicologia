@@ -145,6 +145,7 @@
       <div class="anexos">
         <label><input type="checkbox" id="chkGrade" checked /> Mostrar grade</label>
         <label><input type="checkbox" id="chkOssos" /> Ver ossos</label>
+        <label><input type="checkbox" id="chkPerfil" /> Perfil (lado)</label>
       </div>
     </div>
 
@@ -177,6 +178,7 @@
       <div class="anexos">
         <button id="btnCapturar" style="flex:1">➕ Capturar frame</button>
         <button id="btnAnimar" style="flex:1">▶ Animar</button>
+        <button id="btnAndar" style="flex:1">🚶 Andar (perfil)</button>
       </div>
     </div>
     <div class="campo">
@@ -285,7 +287,7 @@ function modeloBase() {
     nome: 'Neutro', dna: dnaBase(),
     corTraco: '#1a1d24', estilo: 'fino',
     corCabelo: '#2a2118', corGravata: '#3a3a3a', corPaleto: '#2f3a4a', corCalca: '#2f3a4a', corSapato: '#20242c',
-    cenario: 'nenhum', expressao: 'neutro',
+    cenario: 'nenhum', expressao: 'neutro', perfil: false,
     anexos: { capa: false, espada: false, chapeu: false, orelhas: false, cabelo: false, gravata: false, paleto: false, calca: false, sapato: false },
     anguloPernaE: 0, anguloPernaD: 0,
     geracao: 0,
@@ -320,6 +322,26 @@ function construirPose(modelo, pose) {
   const sk = construir(modelo);
   if (pose) for (const n in pose) { const b = sk.get(n); if (b) b.angle = pose[n]; }
   return sk;
+}
+
+// Ciclo de caminhada de PERFIL (paramétrico). fase ∈ [0,1). Retorna um mapa
+// de ângulos LOCAIS que sobrescreve a pose. Vista lateral olhando p/ a direita:
+// pernas/braços balançam para frente/trás (eixo x), joelho flexiona no swing,
+// braços em contrapasso, leve inclinação do tronco e "bob" (no gerador).
+function poseCaminhada(fase, { passo = 1 } = {}) {
+  const TAU = Math.PI * 2, HIP = 28 * passo, KNEE = 56, ARM = 32, LEAN = 6;
+  const norm = (p) => ((p % 1) + 1) % 1;
+  const kneeFlex = (p) => { p = norm(p); const s = p < 0.5 ? 0 : (p - 0.5) / 0.5; return 4 + KNEE * Math.sin(Math.PI * s); };
+  const thigh = (p) => 180 - HIP * Math.cos(TAU * norm(p));       // perna: local (world = -90+local)
+  // pernas: D (perto) fase; E (longe) fase+0.5
+  // braços: contrapasso da perna do mesmo lado (D usa fase+0.5, E usa fase)
+  return {
+    tronco: LEAN, cabeca: -LEAN,
+    pernaSupD: thigh(fase),        pernaInfD: kneeFlex(fase),
+    pernaSupE: thigh(fase + 0.5),  pernaInfE: kneeFlex(fase + 0.5),
+    bracoSupD: 80 - ARM * Math.cos(TAU * (fase + 0.5)), bracoInfD: 18,
+    bracoSupE: -80 + ARM * Math.cos(TAU * fase),        bracoInfE: -18,
+  };
 }
 
 // Constrói o Stickman (esqueleto) a partir de um modelo (DNA + pose).
@@ -657,11 +679,18 @@ class Calca extends Acessorio {
     ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y); pts.slice(1).forEach(p => ctx.lineTo(p.x, p.y)); ctx.closePath();
     ctx.fillStyle = fill; ctx.fill(); if (st) { ctx.strokeStyle = st; ctx.lineWidth = sw; ctx.stroke(); }
   }
+  desenharCintura(ctx, sk, r, cor) {
+    const { hip } = this._pernas(sk), wq = r * 0.6;
+    this._poly(ctx, [{ x: hip.x - wq, y: hip.y - r * 0.5 }, { x: hip.x + wq, y: hip.y - r * 0.5 }, { x: hip.x + wq, y: hip.y + r * 0.18 }, { x: hip.x - wq, y: hip.y + r * 0.18 }], cor, '#00000044', 1.2);
+  }
+  desenharLado(ctx, sk, r, idx, cor) {
+    const { legs } = this._pernas(sk);
+    this._poly(ctx, this._ribbon(legs[idx], r * 0.5, r * 0.4, r * 0.34), cor, '#00000044', 1.2);
+  }
   desenhar(ctx, sk, r) {
-    const { hip, legs } = this._pernas(sk), wq = r * 0.6;
     ctx.save();
-    this._poly(ctx, [{ x: hip.x - wq, y: hip.y - r * 0.5 }, { x: hip.x + wq, y: hip.y - r * 0.5 }, { x: hip.x + wq, y: hip.y + r * 0.18 }, { x: hip.x - wq, y: hip.y + r * 0.18 }], this.cor, '#00000044', 1.2);
-    for (const leg of legs) this._poly(ctx, this._ribbon(leg, r * 0.5, r * 0.4, r * 0.34), this.cor, '#00000044', 1.2);
+    this.desenharCintura(ctx, sk, r, this.cor);
+    this.desenharLado(ctx, sk, r, 0, this.cor); this.desenharLado(ctx, sk, r, 1, this.cor);
     ctx.restore();
   }
   svg(sk, r) {
@@ -674,21 +703,23 @@ class Calca extends Acessorio {
 
 // Sapato: no fim de cada perna (tornozelo), aponta para fora com um solado.
 class Sapato extends Acessorio {
-  _pes(sk, r) {
+  _pes(sk, r, dir) {
     return [['pernaInfE', -1], ['pernaInfD', 1]].map(([inf, s]) => {
-      const ank = fim(sk.get(inf));
-      return { ank, toe: { x: ank.x + s * r * 0.8, y: ank.y }, h: r * 0.32 };
+      const ank = fim(sk.get(inf)), d = dir != null ? dir : s;
+      return { ank, toe: { x: ank.x + d * r * 0.8, y: ank.y }, h: r * 0.32 };
     });
   }
+  _desenharUm(ctx, p, cor) {
+    ctx.lineCap = 'round'; ctx.strokeStyle = cor; ctx.lineWidth = p.h;
+    ctx.beginPath(); ctx.moveTo(p.ank.x, p.ank.y); ctx.lineTo(p.toe.x, p.toe.y); ctx.stroke();
+    ctx.strokeStyle = '#111'; ctx.lineWidth = p.h * 0.3; ctx.lineCap = 'butt';
+    ctx.beginPath(); ctx.moveTo(Math.min(p.ank.x, p.toe.x), p.ank.y + p.h * 0.45); ctx.lineTo(Math.max(p.ank.x, p.toe.x), p.ank.y + p.h * 0.45); ctx.stroke();
+    ctx.lineCap = 'round';
+  }
+  desenharPe(ctx, sk, r, idx, cor, dir) { ctx.save(); this._desenharUm(ctx, this._pes(sk, r, dir)[idx], cor); ctx.restore(); }
   desenhar(ctx, sk, r) {
-    ctx.save(); ctx.lineCap = 'round';
-    for (const p of this._pes(sk, r)) {
-      ctx.strokeStyle = this.cor; ctx.lineWidth = p.h;
-      ctx.beginPath(); ctx.moveTo(p.ank.x, p.ank.y); ctx.lineTo(p.toe.x, p.toe.y); ctx.stroke();
-      ctx.strokeStyle = '#111'; ctx.lineWidth = p.h * 0.3; ctx.lineCap = 'butt';
-      ctx.beginPath(); ctx.moveTo(Math.min(p.ank.x, p.toe.x), p.ank.y + p.h * 0.45); ctx.lineTo(Math.max(p.ank.x, p.toe.x), p.ank.y + p.h * 0.45); ctx.stroke();
-      ctx.lineCap = 'round';
-    }
+    ctx.save();
+    for (const p of this._pes(sk, r)) this._desenharUm(ctx, p, this.cor);
     ctx.restore();
   }
   svg(sk, r) {
@@ -805,6 +836,70 @@ function rostoSVG(cx, cy, rot, prims) {
   return `<g transform="translate(${f(cx)} ${f(cy)}) rotate(${f(rot * 180 / Math.PI)})">${el}</g>`;
 }
 
+// Rosto de PERFIL (lateral): nariz na frente, um olho, sobrancelha e boca.
+// dir = +1 olhando para a direita. Retorna primitivas (mesmo pipeline do rosto).
+function construirRostoPerfil(r, expr, cor, lineWidth, dir) {
+  const lw = Math.max(1.5, lineWidth * 0.5), lwB = lw * 1.35;
+  const P = [], ex = dir * 0.28 * r, ey = -0.10 * r, my = 0.34 * r, mx = dir * 0.30 * r, mw = 0.22 * r;
+  // nariz (saliência na frente da cabeça)
+  P.push({ k: 'path', ops: [['M', dir * 0.82 * r, -0.04 * r], ['Q', dir * 1.12 * r, 0.06 * r, dir * 0.82 * r, 0.18 * r]], stroke: cor, sw: lwB });
+  // olho
+  P.push({ k: 'circle', x: ex, y: ey, r: 0.085 * r, fill: cor });
+  // sobrancelha (inclinação por expressão)
+  let tilt = 0;
+  if (expr === 'bravo' || expr === 'furioso') tilt = 0.12 * r;
+  else if (expr === 'triste' || expr === 'preocupado') tilt = -0.10 * r;
+  P.push({ k: 'path', ops: [['M', ex - dir * 0.13 * r, ey - 0.22 * r + tilt], ['L', ex + dir * 0.14 * r, ey - 0.22 * r - tilt]], stroke: cor, sw: lwB });
+  // boca por expressão
+  if (expr === 'feliz') P.push({ k: 'path', ops: [['M', mx - dir * mw * 0.5, my], ['Q', mx, my + 0.16 * r, mx + dir * mw * 0.5, my - 0.02 * r]], stroke: cor, sw: lwB });
+  else if (expr === 'furioso') { P.push({ k: 'ellipse', x: mx, y: my + 0.02 * r, rx: mw * 0.5, ry: 0.1 * r, fill: '#7a2e2e', stroke: cor, sw: lw }); }
+  else if (expr === 'triste' || expr === 'bravo') P.push({ k: 'path', ops: [['M', mx - dir * mw * 0.5, my + 0.04 * r], ['Q', mx, my - 0.08 * r, mx + dir * mw * 0.5, my + 0.04 * r]], stroke: cor, sw: lwB });
+  else if (expr === 'surpreso') P.push({ k: 'ellipse', x: mx, y: my, rx: 0.07 * r, ry: 0.09 * r, fill: '#7a3138', stroke: cor, sw: lw });
+  else P.push({ k: 'path', ops: [['M', mx - dir * mw * 0.5, my], ['L', mx + dir * mw * 0.5, my]], stroke: cor, sw: lw });
+  return P;
+}
+
+// Desenha o boneco em VISTA DE PERFIL (com profundidade: lado de trás mais claro).
+function desenharPerfil(ctx, sk, modelo, r) {
+  const cor = modelo.corTraco, estilo = modelo.estilo, dir = 1;
+  const corFar = shade(cor, 72);
+  const acs = acessoriosDe(modelo);
+  const ach = (Cls) => { const a = acs.find(x => x.obj instanceof Cls); return a && a.obj; };
+  const paleto = ach(Paleto), gravata = ach(Gravata), calca = ach(Calca), sapato = ach(Sapato), cabelo = ach(CabeloBaguncado);
+  const O = (n, c) => desenharOsso(ctx, sk.get(n), c, estilo);
+
+  ctx.save();
+  if (estilo === 'neon') { ctx.shadowBlur = 16; ctx.shadowColor = cor; }
+
+  // --- LADO DE TRÁS (E), mais claro ---
+  O('bracoSupE', corFar); O('bracoInfE', corFar);
+  O('pernaSupE', corFar); O('pernaInfE', corFar);
+  if (calca) calca.desenharLado(ctx, sk, r, 0, shade(modelo.corCalca || '#2f3a4a', 52));
+  if (sapato) sapato.desenharPe(ctx, sk, r, 0, shade(modelo.corSapato || '#20242c', 46), dir);
+
+  // --- TRONCO + PERNA DA FRENTE (D) ---
+  O('tronco', cor); O('pescoco', cor);
+  O('pernaSupD', cor); O('pernaInfD', cor);
+  if (calca) { calca.desenharCintura(ctx, sk, r, modelo.corCalca || '#2f3a4a'); calca.desenharLado(ctx, sk, r, 1, modelo.corCalca || '#2f3a4a'); }
+  if (sapato) sapato.desenharPe(ctx, sk, r, 1, modelo.corSapato || '#20242c', dir);
+  if (paleto) paleto.desenhar(ctx, sk, r);
+  if (gravata) gravata.desenhar(ctx, sk, r);
+
+  // --- CABEÇA + ROSTO DE PERFIL + CABELO ---
+  const c = fim(sk.get('cabeca'));
+  ctx.lineWidth = Math.max(2, sk.get('tronco').thickness * 0.6); ctx.strokeStyle = cor; ctx.fillStyle = '#ffffff';
+  ctx.beginPath(); ctx.arc(c.x, c.y, r, 0, Math.PI * 2); if (estilo !== 'caligrafico') ctx.fill(); ctx.stroke();
+  const rot = (sk.get('cabeca').worldAngle + 90) * D2R;
+  if (estilo === 'neon') ctx.shadowBlur = 0;
+  desenharRostoCanvas(ctx, c.x, c.y, rot, construirRostoPerfil(r, modelo.expressao || 'neutro', cor, Math.max(3, sk.get('tronco').thickness), dir));
+  if (estilo === 'neon') { ctx.shadowBlur = 16; ctx.shadowColor = cor; }
+  if (cabelo) cabelo.desenhar(ctx, sk, r);
+
+  // --- BRAÇO DA FRENTE (D), por cima do paletó ---
+  O('bracoSupD', cor); O('bracoInfD', cor);
+  ctx.restore();
+}
+
 // ---- Desenho do esqueleto (3 estilos de traço) ------------------------
 function desenharOsso(ctx, b, cor, estilo) {
   if (b.length <= 0) return;
@@ -829,6 +924,7 @@ function desenharOsso(ctx, b, cor, estilo) {
 // Usa ctx.save()/restore(); no estilo neon aplica ctx.shadowBlur.
 function desenharStickman(ctx, sk, modelo, raioCabeca, mostrarOssos) {
   const cor = modelo.corTraco, estilo = modelo.estilo;
+  if (modelo.perfil) { desenharPerfil(ctx, sk, modelo, raioCabeca); return; }
   const acs = acessoriosDe(modelo);
 
   ctx.save();
@@ -1007,6 +1103,7 @@ let zoom = 1;
 // Estado da animação por keyframes.
 let keyframes = [];                   // lista de poses {osso: ânguloLocal}
 let animando = false;                 // loop de animação ativo?
+let andando = false;                  // ciclo de caminhada de perfil ativo?
 let durMs = 700;                      // duração de cada trecho entre keyframes
 let animInicio = 0;                   // timestamp de início do loop
 
@@ -1036,7 +1133,7 @@ function quadroInterpolado(now) {
 
 // ----- Loop principal com requestAnimationFrame + dirty flag -----------
 function loop(now) {
-  if (animando && keyframes.length >= 2) dirty = true;   // animação sempre redesenha
+  if (andando || (animando && keyframes.length >= 2)) dirty = true;   // animação sempre redesenha
   if (dirty) {
     const t0 = performance.now();
     render(now || 0);
@@ -1052,9 +1149,14 @@ function render(now) {
   const cen = modelo.cenario || 'nenhum';
   if (cen !== 'nenhum') desenharCenario(ctx, cen, tela.width, tela.height);
   else if (document.getElementById('chkGrade').checked) desenharGrade(ctx, tela.width, tela.height);
-  // Animando: usa pose interpolada + expressão do quadro; senão, o modelo (editável por IK).
+  // Andando: ciclo de caminhada de perfil; Animando: keyframes; senão, modelo (IK).
   let modeloRender = modelo;
-  if (animando && keyframes.length >= 2) {
+  if (andando) {
+    const fase = ((now || 0) % 900) / 900;
+    const bob = Math.abs(Math.sin(fase * Math.PI * 2)) * 4;
+    modeloRender = Object.assign({}, modelo, { perfil: true });
+    skAtual = construirPose(modeloRender, poseCaminhada(fase)).fk(ORIGEM.x, ORIGEM.y - bob);
+  } else if (animando && keyframes.length >= 2) {
     const q = quadroInterpolado(now);
     modeloRender = Object.assign({}, modelo, { expressao: q.expr });
     skAtual = construirPose(modeloRender, q.pose).fk(ORIGEM.x, ORIGEM.y);
@@ -1090,6 +1192,7 @@ function sincronizarUI() {
   document.getElementById('axCalca').checked = !!modelo.anexos.calca;
   document.getElementById('axSapato').checked = !!modelo.anexos.sapato;
   document.getElementById('cenario').value = modelo.cenario || 'nenhum';
+  document.getElementById('chkPerfil').checked = !!modelo.perfil;
   document.getElementById('lblGeracao').textContent = modelo.geracao;
 }
 function set(id, v) { const el = document.getElementById(id); if (el.tagName === 'INPUT') el.value = v; else el.textContent = v; }
@@ -1109,6 +1212,12 @@ const selExpr = document.getElementById('expressao');
 EXPRESSOES.forEach(x => { const o = document.createElement('option'); o.value = x.id; o.textContent = x.label; selExpr.append(o); });
 selExpr.addEventListener('change', e => { modelo.expressao = e.target.value; marcarSujo(); });
 ['chkGrade', 'chkOssos'].forEach(id => document.getElementById(id).addEventListener('change', marcarSujo));
+document.getElementById('chkPerfil').addEventListener('change', e => { modelo.perfil = e.target.checked; marcarSujo(); });
+document.getElementById('btnAndar').addEventListener('click', (e) => {
+  andando = !andando; e.target.textContent = andando ? '⏹ Parar' : '🚶 Andar (perfil)';
+  if (andando) { animando = false; document.getElementById('btnAnimar').textContent = '▶ Animar'; }
+  marcarSujo();
+});
 ['axCapa', 'axEspada', 'axChapeu', 'axOrelhas', 'axCabelo', 'axGravata', 'axPaleto', 'axCalca', 'axSapato'].forEach(id => document.getElementById(id).addEventListener('change', e => {
   modelo.anexos[id.replace('ax', '').toLowerCase()] = e.target.checked; marcarSujo();
 }));
