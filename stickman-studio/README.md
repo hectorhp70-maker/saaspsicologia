@@ -131,6 +131,33 @@ exportações. Use **Thumbnail PNG (2x)** para uma capa em alta da cena atual.
 > imagem. Este Diretor gera a **direção e a animação** do stickman (o que dá pra
 > automatizar no estúdio), não arte pintada.
 
+## 🖥️ Rodar no terminal (sem navegador)
+
+Dá para gerar o vídeo **100% por linha de comando** (ideal para VPS/agente),
+sem abrir a interface: cada quadro é renderizado em PNG com `@resvg/resvg-js`
+(browser-free) e o vídeo é montado com **ffmpeg**.
+
+```bash
+npm install                 # traz o @resvg/resvg-js
+# ffmpeg é do sistema: apt install ffmpeg  (ou brew install ffmpeg)
+
+# gera o vídeo a partir de um roteiro JSON
+npm run video -- cli/exemplo-roteiro.json saida.mp4
+# opções: --webm  |  --srt legendas.srt  |  --keep (mantém os PNGs)
+node cli/gerar-video.mjs cli/exemplo-roteiro.json saida.mp4 --srt saida.srt
+```
+
+O roteiro é um JSON com `titulo`, `personagem` (id ou objeto), `fps`, tamanho e
+`cenas` (cada uma com `pose`, `expressao`, `fundo`, `objeto`, `surto`, `quadros`
+e `fala`) — veja `cli/exemplo-roteiro.json`. As legendas saem em `.srt` para
+casar com a narração:
+
+```bash
+# pipeline completo na VPS: vídeo + narração -> .mp4 final
+npm run video -- meu-roteiro.json ep.mp4 --srt ep.srt
+python tts/narrar.py --srt ep.srt --video ep.mp4 --mux ep_final.mp4
+```
+
 ## 🎙️ Narração (voz) com edge-tts
 
 Dá pra gerar a **locução em pt-BR** das falas das cenas usando o
