@@ -1,0 +1,882 @@
+<meta charset="utf-8" />
+<title>Stickman Studio — Evolução Procedural</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root {
+    --bg: #0e1117; --painel: #161b22; --painel2: #1c222c; --borda: #2a3140;
+    --tinta: #e6edf3; --tinta2: #8b97a7; --acento: #2f6bff; --ok: #23c552;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font: 14px/1.45 system-ui, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--tinta);
+  }
+  header {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 10px 16px; background: var(--painel); border-bottom: 1px solid var(--borda);
+    position: sticky; top: 0; z-index: 5;
+  }
+  header h1 { font-size: 16px; margin: 0; letter-spacing: .3px; }
+  header .tag { color: var(--tinta2); font-size: 12px; }
+  header .acoes { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+  button {
+    font: inherit; color: var(--tinta); background: var(--painel2);
+    border: 1px solid var(--borda); border-radius: 8px; padding: 8px 12px; cursor: pointer;
+  }
+  button:hover { border-color: var(--acento); }
+  button.primario { background: var(--acento); border-color: var(--acento); color: #fff; font-weight: 600; }
+  button.ok { background: var(--ok); border-color: var(--ok); color: #06210f; font-weight: 600; }
+
+  .studio { display: grid; grid-template-columns: 220px 1fr 260px; gap: 12px; padding: 12px; align-items: start; }
+  aside, .centro { background: var(--painel); border: 1px solid var(--borda); border-radius: 12px; }
+  aside { padding: 12px; }
+  aside h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .8px; color: var(--tinta2); margin: 0 0 10px; }
+
+  /* Presets (esquerda) */
+  .presets { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .preset { background: var(--painel2); border: 1px solid var(--borda); border-radius: 10px; padding: 6px; cursor: pointer; text-align: center; }
+  .preset:hover { border-color: var(--acento); }
+  .preset canvas { width: 80px; height: 80px; display: block; margin: 0 auto 4px; background: #fff; border-radius: 6px; }
+  .preset span { font-size: 11px; color: var(--tinta2); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* Centro */
+  .centro { padding: 12px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  #tela { background: #ffffff; border-radius: 10px; cursor: grab; touch-action: none; max-width: 100%; }
+  #tela:active { cursor: grabbing; }
+  .dica { color: var(--tinta2); font-size: 12px; }
+  #ninhada { display: none; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  #ninhada.aberta { display: flex; }
+  .cria { background: var(--painel2); border: 2px solid var(--borda); border-radius: 10px; padding: 6px; cursor: pointer; text-align: center; }
+  .cria:hover { border-color: var(--acento); }
+  .cria.pai { border-color: var(--ok); }
+  .cria canvas { width: 130px; height: 130px; background: #fff; border-radius: 6px; display: block; }
+  .cria span { font-size: 11px; color: var(--tinta2); }
+
+  /* Controles (direita) */
+  .campo { margin-bottom: 12px; }
+  .campo label { display: flex; justify-content: space-between; font-size: 12px; color: var(--tinta2); margin-bottom: 4px; }
+  .campo label b { color: var(--tinta); font-variant-numeric: tabular-nums; }
+  input[type="range"] { width: 100%; accent-color: var(--acento); }
+  input[type="color"] { width: 100%; height: 34px; padding: 0; border: 1px solid var(--borda); border-radius: 8px; background: none; cursor: pointer; }
+  select { width: 100%; padding: 7px; background: var(--painel2); color: var(--tinta); border: 1px solid var(--borda); border-radius: 8px; }
+  .anexos { display: flex; gap: 12px; flex-wrap: wrap; }
+  .anexos label { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--tinta); }
+  .divisor { height: 1px; background: var(--borda); margin: 14px 0; }
+  .rodape { color: var(--tinta2); font-size: 11px; padding: 4px 16px 16px; }
+  .geracao { font-size: 12px; color: var(--tinta2); }
+  .geracao b { color: var(--acento); }
+</style>
+
+<header>
+  <h1>Stickman Studio</h1>
+  <span class="tag">Evolução Procedural · 100% local</span>
+  <span class="geracao">Geração <b id="lblGeracao">0</b></span>
+  <div class="acoes">
+    <button id="btnEvoluir" class="primario">🧬 Evoluir Modelo</button>
+    <button id="btnSalvar" class="ok">💾 Salvar</button>
+    <button id="btnSVG">⬇ SVG</button>
+    <button id="btnPNG">⬇ PNG</button>
+  </div>
+</header>
+
+<div class="studio">
+  <!-- ESQUERDA: biblioteca de presets com miniaturas -->
+  <aside>
+    <h2>Presets</h2>
+    <div class="presets" id="listaPresets"></div>
+  </aside>
+
+  <!-- CENTRO: canvas principal + ninhada de evolução -->
+  <div class="centro">
+    <canvas id="tela" width="600" height="600"></canvas>
+    <div class="dica">Arraste as <b>mãos</b> ou os <b>pés</b> para posar (IK) · roda do mouse dá zoom</div>
+    <div id="ninhada"></div>
+  </div>
+
+  <!-- DIREITA: painel de propriedades -->
+  <aside>
+    <h2>Propriedades</h2>
+
+    <div class="campo">
+      <label>Grossura do traço <b id="vGrossura">8</b></label>
+      <input type="range" id="sGrossura" min="3" max="18" step="0.5" value="8" />
+    </div>
+    <div class="campo">
+      <label>Comprimento das pernas <b id="vPernas">100%</b></label>
+      <input type="range" id="sPernas" min="0.6" max="1.7" step="0.02" value="1" />
+    </div>
+    <div class="campo">
+      <label>Comprimento dos braços <b id="vBracos">100%</b></label>
+      <input type="range" id="sBracos" min="0.6" max="1.6" step="0.02" value="1" />
+    </div>
+    <div class="campo">
+      <label>Tamanho da cabeça <b id="vCabeca">30</b></label>
+      <input type="range" id="sCabeca" min="16" max="60" step="1" value="30" />
+    </div>
+    <div class="campo">
+      <label>Ângulo perna esquerda <b id="vPernaE">0°</b></label>
+      <input type="range" id="sPernaE" min="-45" max="45" step="1" value="0" />
+    </div>
+    <div class="campo">
+      <label>Ângulo perna direita <b id="vPernaD">0°</b></label>
+      <input type="range" id="sPernaD" min="-45" max="45" step="1" value="0" />
+    </div>
+
+    <div class="divisor"></div>
+
+    <div class="campo">
+      <label>Cor do traço</label>
+      <input type="color" id="corTraco" value="#1a1d24" />
+    </div>
+    <div class="campo">
+      <label>Estilo do traço</label>
+      <select id="estilo">
+        <option value="fino">Traço Fino</option>
+        <option value="caligrafico">Traço Caligráfico</option>
+        <option value="neon">Traço Neon</option>
+      </select>
+    </div>
+    <div class="campo">
+      <label>Grade / eixos</label>
+      <div class="anexos">
+        <label><input type="checkbox" id="chkGrade" checked /> Mostrar grade</label>
+        <label><input type="checkbox" id="chkOssos" /> Ver ossos</label>
+      </div>
+    </div>
+
+    <div class="divisor"></div>
+
+    <div class="campo">
+      <label>Acessórios</label>
+      <div class="anexos">
+        <label><input type="checkbox" id="axCapa" /> Capa</label>
+        <label><input type="checkbox" id="axEspada" /> Espada</label>
+        <label><input type="checkbox" id="axChapeu" /> Chapéu</label>
+      </div>
+    </div>
+
+    <div class="divisor"></div>
+
+    <h2>Animação (Keyframes)</h2>
+    <div class="campo">
+      <div class="anexos">
+        <button id="btnCapturar" style="flex:1">➕ Capturar frame</button>
+        <button id="btnAnimar" style="flex:1">▶ Animar</button>
+      </div>
+    </div>
+    <div class="campo">
+      <label>Keyframes salvos <b id="vFrames">0</b></label>
+      <div id="fitaFrames" style="display:flex;gap:4px;flex-wrap:wrap;min-height:44px"></div>
+    </div>
+    <div class="campo">
+      <label>Duração por frame (ms) <b id="vDur">700</b></label>
+      <input type="range" id="sDur" min="200" max="1500" step="50" value="700" />
+    </div>
+    <div class="campo">
+      <button id="btnLimparFrames" style="width:100%">🗑 Limpar keyframes</button>
+    </div>
+  </aside>
+</div>
+
+<p class="rodape">
+  Dica: clique em <b>Evoluir</b> para gerar 3 mutações do modelo atual e escolha a melhor (seleção
+  manual). A cada 5 gerações o melhor modelo é salvo em <code>localStorage['melhoresModelos']</code>.
+</p>
+
+<script>
+/* =====================================================================
+   STICKMAN STUDIO — JavaScript puro, sem bibliotecas.
+   Organizado em 3 blocos: MODEL · VIEW · CONTROLLER.
+   Convenção de ângulos: graus, 0 = direita, sentido horário (y p/ baixo).
+   ===================================================================== */
+
+/* =========================================================
+   ========== MODEL (Dados) ================================
+   ========================================================= */
+
+const D2R = Math.PI / 180, R2D = 180 / Math.PI;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const rand = (a, b) => a + Math.random() * (b - a);
+
+// ---- Bone: um osso do esqueleto (x,y,angle,length,thickness,parent) -----
+class Bone {
+  constructor(nome, { parent = null, length = 0, angle = 0, thickness = 6, grupo = '' } = {}) {
+    this.nome = nome;
+    this.parent = parent;         // nome do osso pai (string) ou null
+    this.length = length;         // comprimento
+    this.angle = angle;           // ângulo LOCAL (relativo ao pai), em graus
+    this.thickness = thickness;   // espessura do traço
+    this.grupo = grupo;
+    // Preenchidos pela FK:
+    this.x = 0; this.y = 0;       // início no mundo (worldStart)
+    this.ex = 0; this.ey = 0;     // fim no mundo (worldEnd)
+    this.worldAngle = 0;          // ângulo absoluto acumulado
+  }
+}
+
+// ---- Stickman: contém um array/mapa de Bones e resolve a FK ------------
+class Stickman {
+  constructor() { this.bones = new Map(); this.ordem = []; }
+  add(b) { this.bones.set(b.nome, b); this._ordenar(); return b; }
+  get(n) { return this.bones.get(n); }
+
+  // Ordena topologicamente (todo pai antes dos filhos).
+  _ordenar() {
+    const visto = new Set(), ordem = [];
+    const visitar = (nome) => {
+      const b = this.bones.get(nome);
+      if (!b || visto.has(nome)) return;
+      if (b.parent) visitar(b.parent);
+      visto.add(nome); ordem.push(nome);
+    };
+    for (const n of this.bones.keys()) visitar(n);
+    this.ordem = ordem;
+  }
+
+  // Forward Kinematics: propaga posição/ângulo a partir da origem.
+  fk(ox = 0, oy = 0) {
+    for (const nome of this.ordem) {
+      const b = this.bones.get(nome);
+      if (!b.parent) {
+        b.x = ox; b.y = oy; b.worldAngle = b.angle;
+      } else {
+        const p = this.bones.get(b.parent);
+        b.x = p.ex; b.y = p.ey; b.worldAngle = p.worldAngle + b.angle;
+      }
+      const r = b.worldAngle * D2R;
+      b.ex = b.x + Math.cos(r) * b.length;
+      b.ey = b.y + Math.sin(r) * b.length;
+    }
+    return this;
+  }
+
+  // Caixa envolvente (inclui o círculo da cabeça). Usada p/ escalar/exportar.
+  getBoundingBox(raioCabeca = 0) {
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    const eng = (x, y) => { minX = Math.min(minX, x); minY = Math.min(minY, y); maxX = Math.max(maxX, x); maxY = Math.max(maxY, y); };
+    for (const b of this.bones.values()) { eng(b.x, b.y); eng(b.ex, b.ey); }
+    const c = this.get('cabeca');
+    if (c) { eng(c.ex - raioCabeca, c.ey - raioCabeca); eng(c.ex + raioCabeca, c.ey + raioCabeca); }
+    return { minX, minY, maxX, maxY, largura: maxX - minX, altura: maxY - minY };
+  }
+}
+
+// ---- DNA + Modelo: o "genoma" serializável do boneco -------------------
+function dnaBase() {
+  return { tamanhoCabeca: 30, comprimentoBracos: 1.0, comprimentoPernas: 1.0, grossuraTronco: 8, inclinacaoOmbro: 0 };
+}
+function modeloBase() {
+  return {
+    nome: 'Neutro', dna: dnaBase(),
+    corTraco: '#1a1d24', estilo: 'fino',
+    anexos: { capa: false, espada: false, chapeu: false },
+    anguloPernaE: 0, anguloPernaD: 0,
+    geracao: 0,
+  };
+}
+
+// Faixas seguras do DNA (evitam aberrações nas mutações).
+const FAIXAS_DNA = {
+  tamanhoCabeca: [16, 60], comprimentoBracos: [0.6, 1.6], comprimentoPernas: [0.6, 1.7],
+  grossuraTronco: [3, 18], inclinacaoOmbro: [-40, 40],
+};
+
+// Presets de fábrica (arquétipos).
+const PRESETS_FABRICA = [
+  { nome: 'Neutro',  dna: { tamanhoCabeca: 30, comprimentoBracos: 1.0,  comprimentoPernas: 1.0,  grossuraTronco: 8,  inclinacaoOmbro: 0 } },
+  { nome: 'Herói',   dna: { tamanhoCabeca: 26, comprimentoBracos: 1.15, comprimentoPernas: 1.3,  grossuraTronco: 12, inclinacaoOmbro: 18 } },
+  { nome: 'Cômico',  dna: { tamanhoCabeca: 52, comprimentoBracos: 0.82, comprimentoPernas: 0.78, grossuraTronco: 9,  inclinacaoOmbro: -8 } },
+  { nome: 'Esguio',  dna: { tamanhoCabeca: 24, comprimentoBracos: 1.1,  comprimentoPernas: 1.4,  grossuraTronco: 4,  inclinacaoOmbro: 6 } },
+];
+
+// Constrói o esqueleto e sobrescreve os ângulos com uma POSE (mapa osso→ângulo).
+// Usado pela animação de keyframes (interpolação).
+function construirPose(modelo, pose) {
+  const sk = construir(modelo);
+  if (pose) for (const n in pose) { const b = sk.get(n); if (b) b.angle = pose[n]; }
+  return sk;
+}
+
+// Constrói o Stickman (esqueleto) a partir de um modelo (DNA + pose).
+function construir(modelo) {
+  const d = modelo.dna, sk = new Stickman();
+  const t = d.grossuraTronco, inc = d.inclinacaoOmbro;
+  const braco = 46 * d.comprimentoBracos, perna = 60 * d.comprimentoPernas;
+
+  // Raiz (pelve) aponta para cima (-90) para o tronco subir.
+  sk.add(new Bone('quadril', { parent: null, length: 0, angle: -90, thickness: t, grupo: 'raiz' }));
+  sk.add(new Bone('tronco',  { parent: 'quadril', length: 92, angle: 0, thickness: t, grupo: 'tronco' }));
+  sk.add(new Bone('cabeca',  { parent: 'tronco', length: d.tamanhoCabeca, angle: 0, thickness: t * 0.6, grupo: 'cabeca' }));
+
+  // Braços (saem do topo do tronco). inclinacaoOmbro levanta/abaixa os ombros.
+  sk.add(new Bone('bracoSupE', { parent: 'tronco', length: braco, angle: -150 + inc, thickness: t * 0.8, grupo: 'braco' }));
+  sk.add(new Bone('bracoInfE', { parent: 'bracoSupE', length: braco, angle: 22, thickness: t * 0.7, grupo: 'braco' }));
+  sk.add(new Bone('bracoSupD', { parent: 'tronco', length: braco, angle: 150 - inc, thickness: t * 0.8, grupo: 'braco' }));
+  sk.add(new Bone('bracoInfD', { parent: 'bracoSupD', length: braco, angle: -22, thickness: t * 0.7, grupo: 'braco' }));
+
+  // Pernas (saem da pelve). Ângulos-base ~para baixo, ajustados pelos sliders.
+  sk.add(new Bone('pernaSupE', { parent: 'quadril', length: perna, angle: 186 + modelo.anguloPernaE, thickness: t * 0.85, grupo: 'perna' }));
+  sk.add(new Bone('pernaInfE', { parent: 'pernaSupE', length: perna, angle: 12, thickness: t * 0.75, grupo: 'perna' }));
+  sk.add(new Bone('pernaSupD', { parent: 'quadril', length: perna, angle: 174 + modelo.anguloPernaD, thickness: t * 0.85, grupo: 'perna' }));
+  sk.add(new Bone('pernaInfD', { parent: 'pernaSupD', length: perna, angle: -12, thickness: t * 0.75, grupo: 'perna' }));
+
+  return sk;
+}
+
+// ---- Inverse Kinematics (2 segmentos, lei dos cossenos) ----------------
+const CADEIAS_IK = {
+  maoE: { sup: 'bracoSupE', inf: 'bracoInfE', dobra: +1 },
+  maoD: { sup: 'bracoSupD', inf: 'bracoInfD', dobra: -1 },
+  peE:  { sup: 'pernaSupE', inf: 'pernaInfE', dobra: -1 },
+  peD:  { sup: 'pernaSupD', inf: 'pernaInfD', dobra: +1 },
+};
+// Ajusta os ângulos dos 2 ossos da cadeia para a ponta alcançar (tx,ty).
+function resolverIK(sk, cadeia, tx, ty) {
+  const c = CADEIAS_IK[cadeia];
+  const sup = sk.get(c.sup), inf = sk.get(c.inf);
+  const bx = sup.x, by = sup.y;               // base (não se move ao girar sup)
+  const l1 = sup.length, l2 = inf.length;
+  let dx = tx - bx, dy = ty - by;
+  let dist = clamp(Math.hypot(dx, dy), Math.abs(l1 - l2) + 0.01, l1 + l2 - 0.01);
+  const theta = Math.atan2(dy, dx);
+  const a1 = Math.acos(clamp((l1 * l1 + dist * dist - l2 * l2) / (2 * l1 * dist), -1, 1));
+  const supWorld = theta + c.dobra * a1;
+  const paiWorld = sk.get(sup.parent).worldAngle;   // ângulo do pai (graus)
+  sup.angle = supWorld * R2D - paiWorld;
+  // cotovelo/joelho e osso inferior:
+  const ex = bx + Math.cos(supWorld) * l1, ey = by + Math.sin(supWorld) * l1;
+  const infWorld = Math.atan2(ty - ey, tx - ex);
+  inf.angle = (infWorld - supWorld) * R2D;
+}
+
+// ---- EVOLUÇÃO: mutação de DNA + acessórios -----------------------------
+// Muta cada gene por ±15% (aditivo p/ genes que podem ser 0), dentro das faixas.
+function mutarDNA(dna) {
+  const n = {};
+  for (const k in dna) {
+    const [lo, hi] = FAIXAS_DNA[k];
+    let v = k === 'inclinacaoOmbro'
+      ? dna[k] + rand(-6, 6)                 // aditivo (pode valer 0)
+      : dna[k] * (1 + rand(-0.15, 0.15));    // ±15% multiplicativo
+    n[k] = clamp(v, lo, hi);
+  }
+  return n;
+}
+// Gera 1 cria a partir de um modelo pai (com 30% de chance de mexer nos acessórios).
+function gerarCria(pai) {
+  const cria = JSON.parse(JSON.stringify(pai));
+  cria.dna = mutarDNA(pai.dna);
+  if (Math.random() < 0.30) {
+    const chaves = ['capa', 'espada', 'chapeu'];
+    const alvo = chaves[Math.floor(Math.random() * chaves.length)];
+    cria.anexos[alvo] = !cria.anexos[alvo];   // adiciona OU remove aleatoriamente
+  }
+  return cria;
+}
+
+// ---- Persistência (localStorage['melhoresModelos']) --------------------
+const CHAVE = 'melhoresModelos';
+function lerSalvos() {
+  try { return JSON.parse(localStorage.getItem(CHAVE)) || []; } catch { return []; }
+}
+function salvarModelo(modelo, nome) {
+  const lista = lerSalvos();
+  const copia = JSON.parse(JSON.stringify(modelo));
+  copia.nome = nome || copia.nome || ('Gen ' + modelo.geracao);
+  copia.salvoEm = Date.now();
+  lista.unshift(copia);
+  localStorage.setItem(CHAVE, JSON.stringify(lista.slice(0, 24))); // limite p/ não crescer sem fim
+  return copia;
+}
+
+
+/* =========================================================
+   ========== VIEW (Renderização) ==========================
+   ========================================================= */
+
+// ---- Acessórios: classe base + tipos (Capa, Espada, Chapéu) ------------
+// Cada acessório sabe se desenhar no canvas e gerar seu trecho de SVG.
+class Acessorio {
+  constructor(cor) { this.cor = cor; }
+  desenhar(ctx, sk, raioCabeca) {}
+  svg(sk, raioCabeca) { return ''; }
+}
+// Atalho: ponto final (worldEnd) de um osso como {x, y}.
+const fim = (b) => ({ x: b.ex, y: b.ey });
+
+class Capa extends Acessorio {
+  _pontos(sk) {
+    const pescoco = fim(sk.get('tronco'));   // topo do tronco
+    const quadril = fim(sk.get('quadril'));
+    const w = sk.get('cabeca').length * 1.5;
+    const baseY = quadril.y + (quadril.y - pescoco.y) * 0.35;
+    return [
+      [pescoco.x - w * 0.5, pescoco.y], [pescoco.x + w * 0.5, pescoco.y],
+      [quadril.x + w * 1.25, baseY], [quadril.x - w * 1.25, baseY],
+    ];
+  }
+  desenhar(ctx, sk) {
+    const p = this._pontos(sk);
+    ctx.save(); ctx.beginPath(); ctx.moveTo(p[0][0], p[0][1]);
+    p.slice(1).forEach(([x, y]) => ctx.lineTo(x, y)); ctx.closePath();
+    ctx.fillStyle = 'rgba(178,58,72,.92)'; ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = '#141821'; ctx.stroke(); ctx.restore();
+  }
+  svg(sk) {
+    const p = this._pontos(sk).map(([x, y]) => x.toFixed(1) + ',' + y.toFixed(1)).join(' ');
+    return `<polygon points="${p}" fill="#b23a48" fill-opacity="0.92" stroke="#141821" stroke-width="2"/>`;
+  }
+}
+class Espada extends Acessorio {
+  _geo(sk) {
+    const mao = fim(sk.get('bracoInfD'));
+    const comp = sk.get('cabeca').length * 2.2;
+    return { mao, ponta: { x: mao.x, y: mao.y - comp }, larg: 8 };
+  }
+  desenhar(ctx, sk) {
+    const g = this._geo(sk);
+    ctx.save();
+    ctx.strokeStyle = '#c9ccd6'; ctx.lineWidth = g.larg; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(g.mao.x, g.mao.y); ctx.lineTo(g.ponta.x, g.ponta.y); ctx.stroke();
+    ctx.strokeStyle = '#141821'; ctx.lineWidth = 4;  // guarda
+    ctx.beginPath(); ctx.moveTo(g.mao.x - 14, g.mao.y); ctx.lineTo(g.mao.x + 14, g.mao.y); ctx.stroke();
+    ctx.restore();
+  }
+  svg(sk) {
+    const g = this._geo(sk);
+    return `<line x1="${g.mao.x.toFixed(1)}" y1="${g.mao.y.toFixed(1)}" x2="${g.ponta.x.toFixed(1)}" y2="${g.ponta.y.toFixed(1)}" stroke="#c9ccd6" stroke-width="8" stroke-linecap="round"/>`
+      + `<line x1="${(g.mao.x - 14).toFixed(1)}" y1="${g.mao.y.toFixed(1)}" x2="${(g.mao.x + 14).toFixed(1)}" y2="${g.mao.y.toFixed(1)}" stroke="#141821" stroke-width="4"/>`;
+  }
+}
+class Chapeu extends Acessorio {
+  _geo(sk, r) { const c = fim(sk.get('cabeca')); return { c, r }; }
+  desenhar(ctx, sk, r) {
+    const { c } = this._geo(sk, r);
+    ctx.save(); ctx.strokeStyle = '#141821'; ctx.fillStyle = this.cor; ctx.lineWidth = 2;
+    // aba
+    ctx.beginPath(); ctx.moveTo(c.x - r * 1.4, c.y - r * 0.35); ctx.lineTo(c.x + r * 1.4, c.y - r * 0.35);
+    ctx.stroke();
+    // copa (arco acima da cabeça)
+    ctx.beginPath(); ctx.arc(c.x, c.y - r * 0.35, r * 0.85, Math.PI, 0); ctx.closePath();
+    ctx.fill(); ctx.stroke(); ctx.restore();
+  }
+  svg(sk, r) {
+    const c = fim(sk.get('cabeca')), y = c.y - r * 0.35;
+    return `<path d="M ${(c.x - r * 0.85).toFixed(1)} ${y.toFixed(1)} A ${(r * 0.85).toFixed(1)} ${(r * 0.85).toFixed(1)} 0 0 1 ${(c.x + r * 0.85).toFixed(1)} ${y.toFixed(1)} Z" fill="#2f6bff" stroke="#141821" stroke-width="2"/>`
+      + `<line x1="${(c.x - r * 1.4).toFixed(1)}" y1="${y.toFixed(1)}" x2="${(c.x + r * 1.4).toFixed(1)}" y2="${y.toFixed(1)}" stroke="#141821" stroke-width="2"/>`;
+  }
+}
+function acessoriosDe(modelo) {
+  const lista = [];
+  if (modelo.anexos.capa)   lista.push({ tras: true,  obj: new Capa('#b23a48') });
+  if (modelo.anexos.espada) lista.push({ tras: false, obj: new Espada('#c9ccd6') });
+  if (modelo.anexos.chapeu) lista.push({ tras: false, obj: new Chapeu('#2f6bff') });
+  return lista;
+}
+
+// ---- Desenho do esqueleto (3 estilos de traço) ------------------------
+function desenharOsso(ctx, b, cor, estilo) {
+  if (b.length <= 0) return;
+  if (estilo === 'caligrafico') {
+    // Simula caneta: largura variável (mais grosso na base, afina na ponta).
+    const w1 = b.thickness * 1.25, w2 = b.thickness * 0.45;
+    const dx = b.ex - b.x, dy = b.ey - b.y, len = Math.hypot(dx, dy) || 1;
+    const nx = -dy / len, ny = dx / len;   // normal
+    ctx.beginPath();
+    ctx.moveTo(b.x + nx * w1 / 2, b.y + ny * w1 / 2);
+    ctx.lineTo(b.ex + nx * w2 / 2, b.ey + ny * w2 / 2);
+    ctx.lineTo(b.ex - nx * w2 / 2, b.ey - ny * w2 / 2);
+    ctx.lineTo(b.x - nx * w1 / 2, b.y - ny * w1 / 2);
+    ctx.closePath(); ctx.fillStyle = cor; ctx.fill();
+  } else {
+    ctx.lineWidth = b.thickness; ctx.lineCap = 'round'; ctx.strokeStyle = cor;
+    ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(b.ex, b.ey); ctx.stroke();
+  }
+}
+
+// Desenha o Stickman completo (corpo + cabeça + acessórios) no contexto atual.
+// Usa ctx.save()/restore(); no estilo neon aplica ctx.shadowBlur.
+function desenharStickman(ctx, sk, modelo, raioCabeca, mostrarOssos) {
+  const cor = modelo.corTraco, estilo = modelo.estilo;
+  const acs = acessoriosDe(modelo);
+
+  ctx.save();
+  if (estilo === 'neon') { ctx.shadowBlur = 16; ctx.shadowColor = cor; }
+
+  acs.filter(a => a.tras).forEach(a => a.obj.desenhar(ctx, sk, raioCabeca)); // capa atrás
+
+  // Ossos (pula o quadril de comprimento 0).
+  for (const nome of sk.ordem) {
+    const b = sk.get(nome);
+    if (nome === 'cabeca') continue; // cabeça é círculo, desenhada abaixo
+    desenharOsso(ctx, b, cor, estilo);
+  }
+
+  // Cabeça = círculo no fim do osso 'cabeca'.
+  const c = fim(sk.get('cabeca'));
+  ctx.lineWidth = Math.max(2, sk.get('tronco').thickness * 0.6);
+  ctx.strokeStyle = cor; ctx.fillStyle = '#ffffff';
+  ctx.beginPath(); ctx.arc(c.x, c.y, raioCabeca, 0, Math.PI * 2);
+  if (estilo !== 'caligrafico') ctx.fill();
+  ctx.stroke();
+
+  acs.filter(a => !a.tras).forEach(a => a.obj.desenhar(ctx, sk, raioCabeca)); // espada/chapéu na frente
+  ctx.restore();
+
+  // Sobreposição de ossos (debug do rig).
+  if (mostrarOssos) {
+    ctx.save();
+    for (const b of sk.bones.values()) {
+      if (b.length > 0) {
+        ctx.strokeStyle = 'rgba(47,107,255,.9)'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(b.ex, b.ey); ctx.stroke();
+      }
+      ctx.fillStyle = '#ff4d6d'; ctx.beginPath(); ctx.arc(b.ex, b.ey, 3.5, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+// Desenha grade + eixos no canvas principal.
+function desenharGrade(ctx, w, h) {
+  ctx.save();
+  ctx.strokeStyle = 'rgba(0,0,0,.06)'; ctx.lineWidth = 1;
+  for (let x = 0; x <= w; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
+  for (let y = 0; y <= h; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+  ctx.strokeStyle = 'rgba(47,107,255,.35)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(w / 2, 0); ctx.lineTo(w / 2, h); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, h / 2); ctx.lineTo(w, h / 2); ctx.stroke();
+  ctx.restore();
+}
+
+// Renderiza um modelo dentro de um mini-canvas (preset/preview), auto-enquadrado.
+function renderMini(canvas, modelo) {
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const sk = construir(modelo).fk(0, 0);
+  const r = modelo.dna.tamanhoCabeca;
+  const bb = sk.getBoundingBox(r);
+  const margem = 12;
+  const s = Math.min((canvas.width - margem * 2) / (bb.largura || 1), (canvas.height - margem * 2) / (bb.altura || 1));
+  ctx.save();
+  ctx.translate(canvas.width / 2, canvas.height / 2);
+  ctx.scale(s, s);
+  ctx.translate(-(bb.minX + bb.largura / 2), -(bb.minY + bb.altura / 2));
+  desenharStickman(ctx, sk, modelo, r, false);
+  ctx.restore();
+}
+
+
+/* =========================================================
+   ========== CONTROLLER (Eventos) =========================
+   ========================================================= */
+
+const tela = document.getElementById('tela');
+const ctx = tela.getContext('2d');
+const ORIGEM = { x: 300, y: 400 };   // pelve no canvas principal
+let modelo = clonar(PRESETS_FABRICA[0]);  // modelo atual (pai)
+let skAtual = null;                   // esqueleto FK do frame corrente
+let dirty = true;                     // dirty flag: só renderiza quando muda
+let zoom = 1;
+
+// Estado da animação por keyframes.
+let keyframes = [];                   // lista de poses {osso: ânguloLocal}
+let animando = false;                 // loop de animação ativo?
+let durMs = 700;                      // duração de cada trecho entre keyframes
+let animInicio = 0;                   // timestamp de início do loop
+
+function clonar(x) { return Object.assign(modeloBase(), JSON.parse(JSON.stringify(x))); }
+function marcarSujo() { dirty = true; }
+
+// Captura a pose corrente (ângulos locais de cada osso do frame atual).
+function poseAtual() {
+  const p = {}; if (skAtual) for (const b of skAtual.bones.values()) p[b.nome] = b.angle; return p;
+}
+// Interpola entre keyframes com lerp + suavização ease-in-out (via cosseno,
+// equivalente a usar Math.sin): f = 0.5 - 0.5*cos(t*π). Faz loop pelo conjunto.
+function poseInterpolada(now) {
+  const n = keyframes.length;
+  const total = n * durMs;                       // fecha o ciclo (último → primeiro)
+  const tt = (((now - animInicio) % total) / durMs);
+  const i = Math.floor(tt) % n, j = (i + 1) % n;
+  let f = tt - Math.floor(tt);
+  f = 0.5 - 0.5 * Math.cos(f * Math.PI);         // ease-in-out
+  const a = keyframes[i], b = keyframes[j], out = {};
+  for (const k in a) { const bk = (k in b) ? b[k] : a[k]; out[k] = a[k] + (bk - a[k]) * f; }
+  return out;
+}
+
+// ----- Loop principal com requestAnimationFrame + dirty flag -----------
+function loop(now) {
+  if (animando && keyframes.length >= 2) dirty = true;   // animação sempre redesenha
+  if (dirty) {
+    const t0 = performance.now();
+    render(now || 0);
+    const t1 = performance.now();
+    if (!animando) console.log(`[render] ${(t1 - t0).toFixed(2)} ms — geração ${modelo.geracao}`);
+    dirty = false;
+  }
+  requestAnimationFrame(loop);
+}
+
+function render(now) {
+  ctx.clearRect(0, 0, tela.width, tela.height);
+  if (document.getElementById('chkGrade').checked) desenharGrade(ctx, tela.width, tela.height);
+  // Animando: usa a pose interpolada; senão, a pose do modelo (editável por IK).
+  if (animando && keyframes.length >= 2) {
+    skAtual = construirPose(modelo, poseInterpolada(now)).fk(ORIGEM.x, ORIGEM.y);
+  } else {
+    skAtual = construir(modelo).fk(ORIGEM.x, ORIGEM.y);
+  }
+  ctx.save();
+  // zoom em torno do centro
+  ctx.translate(tela.width / 2, tela.height / 2); ctx.scale(zoom, zoom); ctx.translate(-tela.width / 2, -tela.height / 2);
+  desenharStickman(ctx, skAtual, modelo, modelo.dna.tamanhoCabeca, document.getElementById('chkOssos').checked);
+  ctx.restore();
+}
+
+// ----- Sincroniza sliders/painel a partir do modelo --------------------
+function sincronizarUI() {
+  const d = modelo.dna;
+  set('sGrossura', d.grossuraTronco); set('vGrossura', d.grossuraTronco.toFixed(1));
+  set('sPernas', d.comprimentoPernas); set('vPernas', Math.round(d.comprimentoPernas * 100) + '%');
+  set('sBracos', d.comprimentoBracos); set('vBracos', Math.round(d.comprimentoBracos * 100) + '%');
+  set('sCabeca', d.tamanhoCabeca); set('vCabeca', Math.round(d.tamanhoCabeca));
+  set('sPernaE', modelo.anguloPernaE); set('vPernaE', modelo.anguloPernaE + '°');
+  set('sPernaD', modelo.anguloPernaD); set('vPernaD', modelo.anguloPernaD + '°');
+  document.getElementById('corTraco').value = modelo.corTraco;
+  document.getElementById('estilo').value = modelo.estilo;
+  document.getElementById('axCapa').checked = modelo.anexos.capa;
+  document.getElementById('axEspada').checked = modelo.anexos.espada;
+  document.getElementById('axChapeu').checked = modelo.anexos.chapeu;
+  document.getElementById('lblGeracao').textContent = modelo.geracao;
+}
+function set(id, v) { const el = document.getElementById(id); if (el.tagName === 'INPUT') el.value = v; else el.textContent = v; }
+
+// ----- Sliders (DNA + pose) --------------------------------------------
+const liga = (id, fn) => document.getElementById(id).addEventListener('input', (e) => { fn(parseFloat(e.target.value)); marcarSujo(); sincronizarUI(); });
+liga('sGrossura', v => modelo.dna.grossuraTronco = v);
+liga('sPernas',   v => modelo.dna.comprimentoPernas = v);
+liga('sBracos',   v => modelo.dna.comprimentoBracos = v);
+liga('sCabeca',   v => modelo.dna.tamanhoCabeca = v);
+liga('sPernaE',   v => modelo.anguloPernaE = v);
+liga('sPernaD',   v => modelo.anguloPernaD = v);
+
+document.getElementById('corTraco').addEventListener('input', e => { modelo.corTraco = e.target.value; marcarSujo(); });
+document.getElementById('estilo').addEventListener('change', e => { modelo.estilo = e.target.value; marcarSujo(); });
+['chkGrade', 'chkOssos'].forEach(id => document.getElementById(id).addEventListener('change', marcarSujo));
+['axCapa', 'axEspada', 'axChapeu'].forEach(id => document.getElementById(id).addEventListener('change', e => {
+  modelo.anexos[id.replace('ax', '').toLowerCase()] = e.target.checked; marcarSujo();
+}));
+
+// ----- Arrastar mãos/pés com o mouse (IK) ------------------------------
+let arrastando = null;
+function pontoNoCanvas(ev) {
+  const r = tela.getBoundingClientRect();
+  const cx = (ev.clientX - r.left) * (tela.width / r.width);
+  const cy = (ev.clientY - r.top) * (tela.height / r.height);
+  // desfaz o zoom aplicado no render
+  return { x: (cx - tela.width / 2) / zoom + tela.width / 2, y: (cy - tela.height / 2) / zoom + tela.height / 2 };
+}
+function efetuadorMaisProximo(p) {
+  const alvos = { maoE: 'bracoInfE', maoD: 'bracoInfD', peE: 'pernaInfE', peD: 'pernaInfD' };
+  let melhor = null, dmin = 26;
+  for (const [cad, osso] of Object.entries(alvos)) {
+    const b = skAtual.get(osso);
+    const d = Math.hypot(p.x - b.ex, p.y - b.ey);
+    if (d < dmin) { dmin = d; melhor = cad; }
+  }
+  return melhor;
+}
+tela.addEventListener('pointerdown', ev => {
+  const p = pontoNoCanvas(ev); arrastando = efetuadorMaisProximo(p);
+  if (arrastando) tela.setPointerCapture(ev.pointerId);
+});
+tela.addEventListener('pointermove', ev => {
+  if (!arrastando) return;
+  const p = pontoNoCanvas(ev);
+  resolverIK(skAtual, arrastando, p.x, p.y);
+  // grava a pose resolvida das pernas de volta no modelo (para persistir)
+  if (arrastando === 'peE') modelo.anguloPernaE = clamp(skAtual.get('pernaSupE').angle - 186, -45, 45);
+  if (arrastando === 'peD') modelo.anguloPernaD = clamp(skAtual.get('pernaSupD').angle - 174, -45, 45);
+  marcarSujo();
+});
+tela.addEventListener('pointerup', () => { arrastando = null; sincronizarUI(); });
+tela.addEventListener('wheel', ev => { ev.preventDefault(); zoom = clamp(zoom * (ev.deltaY < 0 ? 1.1 : 0.9), 0.4, 3); marcarSujo(); }, { passive: false });
+
+// ----- EVOLUIR: gera 3 crias, mostra ninhada, seleção manual -----------
+const ninhada = document.getElementById('ninhada');
+let candidatos = [];
+document.getElementById('btnEvoluir').addEventListener('click', () => {
+  candidatos = [clonar(modelo), gerarCria(modelo), gerarCria(modelo), gerarCria(modelo)];
+  const rotulos = ['Pai (atual)', 'Cria 1', 'Cria 2', 'Cria 3'];
+  ninhada.innerHTML = '';
+  candidatos.forEach((cand, i) => {
+    const card = document.createElement('div');
+    card.className = 'cria' + (i === 0 ? ' pai' : '');
+    const cv = document.createElement('canvas'); cv.width = 130; cv.height = 130;
+    const lb = document.createElement('span'); lb.textContent = rotulos[i];
+    card.append(cv, lb); ninhada.append(card);
+    renderMini(cv, cand);
+    card.addEventListener('click', () => escolher(cand));
+  });
+  ninhada.classList.add('aberta');
+});
+function escolher(cand) {
+  modelo = cand;
+  modelo.geracao++;
+  ninhada.classList.remove('aberta');
+  // A cada 5 gerações, salva automaticamente o melhor (o escolhido) modelo.
+  if (modelo.geracao % 5 === 0) {
+    salvarModelo(modelo, 'Auto Gen ' + modelo.geracao);
+    montarPresets();
+    console.log('[auto-save] melhor modelo salvo na geração ' + modelo.geracao);
+  }
+  sincronizarUI(); montarPresets(); marcarSujo();
+}
+
+// ----- SALVAR + PRESETS -------------------------------------------------
+document.getElementById('btnSalvar').addEventListener('click', () => {
+  const nome = prompt('Nome do preset:', modelo.nome || 'Meu modelo');
+  if (nome === null) return;
+  modelo.nome = nome; salvarModelo(modelo, nome); montarPresets();
+});
+function montarPresets() {
+  const cont = document.getElementById('listaPresets');
+  cont.innerHTML = '';
+  const itens = [
+    ...PRESETS_FABRICA.map(p => ({ modelo: clonar(p), rotulo: p.nome })),
+    ...lerSalvos().map(m => ({ modelo: clonar(m), rotulo: m.nome || 'Salvo' })),
+  ];
+  itens.forEach(({ modelo: m, rotulo }) => {
+    const card = document.createElement('div'); card.className = 'preset';
+    const cv = document.createElement('canvas'); cv.width = 80; cv.height = 80;
+    const lb = document.createElement('span'); lb.textContent = rotulo;
+    card.append(cv, lb); cont.append(card);
+    renderMini(cv, m);
+    card.addEventListener('click', () => { modelo = clonar(m); sincronizarUI(); marcarSujo(); });
+  });
+}
+
+// ----- EXPORTAR SVG -----------------------------------------------------
+function gerarSVG() {
+  const sk = construir(modelo).fk(0, 0);
+  const r = modelo.dna.tamanhoCabeca;
+  const bb = sk.getBoundingBox(r);
+  const m = 20;
+  const W = (bb.largura + m * 2).toFixed(1), H = (bb.altura + m * 2).toFixed(1);
+  const T = (x, y) => [(x - bb.minX + m).toFixed(1), (y - bb.minY + m).toFixed(1)];
+  let el = '';
+  // capa (atrás)
+  acessoriosDe(modelo).filter(a => a.tras).forEach(a => el += a.obj.svg(deslocar(sk, bb, m), r));
+  // ossos como <line>
+  const cor = modelo.corTraco;
+  for (const nome of sk.ordem) {
+    const b = sk.get(nome);
+    if (b.length <= 0 || nome === 'cabeca') continue;
+    const [x1, y1] = T(b.x, b.y), [x2, y2] = T(b.ex, b.ey);
+    el += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${cor}" stroke-width="${b.thickness.toFixed(1)}" stroke-linecap="round"/>`;
+  }
+  // cabeça como <circle>
+  const c = fim(sk.get('cabeca')); const [cx, cy] = T(c.x, c.y);
+  el += `<circle cx="${cx}" cy="${cy}" r="${r.toFixed(1)}" fill="#fff" stroke="${cor}" stroke-width="${(sk.get('tronco').thickness * 0.6).toFixed(1)}"/>`;
+  // acessórios da frente
+  acessoriosDe(modelo).filter(a => !a.tras).forEach(a => el += a.obj.svg(deslocar(sk, bb, m), r));
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${el}</svg>`;
+}
+// Devolve um esqueleto com coords já deslocadas (para os SVGs dos acessórios).
+function deslocar(sk, bb, m) {
+  const d = new Stickman();
+  for (const nome of sk.ordem) {
+    const b = sk.get(nome); const nb = new Bone(nome, { parent: b.parent, length: b.length, angle: b.angle, thickness: b.thickness });
+    nb.x = b.x - bb.minX + m; nb.y = b.y - bb.minY + m; nb.ex = b.ex - bb.minX + m; nb.ey = b.ey - bb.minY + m; nb.worldAngle = b.worldAngle;
+    d.bones.set(nome, nb);
+  }
+  d.ordem = sk.ordem.slice();
+  return d;
+}
+function baixar(nomeArq, conteudo, tipo) {
+  const blob = conteudo instanceof Blob ? conteudo : new Blob([conteudo], { type: tipo });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nomeArq;
+  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+document.getElementById('btnSVG').addEventListener('click', () => {
+  baixar((modelo.nome || 'stickman') + '.svg', gerarSVG(), 'image/svg+xml');
+  // também guarda o JSON do modelo junto (útil p/ reimportar)
+  console.log('JSON do modelo:', JSON.stringify(modelo));
+});
+
+// ----- EXPORTAR PNG (fundo transparente) --------------------------------
+document.getElementById('btnPNG').addEventListener('click', () => {
+  const sk = construir(modelo).fk(0, 0);
+  const r = modelo.dna.tamanhoCabeca, bb = sk.getBoundingBox(r), m = 24;
+  const off = document.createElement('canvas');
+  off.width = Math.ceil(bb.largura + m * 2); off.height = Math.ceil(bb.altura + m * 2);
+  const octx = off.getContext('2d');           // NÃO preenche fundo → transparente
+  octx.translate(-bb.minX + m, -bb.minY + m);
+  desenharStickman(octx, sk, modelo, r, false);
+  baixar((modelo.nome || 'stickman') + '.png', dataURLparaBlob(off.toDataURL('image/png')), 'image/png');
+});
+function dataURLparaBlob(url) {
+  const [cab, b64] = url.split(','); const bin = atob(b64);
+  const arr = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], { type: cab.match(/:(.*?);/)[1] });
+}
+
+// ----- Também exporta JSON pelo botão Salvar (atalho) -------------------
+// (o botão Salvar grava no localStorage; SVG/PNG baixam arquivos)
+
+// ----- ANIMAÇÃO por keyframes -------------------------------------------
+const fita = document.getElementById('fitaFrames');
+function atualizarFita() {
+  document.getElementById('vFrames').textContent = keyframes.length;
+  fita.innerHTML = '';
+  keyframes.forEach((pose, i) => {
+    const cv = document.createElement('canvas'); cv.width = 40; cv.height = 40;
+    cv.title = 'Frame ' + (i + 1) + ' (clique p/ carregar · botão direito remove)';
+    cv.style.cssText = 'background:#fff;border-radius:5px;border:1px solid var(--borda);cursor:pointer';
+    // miniatura da pose
+    const skm = construirPose(modelo, pose).fk(0, 0);
+    const r = modelo.dna.tamanhoCabeca, bb = skm.getBoundingBox(r), c = cv.getContext('2d');
+    const s = Math.min(34 / (bb.largura || 1), 34 / (bb.altura || 1));
+    c.translate(20, 20); c.scale(s, s); c.translate(-(bb.minX + bb.largura / 2), -(bb.minY + bb.altura / 2));
+    desenharStickman(c, skm, modelo, r, false);
+    cv.addEventListener('click', () => { aplicarPose(pose); });
+    cv.addEventListener('contextmenu', (e) => { e.preventDefault(); keyframes.splice(i, 1); atualizarFita(); });
+    fita.append(cv);
+  });
+}
+// Aplica uma pose ao modelo atual (grava ângulos de perna; braços via IK ficam no skAtual).
+function aplicarPose(pose) {
+  animando = false; document.getElementById('btnAnimar').textContent = '▶ Animar';
+  modelo._poseManual = JSON.parse(JSON.stringify(pose));
+  // reconstrói skAtual com a pose para permitir novos ajustes de IK
+  skAtual = construirPose(modelo, pose).fk(ORIGEM.x, ORIGEM.y);
+  if (pose.pernaSupE != null) modelo.anguloPernaE = clamp(pose.pernaSupE - 186, -45, 45);
+  if (pose.pernaSupD != null) modelo.anguloPernaD = clamp(pose.pernaSupD - 174, -45, 45);
+  sincronizarUI(); marcarSujo();
+}
+document.getElementById('btnCapturar').addEventListener('click', () => {
+  if (!skAtual) render(0);
+  keyframes.push(poseAtual()); atualizarFita(); marcarSujo();
+});
+document.getElementById('btnAnimar').addEventListener('click', (e) => {
+  if (keyframes.length < 2) { alert('Capture ao menos 2 keyframes para animar.'); return; }
+  animando = !animando;
+  e.target.textContent = animando ? '⏸ Parar' : '▶ Animar';
+  animInicio = performance.now(); marcarSujo();
+});
+document.getElementById('sDur').addEventListener('input', (e) => {
+  durMs = parseInt(e.target.value); document.getElementById('vDur').textContent = durMs;
+});
+document.getElementById('btnLimparFrames').addEventListener('click', () => {
+  keyframes = []; animando = false; document.getElementById('btnAnimar').textContent = '▶ Animar';
+  atualizarFita(); marcarSujo();
+});
+
+// ----- Inicialização ----------------------------------------------------
+montarPresets();
+sincronizarUI();
+atualizarFita();
+requestAnimationFrame(loop);
+</script>
