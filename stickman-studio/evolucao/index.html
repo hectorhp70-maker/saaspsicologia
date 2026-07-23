@@ -163,6 +163,8 @@
         <label><input type="checkbox" id="axPaleto" /> Paletó</label>
         <label><input type="checkbox" id="axCalca" /> Calça</label>
         <label><input type="checkbox" id="axSapato" /> Sapato</label>
+        <label><input type="checkbox" id="axNota" /> Dinheiro</label>
+        <label><input type="checkbox" id="axCartao" /> Cartão</label>
       </div>
     </div>
 
@@ -288,7 +290,7 @@ function modeloBase() {
     corTraco: '#1a1d24', estilo: 'fino',
     corCabelo: '#2a2118', corGravata: '#3a3a3a', corPaleto: '#2f3a4a', corCalca: '#2f3a4a', corSapato: '#20242c',
     cenario: 'nenhum', expressao: 'neutro', perfil: false,
-    anexos: { capa: false, espada: false, chapeu: false, orelhas: false, cabelo: false, gravata: false, paleto: false, calca: false, sapato: false },
+    anexos: { capa: false, espada: false, chapeu: false, orelhas: false, cabelo: false, gravata: false, paleto: false, calca: false, sapato: false, nota: false, cartao: false },
     anguloPernaE: 0, anguloPernaD: 0,
     geracao: 0,
   };
@@ -730,6 +732,47 @@ class Sapato extends Acessorio {
   }
 }
 
+// Props na mão direita (fim do bracoInfD). Nota de dinheiro e cartão — úteis
+// para o tema "dinheiro físico x crédito/débito".
+class PropMao extends Acessorio {
+  _mao(sk) { return fim(sk.get('bracoInfD')); }
+}
+class Nota extends PropMao {
+  desenhar(ctx, sk, r) {
+    const m = this._mao(sk), w = r * 1.15, h = r * 0.66;
+    ctx.save(); ctx.translate(m.x, m.y); ctx.rotate(-0.18);
+    ctx.fillStyle = '#79c47a'; ctx.strokeStyle = '#2f7d38'; ctx.lineWidth = Math.max(1.5, r * 0.05);
+    if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(-w / 2, -h / 2, w, h, r * 0.12); ctx.fill(); ctx.stroke(); }
+    else { ctx.fillRect(-w / 2, -h / 2, w, h); ctx.strokeRect(-w / 2, -h / 2, w, h); }
+    ctx.beginPath(); ctx.arc(0, 0, h * 0.3, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = '#1f5f27'; ctx.font = `bold ${(h * 0.5).toFixed(0)}px Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('$', 0, h * 0.04);
+    ctx.restore();
+  }
+  svg(sk, r) {
+    const m = this._mao(sk), w = r * 1.15, h = r * 0.66;
+    return `<g transform="translate(${m.x.toFixed(1)} ${m.y.toFixed(1)}) rotate(-10)"><rect x="${(-w / 2).toFixed(1)}" y="${(-h / 2).toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" rx="${(r * 0.12).toFixed(1)}" fill="#79c47a" stroke="#2f7d38" stroke-width="${(r * 0.05).toFixed(1)}"/><text x="0" y="${(h * 0.2).toFixed(1)}" font-family="Arial" font-weight="bold" font-size="${(h * 0.5).toFixed(1)}" text-anchor="middle" fill="#1f5f27">$</text></g>`;
+  }
+}
+class Cartao extends PropMao {
+  desenhar(ctx, sk, r) {
+    const m = this._mao(sk), w = r * 1.2, h = r * 0.76;
+    ctx.save(); ctx.translate(m.x, m.y); ctx.rotate(-0.12);
+    ctx.fillStyle = this.cor || '#2f6bff'; ctx.strokeStyle = '#1a3f8f'; ctx.lineWidth = Math.max(1.5, r * 0.05);
+    if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(-w / 2, -h / 2, w, h, r * 0.14); ctx.fill(); ctx.stroke(); }
+    else { ctx.fillRect(-w / 2, -h / 2, w, h); }
+    ctx.fillStyle = '#0e1117'; ctx.fillRect(-w / 2, -h * 0.22, w, h * 0.2);        // tarja
+    ctx.fillStyle = '#ffd23f';                                                     // chip
+    if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(-w * 0.36, h * 0.06, w * 0.24, h * 0.26, r * 0.05); ctx.fill(); }
+    else ctx.fillRect(-w * 0.36, h * 0.06, w * 0.24, h * 0.26);
+    ctx.restore();
+  }
+  svg(sk, r) {
+    const m = this._mao(sk), w = r * 1.2, h = r * 0.76;
+    return `<g transform="translate(${m.x.toFixed(1)} ${m.y.toFixed(1)}) rotate(-7)"><rect x="${(-w / 2).toFixed(1)}" y="${(-h / 2).toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" rx="${(r * 0.14).toFixed(1)}" fill="${this.cor || '#2f6bff'}" stroke="#1a3f8f" stroke-width="${(r * 0.05).toFixed(1)}"/><rect x="${(-w / 2).toFixed(1)}" y="${(-h * 0.22).toFixed(1)}" width="${w.toFixed(1)}" height="${(h * 0.2).toFixed(1)}" fill="#0e1117"/><rect x="${(-w * 0.36).toFixed(1)}" y="${(h * 0.06).toFixed(1)}" width="${(w * 0.24).toFixed(1)}" height="${(h * 0.26).toFixed(1)}" fill="#ffd23f"/></g>`;
+  }
+}
+
 function acessoriosDe(modelo) {
   const a = modelo.anexos || {}, lista = [];
   // camada de trás (atrás do corpo/cabeça)
@@ -742,8 +785,10 @@ function acessoriosDe(modelo) {
   if (a.sapato)  lista.push({ tras: false, obj: new Sapato(modelo.corSapato || '#20242c') });
   if (a.chapeu)  lista.push({ tras: false, obj: new Chapeu('#2f6bff') });
   if (a.cabelo)  lista.push({ tras: false, obj: new CabeloBaguncado(modelo.corCabelo || '#2a2118') });
-  // sobre os braços
+  // sobre os braços (na mão)
   if (a.espada)  lista.push({ tras: false, sobreBracos: true, obj: new Espada('#c9ccd6') });
+  if (a.nota)    lista.push({ tras: false, sobreBracos: true, obj: new Nota('#79c47a') });
+  if (a.cartao)  lista.push({ tras: false, sobreBracos: true, obj: new Cartao('#2f6bff') });
   return lista;
 }
 
@@ -1000,6 +1045,7 @@ const CENARIOS = [
   { id: 'rua', label: 'Rua' },
   { id: 'banco', label: 'Banco / Agência' },
   { id: 'noite', label: 'Cidade à noite' },
+  { id: 'mercado', label: 'Mercado' },
   { id: 'dramatico', label: 'Dramático (surto)' },
 ];
 function desenharCenario(ctx, id, w, h) {
@@ -1053,6 +1099,17 @@ function desenharCenario(ctx, id, w, h) {
     R(w * 0.08, g - 70, w * 0.5, 70, '#5a6b7a'); R(w * 0.08, g - 82, w * 0.5, 16, '#48586a');
     C(w * 0.2, h * 0.24, 14, '#c9a24a'); C(w * 0.2, h * 0.24, 8, '#e6c869');
     ctx.textAlign = 'start'; return;
+  }
+
+  if (id === 'mercado') {
+    R(0, 0, w, h, '#eef1e6'); R(0, g, w, h - g, '#cfd3cf');
+    const cores = ['#d55', '#5a9', '#59d', '#dc5'];
+    const shelf = (x) => {
+      R(x, g - 150, w * 0.26, 150, '#b9a07a');
+      for (let r = 0; r < 4; r++) { R(x, g - 150 + r * 38, w * 0.26, 8, '#8a795a'); for (let cc = 0; cc < 4; cc++) R(x + 6 + cc * 20, g - 150 + r * 38 - 20, 14, 20, cores[(r + cc) % 4]); }
+    };
+    shelf(w * 0.04); shelf(w * 0.4); shelf(w * 0.76);
+    return;
   }
 
   if (id === 'noite') {
@@ -1191,6 +1248,8 @@ function sincronizarUI() {
   document.getElementById('axPaleto').checked = !!modelo.anexos.paleto;
   document.getElementById('axCalca').checked = !!modelo.anexos.calca;
   document.getElementById('axSapato').checked = !!modelo.anexos.sapato;
+  document.getElementById('axNota').checked = !!modelo.anexos.nota;
+  document.getElementById('axCartao').checked = !!modelo.anexos.cartao;
   document.getElementById('cenario').value = modelo.cenario || 'nenhum';
   document.getElementById('chkPerfil').checked = !!modelo.perfil;
   document.getElementById('lblGeracao').textContent = modelo.geracao;
@@ -1218,7 +1277,7 @@ document.getElementById('btnAndar').addEventListener('click', (e) => {
   if (andando) { animando = false; document.getElementById('btnAnimar').textContent = '▶ Animar'; }
   marcarSujo();
 });
-['axCapa', 'axEspada', 'axChapeu', 'axOrelhas', 'axCabelo', 'axGravata', 'axPaleto', 'axCalca', 'axSapato'].forEach(id => document.getElementById(id).addEventListener('change', e => {
+['axCapa', 'axEspada', 'axChapeu', 'axOrelhas', 'axCabelo', 'axGravata', 'axPaleto', 'axCalca', 'axSapato', 'axNota', 'axCartao'].forEach(id => document.getElementById(id).addEventListener('change', e => {
   modelo.anexos[id.replace('ax', '').toLowerCase()] = e.target.checked; marcarSujo();
 }));
 
