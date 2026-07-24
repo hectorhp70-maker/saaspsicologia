@@ -3,6 +3,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { Badge } from "@/components/ui/badge";
 import { cobrancas, nomePaciente } from "@/lib/mock-data";
 import { DollarSign, TrendingUp, Clock, AlertTriangle } from "lucide-react";
+import { useCountUp } from "@/hooks/useCountUp";
 
 export const Route = createFileRoute("/_authenticated/financeiro")({
   component: FinanceiroPage,
@@ -33,27 +34,35 @@ function FinanceiroPage() {
         <StatCard
           icon={TrendingUp}
           label="Total recebido"
-          value={`R$ ${totalRecebido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+          amount={totalRecebido}
           color="text-success"
+          index={0}
+          surge
         />
         <StatCard
           icon={Clock}
           label="Pendente"
-          value={`R$ ${totalPendente.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+          amount={totalPendente}
           color="text-warning"
+          index={1}
         />
         <StatCard
           icon={AlertTriangle}
           label="Atrasado"
-          value={`R$ ${totalAtrasado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+          amount={totalAtrasado}
           color="text-destructive"
+          index={2}
         />
       </div>
       <div className="space-y-2">
-        {sorted.map((c) => {
+        {sorted.map((c, i) => {
           const cs = stMap[c.status] ?? stMap.pendente;
           return (
-            <div key={c.id} className="flex items-center gap-3 rounded-xl border bg-card px-4 py-3">
+            <div
+              key={c.id}
+              className="animate-surge-rise flex items-center gap-3 rounded-xl border bg-card px-4 py-3"
+              style={{ animationDelay: `${260 + Math.min(i, 12) * 45}ms` }}
+            >
               <DollarSign className="h-4 w-4 text-muted-foreground shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground">{nomePaciente(c.pacienteId)}</p>
@@ -79,21 +88,36 @@ function FinanceiroPage() {
 function StatCard({
   icon: Icon,
   label,
-  value,
+  amount,
   color,
+  index,
+  surge = false,
 }: {
   icon: typeof DollarSign;
   label: string;
-  value: string;
+  amount: number;
   color: string;
+  index: number;
+  surge?: boolean;
 }) {
+  const entranceDelay = index * 80;
+  // números começam a rolar logo após o card aparecer
+  const animated = useCountUp(amount, 950, entranceDelay + 120);
+
   return (
-    <div className="rounded-xl border bg-card p-4">
+    <div
+      className={`animate-surge-rise rounded-xl border bg-card p-4 ${
+        surge ? "surge-sheen" : ""
+      }`}
+      style={{ animationDelay: `${entranceDelay}ms` }}
+    >
       <div className="flex items-center gap-2">
-        <Icon className={`h-4 w-4 ${color}`} />
+        <Icon className={`h-4 w-4 ${color} ${surge ? "animate-surge-nudge" : ""}`} />
         <span className="text-xs font-medium text-muted-foreground">{label}</span>
       </div>
-      <p className="mt-2 text-xl font-bold text-foreground">{value}</p>
+      <p className="mt-2 text-xl font-bold text-foreground tabular-nums">
+        R$ {animated.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+      </p>
     </div>
   );
 }

@@ -155,3 +155,86 @@
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }
+
+/* ── Surto financeiro: motion da página Financeiro ───────────────────── */
+
+/* entrada em cascata — sobe + fade, com leve escala */
+@keyframes surge-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* sheen de luz que sobe uma vez pelo card de crescimento */
+@keyframes surge-sheen {
+  0% {
+    transform: translateX(-130%) skewX(-14deg);
+    opacity: 0;
+  }
+  22% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateX(230%) skewX(-14deg);
+    opacity: 0;
+  }
+}
+
+/* nudge do ícone de tendência — pequeno "salto" pra cima */
+@keyframes surge-nudge {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  45% {
+    transform: translateY(-3px);
+  }
+}
+
+.animate-surge-rise {
+  opacity: 0;
+  animation: surge-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.surge-sheen {
+  position: relative;
+  overflow: hidden;
+}
+.surge-sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 18%,
+    color-mix(in oklch, var(--success) 32%, transparent) 50%,
+    transparent 82%
+  );
+  transform: translateX(-130%) skewX(-14deg);
+  animation: surge-sheen 1.5s ease-out 0.5s 1 both;
+  pointer-events: none;
+}
+
+.animate-surge-nudge {
+  animation: surge-nudge 0.9s ease-out 0.7s 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-surge-rise {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .surge-sheen::after,
+  .animate-surge-nudge {
+    animation: none;
+  }
+  .surge-sheen::after {
+    display: none;
+  }
+}
