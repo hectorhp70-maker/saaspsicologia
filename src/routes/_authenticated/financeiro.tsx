@@ -61,7 +61,7 @@ function FinanceiroPage() {
             <div
               key={c.id}
               className="animate-surge-rise flex items-center gap-3 rounded-xl border bg-card px-4 py-3"
-              style={{ animationDelay: `${260 + Math.min(i, 12) * 45}ms` }}
+              style={{ animationDelay: `${160 + Math.min(i, 12) * 40}ms` }}
             >
               <DollarSign className="h-4 w-4 text-muted-foreground shrink-0" />
               <div className="flex-1 min-w-0">
@@ -100,9 +100,10 @@ function StatCard({
   index: number;
   surge?: boolean;
 }) {
-  const entranceDelay = index * 80;
-  // números começam a rolar logo após o card aparecer
-  const animated = useCountUp(amount, 950, entranceDelay + 120);
+  // stagger Kowalski (SaaS/dashboard): 50ms entre cards
+  const entranceDelay = index * 50;
+  // count-up é o "momento de assinatura": começa logo após o card aparecer
+  const animated = useCountUp(amount, 850, entranceDelay + 90);
 
   return (
     <div
