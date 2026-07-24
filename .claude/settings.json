@@ -2,8 +2,8 @@
   "extraKnownMarketplaces": {
     "genjutsu": {
       "source": {
-        "source": "github",
-        "repo": "AThevon/genjutsu"
+        "source": "directory",
+        "path": "./.claude/plugins/genjutsu"
       }
     }
   },

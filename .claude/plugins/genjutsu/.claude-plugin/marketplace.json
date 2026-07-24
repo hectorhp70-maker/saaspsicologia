@@ -1,0 +1,13 @@
+{
+  "name": "genjutsu",
+  "owner": {
+    "name": "AThevon"
+  },
+  "plugins": [
+    {
+      "name": "genjutsu",
+      "source": "./",
+      "description": "The art of illusion: cast motion and paint visual signatures into Web, Android (Compose), Apple (SwiftUI). Anti-AI-slop creative coding."
+    }
+  ]
+}
