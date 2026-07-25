@@ -33,15 +33,15 @@ await page.evaluate(() => {
 
   // tipo 'fala' (frente) ou 'andar' (perfil, atravessa)
   const S = [
-    { tipo: 'andar', dur: 3200, cena: 'rua', titulo: 'Dinheiro, Relações & Psicologia', leg: 'A mente por trás do dinheiro a dois' },
-    { tipo: 'fala', dur: 2600, cena: 'escritorio', expr: 'feliz', leg: 'Casais que CONVERSAM sobre dinheiro brigam menos.', g: [18, 52, 4, -4] },
-    { tipo: 'fala', dur: 2800, cena: 'banco', expr: 'preocupado', leg: 'Dinheiro não é planilha: é emoção, medo e história.', g: [48, -34, 8, -8] },
-    { tipo: 'fala', dur: 3000, cena: 'banco', expr: 'preocupado', leg: 'Emprestar para quem se ama mistura afeto e dívida.', g: [-40, 52, 10, -6] },
+    { tipo: 'andar', dur: 3200, cena: 'parque', titulo: 'Dinheiro, Relações & Psicologia', leg: 'A mente por trás do dinheiro a dois' },
+    { tipo: 'fala', dur: 2600, cena: 'casa', expr: 'feliz', leg: 'Casais que CONVERSAM sobre dinheiro brigam menos.', g: [18, 52, 4, -4] },
+    { tipo: 'fala', dur: 2800, cena: 'cafe', expr: 'preocupado', leg: 'Dinheiro não é planilha: é emoção, medo e história.', g: [48, -34, 8, -8] },
+    { tipo: 'fala', dur: 3000, cena: 'cafe', expr: 'preocupado', leg: 'Emprestar para quem se ama mistura afeto e dívida.', g: [-40, 52, 10, -6] },
     { tipo: 'andar', dur: 2800, cena: 'rua', leg: 'Combine as regras ANTES do conflito, não durante.' },
-    { tipo: 'fala', dur: 2800, cena: 'rua', expr: 'bravo', leg: "Dizer “não” com respeito protege a relação.", g: [-52, 28, -6, 6] },
-    { tipo: 'fala', dur: 2600, cena: 'rua', expr: 'feliz', leg: 'Metas em comum aproximam o casal.', g: [28, -50, 4, -4] },
-    { tipo: 'fala', dur: 2600, cena: 'escritorio', expr: 'neutro', leg: 'Transparência vale mais do que controle.', g: [46, 46, 6, -6] },
-    { tipo: 'fala', dur: 3400, cena: 'escritorio', expr: 'feliz', titulo: 'Surto Financeiro', leg: 'Fale de dinheiro. Sua relação agradece.', g: [-46, -46, -8, 8] },
+    { tipo: 'fala', dur: 2800, cena: 'casa', expr: 'bravo', leg: "Dizer “não” com respeito protege a relação.", g: [-52, 28, -6, 6] },
+    { tipo: 'fala', dur: 2600, cena: 'parque', expr: 'feliz', leg: 'Metas em comum aproximam o casal.', g: [28, -50, 4, -4] },
+    { tipo: 'fala', dur: 2600, cena: 'cafe', expr: 'neutro', leg: 'Transparência vale mais do que controle.', g: [46, 46, 6, -6] },
+    { tipo: 'fala', dur: 3400, cena: 'parque', expr: 'feliz', titulo: 'Surto Financeiro', leg: 'Fale de dinheiro. Sua relação agradece.', g: [-46, -46, -8, 8] },
   ];
   let acc = 0;
   S.forEach(s => { if (s.tipo === 'fala') s.pose = gesto(...s.g); s.t0 = acc; acc += s.dur; });

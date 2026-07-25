@@ -1046,6 +1046,13 @@ const CENARIOS = [
   { id: 'banco', label: 'Banco / Agência' },
   { id: 'noite', label: 'Cidade à noite' },
   { id: 'mercado', label: 'Mercado' },
+  { id: 'parque', label: 'Parque' },
+  { id: 'quarto', label: 'Quarto' },
+  { id: 'academia', label: 'Academia' },
+  { id: 'cafe', label: 'Cafeteria' },
+  { id: 'casa', label: 'Sala de casa' },
+  { id: 'praia', label: 'Praia' },
+  { id: 'shopping', label: 'Shopping' },
   { id: 'dramatico', label: 'Dramático (surto)' },
 ];
 function desenharCenario(ctx, id, w, h) {
@@ -1099,6 +1106,81 @@ function desenharCenario(ctx, id, w, h) {
     R(w * 0.08, g - 70, w * 0.5, 70, '#5a6b7a'); R(w * 0.08, g - 82, w * 0.5, 16, '#48586a');
     C(w * 0.2, h * 0.24, 14, '#c9a24a'); C(w * 0.2, h * 0.24, 8, '#e6c869');
     ctx.textAlign = 'start'; return;
+  }
+
+  if (id === 'parque') {
+    const gr = ctx.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#9fd8f2'); gr.addColorStop(1, '#e6f6ff');
+    ctx.fillStyle = gr; ctx.fillRect(0, 0, w, h);
+    C(w * 0.16, h * 0.16, 28, '#ffe58a'); R(0, g, w, h - g, '#7cc36a');
+    C(w * 0.62, h * 0.2, 20, '#fff'); C(w * 0.68, h * 0.2, 24, '#fff'); C(w * 0.74, h * 0.2, 18, '#fff');
+    const arvore = (x) => { R(x - 7, g - 70, 14, 74, '#7a5230'); C(x, g - 88, 40, '#4a9d5a'); C(x - 28, g - 74, 28, '#57ab66'); C(x + 28, g - 74, 28, '#57ab66'); };
+    arvore(w * 0.86); arvore(w * 0.16);
+    return;
+  }
+
+  if (id === 'quarto') {
+    R(0, 0, w, h, '#c7d6e6'); R(0, g, w, h - g, '#c79a6b');
+    R(w * 0.52, g - 120, w * 0.44, 120, '#8a6a4a'); R(w * 0.52, g - 142, w * 0.44, 26, '#a5825d'); // cama
+    R(w * 0.53, g - 158, 46, 22, '#f5f0e6');                                                       // travesseiro
+    R(w * 0.1, h * 0.16, w * 0.26, h * 0.24, '#7fb0d8'); SR(w * 0.1, h * 0.16, w * 0.26, h * 0.24, '#5f7e94', 6); // janela
+    LN(w * 0.23, h * 0.16, w * 0.23, h * 0.4, '#5f7e94', 4); LN(w * 0.1, h * 0.28, w * 0.36, h * 0.28, '#5f7e94', 4);
+    R(w * 0.02, g - 90, 26, 90, '#9a6b3a');                                                        // criado-mudo
+    return;
+  }
+
+  if (id === 'academia') {
+    R(0, 0, w, h, '#cdd3da'); R(0, g, w, h - g, '#5b5f66');
+    const halter = (x, y) => { C(x - 20, y, 12, '#2b2f36'); C(x + 20, y, 12, '#2b2f36'); R(x - 20, y - 4, 40, 8, '#4a4f57'); };
+    R(w * 0.05, g - 120, 40, 120, '#3a3f47'); R(w * 0.02, g - 130, 46, 16, '#2b2f36');
+    halter(w * 0.34, g - 18); halter(w * 0.52, g - 18);
+    R(w * 0.66, g - 70, w * 0.28, 70, '#33383f'); R(w * 0.66, g - 82, w * 0.28, 16, '#22262c');
+    ctx.fillStyle = '#8a9099'; ctx.font = 'bold 16px Arial'; ctx.textAlign = 'center'; ctx.fillText('ACADEMIA', w * 0.5, h * 0.18); ctx.textAlign = 'start';
+    return;
+  }
+
+  if (id === 'cafe') {
+    R(0, 0, w, h, '#e9dcc6'); R(0, g, w, h - g, '#6e4a2c');
+    R(w * 0.06, g - 62, w * 0.52, 62, '#5c3b22'); R(w * 0.06, g - 74, w * 0.52, 14, '#4a2f1a'); // balcão
+    R(w * 0.1, g - 104, 28, 30, '#9aa0a8');                                                      // máquina
+    C(w * 0.26, g - 82, 8, '#f3efe6'); C(w * 0.33, g - 82, 8, '#f3efe6'); C(w * 0.4, g - 82, 8, '#f3efe6'); // xícaras
+    R(w * 0.64, h * 0.15, w * 0.28, h * 0.14, '#3b2a1a');
+    ctx.fillStyle = '#f0d9a8'; ctx.font = 'bold 22px Georgia'; ctx.textAlign = 'center'; ctx.fillText('CAFÉ', w * 0.78, h * 0.24); ctx.textAlign = 'start';
+    return;
+  }
+
+  if (id === 'casa') {
+    R(0, 0, w, h, '#dfe6ee'); R(0, g, w, h - g, '#c79a6b');
+    R(w * 0.16, g - 4, w * 0.56, 10, '#b25b5b');                                                  // tapete
+    R(w * 0.1, g - 66, w * 0.42, 66, '#5a7a9a'); R(w * 0.1, g - 94, w * 0.42, 30, '#6a8aac');     // sofá
+    R(w * 0.1, g - 94, 16, 94, '#4a6a8a'); R(w * 0.5, g - 94, 16, 94, '#4a6a8a');                 // braços
+    R(w * 0.86, g - 96, 6, 96, '#7a5230');                                                        // abajur (haste)
+    ctx.fillStyle = '#f2d98a'; ctx.beginPath(); ctx.moveTo(w * 0.86 - 18, g - 96); ctx.lineTo(w * 0.86 + 24, g - 96); ctx.lineTo(w * 0.86 + 14, g - 128); ctx.lineTo(w * 0.86 - 8, g - 128); ctx.closePath(); ctx.fill();
+    SR(w * 0.58, h * 0.18, w * 0.18, h * 0.18, '#8a7f6b', 6); R(w * 0.6, h * 0.2, w * 0.14, h * 0.14, '#a9c7dd'); // quadro
+    return;
+  }
+
+  if (id === 'praia') {
+    const gr = ctx.createLinearGradient(0, 0, 0, h * 0.6); gr.addColorStop(0, '#7ec8f0'); gr.addColorStop(1, '#cdeefb');
+    ctx.fillStyle = gr; ctx.fillRect(0, 0, w, h * 0.58);
+    R(0, h * 0.58, w, g - h * 0.58, '#2aa7c4');                                                    // mar
+    R(0, g, w, h - g, '#ecd9a0');                                                                  // areia
+    C(w * 0.8, h * 0.16, 26, '#ffe9a8');
+    for (let i = 0; i < 4; i++) LN(0, h * 0.58 + 10 + i * 12, w, h * 0.58 + 6 + i * 12, '#8fd2e0', 2); // ondas
+    R(w * 0.14, g - 70, 6, 70, '#8a6a4a');                                                          // guarda-sol (haste)
+    ctx.fillStyle = '#e2574c'; ctx.beginPath(); ctx.arc(w * 0.145, g - 70, 46, Math.PI, 0); ctx.closePath(); ctx.fill();
+    return;
+  }
+
+  if (id === 'shopping') {
+    R(0, 0, w, h, '#eef1f5'); R(0, g, w, h - g, '#cfd3d8');
+    const loja = (x, cor, nome) => {
+      R(x, g - 150, w * 0.26, 150, cor); R(x, g - 150, w * 0.26, 26, shade(cor, -34));
+      R(x + 8, g - 116, w * 0.26 - 16, 100, '#dbe6ef');
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 13px Arial'; ctx.textAlign = 'center'; ctx.fillText(nome, x + w * 0.13, g - 132);
+    };
+    loja(w * 0.04, '#8a5a9a', 'MODA'); loja(w * 0.4, '#5a8a6a', 'TECH'); loja(w * 0.76, '#9a6a5a', 'CASA');
+    ctx.textAlign = 'start';
+    return;
   }
 
   if (id === 'mercado') {

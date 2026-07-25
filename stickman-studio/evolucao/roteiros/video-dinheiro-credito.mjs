@@ -36,13 +36,13 @@ await page.evaluate(() => {
   const S = [
     { tipo: 'andar', dur: 3200, cena: 'mercado', titulo: 'Dinheiro x Crédito e Débito', leg: 'O que muda no seu cérebro na hora de pagar?' },
     { tipo: 'fala', dur: 3000, cena: 'mercado', expr: 'preocupado', prop: 'nota', g: MOSTRA, leg: 'Pagar em dinheiro DÓI — e essa dor é real.' },
-    { tipo: 'fala', dur: 3000, cena: 'mercado', expr: 'neutro', g: REFLETE, leg: 'A ínsula, no cérebro, acende como se fosse dor física.' },
-    { tipo: 'fala', dur: 3200, cena: 'banco', expr: 'surpreso', prop: 'cartao', g: MOSTRA, leg: 'No crédito, a dor vem DEPOIS — então você gasta mais.' },
+    { tipo: 'fala', dur: 3000, cena: 'cafe', expr: 'neutro', g: REFLETE, leg: 'A ínsula, no cérebro, acende como se fosse dor física.' },
+    { tipo: 'fala', dur: 3200, cena: 'shopping', expr: 'surpreso', prop: 'cartao', g: MOSTRA, leg: 'No crédito, a dor vem DEPOIS — então você gasta mais.' },
     { tipo: 'andar', dur: 2800, cena: 'rua', leg: 'Débito e Pix doem mais que o crédito: saem na hora.' },
     { tipo: 'fala', dur: 3200, cena: 'banco', expr: 'preocupado', g: REFLETE, leg: "Parcelar “sem juros” engana o cérebro: some a dor de pagar." },
     { tipo: 'fala', dur: 2800, cena: 'dramatico', expr: 'furioso', g: [-46, -46, -8, 8], leg: 'Aí chega a fatura… e vem o SURTO.' },
-    { tipo: 'fala', dur: 3200, cena: 'escritorio', expr: 'neutro', g: NEUTRO, leg: 'Truque: pague no débito ou dinheiro para SENTIR o gasto.' },
-    { tipo: 'fala', dur: 3400, cena: 'escritorio', expr: 'feliz', titulo: 'Surto Financeiro', g: [28, -50, 4, -4], leg: 'Sinta o dinheiro. Gaste com consciência.' },
+    { tipo: 'fala', dur: 3200, cena: 'casa', expr: 'neutro', g: NEUTRO, leg: 'Truque: pague no débito ou dinheiro para SENTIR o gasto.' },
+    { tipo: 'fala', dur: 3400, cena: 'shopping', expr: 'feliz', titulo: 'Surto Financeiro', g: [28, -50, 4, -4], leg: 'Sinta o dinheiro. Gaste com consciência.' },
   ];
   let acc = 0;
   S.forEach(s => { if (s.tipo === 'fala') s.pose = gesto(...s.g); s.t0 = acc; acc += s.dur; });
