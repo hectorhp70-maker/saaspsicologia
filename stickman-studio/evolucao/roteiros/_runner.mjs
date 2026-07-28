@@ -22,7 +22,10 @@ export const G = {
   ABRE: [-40, -40, 8, -8],     // braços abertos
 };
 
-export async function gerar({ nome, cenas }) {
+export async function gerar({ nome, cenas, escala }) {
+  // Fator para esticar/encolher a duração de todas as cenas (sincronizar narração).
+  // Pode vir por argumento ou pela variável de ambiente ESCALA.
+  const fator = escala || Number(process.env.ESCALA) || 1;
   const url = pathToFileURL(join(__dir, '..', 'index.html')).href;
   const out = join(__dir, 'saida'); mkdirSync(out, { recursive: true });
   const scratch = process.env.SCRATCH_OUT;
@@ -34,7 +37,7 @@ export async function gerar({ nome, cenas }) {
   await page.goto(url, { waitUntil: 'networkidle' });
   await page.waitForTimeout(300);
 
-  await page.evaluate((cenas) => {
+  await page.evaluate(({ cenas, fator }) => {
     const base = clonar([...PRESETS_FABRICA].find(p => p.nome === 'Anderson'));
     base.cenario = 'nenhum';
     const gesto = (braE, braD, pE, pD) => {
@@ -44,7 +47,7 @@ export async function gerar({ nome, cenas }) {
       const p = {}; for (const b of sk.bones.values()) p[b.nome] = b.angle; return p;
     };
     let acc = 0;
-    cenas.forEach(s => { if (s.tipo === 'fala') s.pose = gesto(...(s.g || [46, 44, 6, -6])); s.t0 = acc; acc += s.dur; });
+    cenas.forEach(s => { s.dur = Math.round(s.dur * fator); if (s.tipo === 'fala') s.pose = gesto(...(s.g || [46, 44, 6, -6])); s.t0 = acc; acc += s.dur; });
     window.S = cenas; window.TOTAL = acc; window.BASE = base;
 
     const wrap = (txt, max) => { const w = txt.split(/\s+/), o = []; let c = ''; for (const x of w) { if ((c + ' ' + x).trim().length > max) { o.push(c.trim()); c = x; } else c += ' ' + x; } if (c.trim()) o.push(c.trim()); return o; };
@@ -85,7 +88,7 @@ export async function gerar({ nome, cenas }) {
       }
       legenda(C, s.leg, s.titulo, escuro);
     };
-  }, cenas);
+  }, { cenas, fator });
 
   const total = await page.evaluate(() => window.TOTAL);
   const b64 = await page.evaluate(async () => {
