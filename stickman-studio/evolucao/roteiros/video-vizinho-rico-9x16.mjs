@@ -18,7 +18,8 @@ page.on('pageerror', e => erros.push('PAGEERROR ' + e.message));
 await page.goto(url, { waitUntil: 'networkidle' });
 await page.waitForTimeout(300);
 
-await page.evaluate(({ W, H }) => {
+const fator = Number(process.env.ESCALA) || 1;   // estica as cenas p/ casar narração
+await page.evaluate(({ W, H, fator }) => {
   const base = clonar([...PRESETS_FABRICA].find(p => p.nome === 'Anderson'));
   const gesto = (braE, braD, pE, pD) => {
     const m = Object.assign({}, base, { anguloPernaE: pE, anguloPernaD: pD });
@@ -36,7 +37,7 @@ await page.evaluate(({ W, H }) => {
     { cena: 'suburbio', expr: 'neutro', g: APONTA, leg: 'Corra a SUA corrida — as outras não têm a sua meta.', dur: 3200 },
     { cena: 'suburbio', expr: 'feliz', g: ABRE, titulo: 'Surto Financeiro', leg: 'Rico é quem dorme tranquilo, não quem aparenta.', dur: 3600 },
   ];
-  let acc = 0; S.forEach(s => { s.pose = gesto(...s.g); s.t0 = acc; acc += s.dur; });
+  let acc = 0; S.forEach(s => { s.dur = Math.round(s.dur * fator); s.pose = gesto(...s.g); s.t0 = acc; acc += s.dur; });
   window.S = S; window.TOTAL = acc; window.BASE = base; window.WV = W; window.HV = H;
 
   const wrap = (txt, max) => { const o = []; txt.split('\n').forEach(par => { const w = par.split(/\s+/); let c = ''; for (const x of w) { if ((c + ' ' + x).trim().length > max) { o.push(c.trim()); c = x; } else c += ' ' + x; } if (c.trim()) o.push(c.trim()); }); return o; };
@@ -79,7 +80,7 @@ await page.evaluate(({ W, H }) => {
     if (s.titulo) titulo(C, s.titulo, escuro);
     legenda(C, s.leg);
   };
-}, { W, H });
+}, { W, H, fator });
 
 // Redimensiona o canvas principal para 9:16 e grava.
 await page.evaluate(({ W, H }) => { const cv = document.getElementById('tela'); cv.width = W; cv.height = H; }, { W, H });
