@@ -1053,6 +1053,7 @@ const CENARIOS = [
   { id: 'casa', label: 'Sala de casa' },
   { id: 'praia', label: 'Praia' },
   { id: 'shopping', label: 'Shopping' },
+  { id: 'suburbio', label: 'Subúrbio (casas/carros)' },
   { id: 'dramatico', label: 'Dramático (surto)' },
 ];
 function desenharCenario(ctx, id, w, h) {
@@ -1106,6 +1107,33 @@ function desenharCenario(ctx, id, w, h) {
     R(w * 0.08, g - 70, w * 0.5, 70, '#5a6b7a'); R(w * 0.08, g - 82, w * 0.5, 16, '#48586a');
     C(w * 0.2, h * 0.24, 14, '#c9a24a'); C(w * 0.2, h * 0.24, 8, '#e6c869');
     ctx.textAlign = 'start'; return;
+  }
+
+  if (id === 'suburbio') {
+    const gr = ctx.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#8ecbf0'); gr.addColorStop(1, '#e3f2fb');
+    ctx.fillStyle = gr; ctx.fillRect(0, 0, w, h);
+    C(w * 0.82, h * 0.12, w * 0.05, '#ffe9a8');           // sol
+    R(0, g, w, h - g, '#8fb96a'); R(0, g, w, Math.max(6, h * 0.008), '#7aa458'); // grama + calçada
+    const casa = (x, ww, cor, teto) => {
+      const hh = ww * 0.82, by = g - hh;
+      R(x, by, ww, hh, cor);
+      ctx.fillStyle = teto; ctx.beginPath(); ctx.moveTo(x - ww * 0.08, by); ctx.lineTo(x + ww / 2, by - ww * 0.44); ctx.lineTo(x + ww * 1.08, by); ctx.closePath(); ctx.fill();
+      R(x + ww * 0.42, g - hh * 0.42, ww * 0.16, hh * 0.42, '#6b4a2c');           // porta
+      R(x + ww * 0.12, by + hh * 0.16, ww * 0.2, hh * 0.2, '#bfe0f2'); R(x + ww * 0.68, by + hh * 0.16, ww * 0.2, hh * 0.2, '#bfe0f2'); // janelas
+    };
+    const carro = (x, ww, cor) => {
+      const hh = ww * 0.34, y = g - hh;
+      ctx.fillStyle = cor;
+      if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(x, y, ww, hh, hh * 0.3); ctx.fill(); } else ctx.fillRect(x, y, ww, hh);
+      ctx.beginPath(); ctx.moveTo(x + ww * 0.24, y); ctx.lineTo(x + ww * 0.36, y - hh * 0.62); ctx.lineTo(x + ww * 0.7, y - hh * 0.62); ctx.lineTo(x + ww * 0.82, y); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#cfe8f5'; ctx.beginPath(); ctx.moveTo(x + ww * 0.3, y - hh * 0.06); ctx.lineTo(x + ww * 0.39, y - hh * 0.52); ctx.lineTo(x + ww * 0.66, y - hh * 0.52); ctx.lineTo(x + ww * 0.66, y - hh * 0.06); ctx.closePath(); ctx.fill();
+      C(x + ww * 0.26, g, hh * 0.34, '#222'); C(x + ww * 0.74, g, hh * 0.34, '#222');
+      C(x + ww * 0.26, g, hh * 0.15, '#999'); C(x + ww * 0.74, g, hh * 0.15, '#999');
+    };
+    casa(w * 0.02, w * 0.28, '#e7d7b0', '#9a5b4a'); casa(w * 0.55, w * 0.32, '#dfe6ee', '#5a6b7a');
+    carro(w * 0.62, w * 0.24, '#455a74');                 // carro comum
+    carro(w * 0.05, w * 0.26, '#c0392b');                 // carrão vermelho do vizinho (destaque)
+    return;
   }
 
   if (id === 'parque') {
