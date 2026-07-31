@@ -168,6 +168,8 @@
         <label><input type="checkbox" id="axCartao" /> Cartão</label>
         <label><input type="checkbox" id="axCelular" /> Celular</label>
         <label><input type="checkbox" id="axSacola" /> Sacola</label>
+        <label><input type="checkbox" id="axEnvelope" /> E-mail</label>
+        <label><input type="checkbox" id="axDocumento" /> Documento</label>
       </div>
     </div>
 
@@ -293,7 +295,7 @@ function modeloBase() {
     corTraco: '#1a1d24', estilo: 'fino',
     corCabelo: '#2a2118', corGravata: '#3a3a3a', corPaleto: '#2f3a4a', corCalca: '#2f3a4a', corSapato: '#20242c',
     cenario: 'nenhum', expressao: 'neutro', perfil: false,
-    anexos: { capa: false, espada: false, chapeu: false, orelhas: false, cabelo: false, gravata: false, paleto: false, calca: false, sapato: false, nota: false, cartao: false, celular: false, sacola: false },
+    anexos: { capa: false, espada: false, chapeu: false, orelhas: false, cabelo: false, gravata: false, paleto: false, calca: false, sapato: false, nota: false, cartao: false, celular: false, sacola: false, envelope: false, documento: false },
     anguloPernaE: 0, anguloPernaD: 0,
     geracao: 0,
   };
@@ -836,7 +838,42 @@ function acessoriosDe(modelo) {
   if (a.cartao)  lista.push({ tras: false, sobreBracos: true, obj: new Cartao('#2f6bff') });
   if (a.celular) lista.push({ tras: false, sobreBracos: true, obj: new Celular() });
   if (a.sacola)  lista.push({ tras: false, sobreBracos: true, obj: new Sacola() });
+  if (a.envelope) lista.push({ tras: false, sobreBracos: true, obj: new Envelope() });
+  if (a.documento) lista.push({ tras: false, sobreBracos: true, obj: new Documento() });
   return lista;
+}
+
+// Objetos EVERGREEN (produtividade/genéricos): envelope (e-mail) e documento.
+class Envelope extends PropMao {
+  desenhar(ctx, sk, r) {
+    const m = this._mao(sk), w = r * 1.02, h = r * 0.66;
+    ctx.save(); ctx.translate(m.x, m.y); ctx.rotate(-0.06);
+    ctx.fillStyle = '#fff'; ctx.strokeStyle = '#141821'; ctx.lineWidth = Math.max(1.5, r * 0.06); ctx.lineJoin = 'round';
+    ctx.beginPath(); ctx.rect(-w / 2, -h / 2, w, h); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-w / 2, -h / 2); ctx.lineTo(0, h * 0.06); ctx.lineTo(w / 2, -h / 2); ctx.stroke();
+    ctx.fillStyle = '#e0452f'; ctx.beginPath(); ctx.arc(w * 0.34, -h * 0.34, r * 0.17, 0, 7); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = `bold ${(r * 0.26).toFixed(0)}px Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('!', w * 0.34, -h * 0.31);
+    ctx.restore();
+  }
+  svg(sk, r) {
+    const m = this._mao(sk), w = r * 1.02, h = r * 0.66;
+    return `<g transform="translate(${m.x.toFixed(1)} ${m.y.toFixed(1)}) rotate(-3)"><rect x="${(-w / 2).toFixed(1)}" y="${(-h / 2).toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="#fff" stroke="#141821" stroke-width="2"/><path d="M ${(-w / 2).toFixed(1)} ${(-h / 2).toFixed(1)} L 0 ${(h * 0.06).toFixed(1)} L ${(w / 2).toFixed(1)} ${(-h / 2).toFixed(1)}" fill="none" stroke="#141821" stroke-width="2"/></g>`;
+  }
+}
+class Documento extends PropMao {
+  desenhar(ctx, sk, r) {
+    const m = this._mao(sk), w = r * 0.78, h = r * 1.04;
+    ctx.save(); ctx.translate(m.x, m.y); ctx.rotate(-0.05);
+    ctx.fillStyle = '#fff'; ctx.strokeStyle = '#141821'; ctx.lineWidth = Math.max(1.5, r * 0.06);
+    ctx.beginPath(); ctx.rect(-w / 2, -h / 2, w, h); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = '#8a929c'; ctx.lineWidth = Math.max(1, r * 0.035);
+    for (let i = 0; i < 4; i++) { const y = -h * 0.26 + i * h * 0.17; ctx.beginPath(); ctx.moveTo(-w * 0.3, y); ctx.lineTo(w * 0.3, y); ctx.stroke(); }
+    ctx.restore();
+  }
+  svg(sk, r) {
+    const m = this._mao(sk), w = r * 0.78, h = r * 1.04;
+    return `<g transform="translate(${m.x.toFixed(1)} ${m.y.toFixed(1)})"><rect x="${(-w / 2).toFixed(1)}" y="${(-h / 2).toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="#fff" stroke="#141821" stroke-width="2"/></g>`;
+  }
 }
 
 // ---- Rosto / Expressões faciais ---------------------------------------
@@ -1047,11 +1084,30 @@ function circuloRabisco(ctx, cx, cy, r, w, cor, seed) {
   }
 }
 
+// Membro SÓLIDO levemente afinado (base mais grossa → ponta mais fina) com
+// juntas arredondadas — traço "de quadrinho", mais encorpado que uma linha.
+function membroSolido(ctx, b, cor, w1 = 1.14, w2 = 0.82) {
+  const a = b.thickness * w1, c = b.thickness * w2;
+  const dx = b.ex - b.x, dy = b.ey - b.y, len = Math.hypot(dx, dy) || 1, nx = -dy / len, ny = dx / len;
+  ctx.fillStyle = cor;
+  ctx.beginPath();
+  ctx.moveTo(b.x + nx * a / 2, b.y + ny * a / 2);
+  ctx.lineTo(b.ex + nx * c / 2, b.ey + ny * c / 2);
+  ctx.lineTo(b.ex - nx * c / 2, b.ey - ny * c / 2);
+  ctx.lineTo(b.x - nx * a / 2, b.y - ny * a / 2);
+  ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.arc(b.x, b.y, a / 2, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(b.ex, b.ey, c / 2, 0, Math.PI * 2); ctx.fill();
+}
+
 // ---- Desenho do esqueleto (estilos de traço) --------------------------
 function desenharOsso(ctx, b, cor, estilo) {
   if (b.length <= 0) return;
   if (estilo === 'rascunho') {
     linhaRabisco(ctx, b.x, b.y, b.ex, b.ey, Math.max(2, b.thickness * 0.9), cor, _hash(b.nome));
+  } else if (estilo === 'neon') {
+    ctx.lineWidth = b.thickness; ctx.lineCap = 'round'; ctx.strokeStyle = cor;
+    ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(b.ex, b.ey); ctx.stroke();
   } else if (estilo === 'caligrafico') {
     // Simula caneta: largura variável (mais grosso na base, afina na ponta).
     const w1 = b.thickness * 1.25, w2 = b.thickness * 0.45;
@@ -1064,8 +1120,7 @@ function desenharOsso(ctx, b, cor, estilo) {
     ctx.lineTo(b.x - nx * w1 / 2, b.y - ny * w1 / 2);
     ctx.closePath(); ctx.fillStyle = cor; ctx.fill();
   } else {
-    ctx.lineWidth = b.thickness; ctx.lineCap = 'round'; ctx.strokeStyle = cor;
-    ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(b.ex, b.ey); ctx.stroke();
+    membroSolido(ctx, b, cor);   // 'fino' agora é membro sólido afinado (traço de quadrinho)
   }
 }
 
@@ -1483,6 +1538,8 @@ function sincronizarUI() {
   document.getElementById('axCartao').checked = !!modelo.anexos.cartao;
   document.getElementById('axCelular').checked = !!modelo.anexos.celular;
   document.getElementById('axSacola').checked = !!modelo.anexos.sacola;
+  document.getElementById('axEnvelope').checked = !!modelo.anexos.envelope;
+  document.getElementById('axDocumento').checked = !!modelo.anexos.documento;
   document.getElementById('cenario').value = modelo.cenario || 'nenhum';
   document.getElementById('chkPerfil').checked = !!modelo.perfil;
   document.getElementById('lblGeracao').textContent = modelo.geracao;
@@ -1510,7 +1567,7 @@ document.getElementById('btnAndar').addEventListener('click', (e) => {
   if (andando) { animando = false; document.getElementById('btnAnimar').textContent = '▶ Animar'; }
   marcarSujo();
 });
-['axCapa', 'axEspada', 'axChapeu', 'axOrelhas', 'axCabelo', 'axGravata', 'axPaleto', 'axCalca', 'axSapato', 'axNota', 'axCartao', 'axCelular', 'axSacola'].forEach(id => document.getElementById(id).addEventListener('change', e => {
+['axCapa', 'axEspada', 'axChapeu', 'axOrelhas', 'axCabelo', 'axGravata', 'axPaleto', 'axCalca', 'axSapato', 'axNota', 'axCartao', 'axCelular', 'axSacola', 'axEnvelope', 'axDocumento'].forEach(id => document.getElementById(id).addEventListener('change', e => {
   modelo.anexos[id.replace('ax', '').toLowerCase()] = e.target.checked; marcarSujo();
 }));
 
