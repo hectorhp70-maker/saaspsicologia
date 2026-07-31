@@ -803,6 +803,7 @@ const EXPRESSOES = [
   { id: 'triste', label: 'Triste' }, { id: 'bravo', label: 'Bravo' },
   { id: 'surpreso', label: 'Surpreso' }, { id: 'preocupado', label: 'Preocupado' },
   { id: 'furioso', label: 'Furioso (surto)' }, { id: 'tonto', label: 'Tonto (X)' },
+  { id: 'surto', label: 'Surto (pânico)' },
 ];
 
 function construirRosto(r, expr, cor, lineWidth) {
@@ -849,6 +850,24 @@ function construirRosto(r, expr, cor, lineWidth) {
       line(-mw * 0.8, mouthY, mw * 0.8, mouthY, '#fff', lw * 0.7);
       break;
     case 'tonto': eyesX(); circleMouth(0.12 * r); break;
+    case 'surto': {
+      // rosto de pânico: olhos esbugalhados, dentes cerrados, suor e tremor.
+      brows(-0.16 * r, -0.10 * r);
+      const bugado = (x, rr) => { P.push({ k: 'circle', x, y: eyeY, r: rr, fill: '#fff', stroke: cor, sw: lw }); P.push({ k: 'circle', x: x + rr * 0.12, y: eyeY + 0.03 * r, r: rr * 0.3, fill: cor }); };
+      bugado(-eyeDX, 0.2 * r); bugado(eyeDX, 0.185 * r);
+      // boca cerrada com dentes
+      const mwG = 0.5 * r, th = 0.15 * r, my = mouthY + 0.03 * r;
+      P.push({ k: 'path', ops: [['M', -mwG, my - th], ['Q', -mwG - 0.05 * r, my, -mwG, my + th], ['L', mwG, my + th], ['Q', mwG + 0.05 * r, my, mwG, my - th]], close: true, fill: '#f2efe6', stroke: cor, sw: lw });
+      P.push({ k: 'path', ops: [['M', -mwG, my], ['L', mwG, my]], stroke: cor, sw: lw * 0.85 });
+      for (let i = 1; i < 6; i++) { const x = -mwG + (2 * mwG) * (i / 6); P.push({ k: 'path', ops: [['M', x, my - th], ['L', x, my + th]], stroke: cor, sw: lw * 0.6 }); }
+      // gotas de suor voando
+      sweat(-eyeDX - 0.05 * r, eyeY - 0.34 * r); sweat(eyeDX + 0.28 * r, eyeY + 0.02 * r); sweat(-0.72 * r, 0.08 * r); sweat(0.66 * r, 0.34 * r);
+      // linhas de tremor ao redor da cabeça
+      const tr = (x1, y1, x2, y2) => P.push({ k: 'path', ops: [['M', x1, y1], ['L', x2, y2]], stroke: cor, sw: lwB });
+      tr(-1.12 * r, -0.5 * r, -1.34 * r, -0.62 * r); tr(-1.18 * r, -0.28 * r, -1.42 * r, -0.34 * r);
+      tr(1.02 * r, -0.68 * r, 1.2 * r, -0.82 * r); tr(0.78 * r, -0.86 * r, 0.88 * r, -1.04 * r);
+      break;
+    }
     default: brows(0, 0); eyes(); nose(); flat();
   }
   return P;
