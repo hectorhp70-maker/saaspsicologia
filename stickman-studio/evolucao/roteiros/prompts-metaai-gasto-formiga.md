@@ -13,7 +13,7 @@ Formato: **9:16 vertical**.
 
 Flat 2D vector cartoon stickman mascot named "Anderson", thick clean black outline,
 minimalist style. Round white head with short spiky dark-navy hair, light stubble
-beard along the jaw, small round eyes, thick eyebrows, big round ears. He wears a
+beard along the jaw, small round eyes, thick eyebrows, no ears (smooth head). He wears a
 navy-blue business suit with a darker navy tie over a cream shirt, navy trousers and
 black shoes. Thin stick-like arms and legs. Simple flat solid-color background, soft
 ground shadow. Smooth cartoon motion, clean animation, no text, no letters, no words.

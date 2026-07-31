@@ -7,9 +7,9 @@ mantendo a estética e os detalhes do Anderson idênticos em qualquer IA.
 
 ### Character lock — Anderson (não muda nunca)
 > Flat 2D vector cartoon stickman mascot named "Anderson": round white head, short
-> spiky black hair, light stubble beard, small round eyes, thick eyebrows, big round
-> ears, wearing a navy-blue business suit with a cream shirt, navy tie, navy trousers
-> and black shoes, thick clean black outline.
+> spiky black hair, light stubble beard, small round eyes, thick eyebrows, NO ears
+> (smooth rounded head sides), wearing a navy-blue business suit with a cream shirt,
+> navy tie, navy trousers and black shoes, thick clean black outline.
 
 ### Estilo A — CAPA / THUMBNAIL (vibrante, tipo o avatar)
 > Bold comic sticker-art, thick white outline around the character, cel-shaded, dark

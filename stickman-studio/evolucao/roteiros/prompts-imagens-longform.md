@@ -3,7 +3,7 @@
 Todos os prompts de imagem dos vídeos longos. Colar a BÍBLIA no começo de cada um.
 
 ## 🔒 Bíblia estética (blocos reutilizáveis)
-- **[CHAR]** Flat 2D vector cartoon stickman "Anderson": round white head, spiky black hair, light stubble beard, small round eyes, thick eyebrows, big round ears, navy-blue business suit, cream shirt, navy tie, navy trousers, black shoes, thick clean black outline.
+- **[CHAR]** Flat 2D vector cartoon stickman "Anderson": round white head, spiky black hair, light stubble beard, small round eyes, thick eyebrows, no ears (smooth rounded head sides), navy-blue business suit, cream shirt, navy tie, navy trousers, black shoes, thick clean black outline.
 - **[A]** (capa/thumbnail) Bold comic sticker-art, thick white outline, cel-shaded, dark blue-to-purple cracked background, neon accents, flying green dollar bills, gold "$" coins, neon dollar signs, red crashing chart arrow, action lines, dramatic comic lighting, high contrast.
 - **[B]** (frame do vídeo) Clean flat vector illustration, minimalist, solid pastel background, soft ground shadow, simple props, smooth cartoon.
 - Terminar sempre com: `horizontal 16:9, no text, no letters`.
