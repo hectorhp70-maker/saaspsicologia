@@ -138,6 +138,7 @@
         <option value="fino">Traço Fino</option>
         <option value="caligrafico">Traço Caligráfico</option>
         <option value="neon">Traço Neon</option>
+        <option value="rascunho">Desenhado à mão (Excalidraw)</option>
       </select>
     </div>
     <div class="campo">
@@ -971,10 +972,45 @@ function desenharPerfil(ctx, sk, modelo, r) {
   ctx.restore();
 }
 
-// ---- Desenho do esqueleto (3 estilos de traço) ------------------------
+// ---- Estilo "desenhado à mão" (rough.js/Excalidraw) -------------------
+// Linhas com leve tremor + passada dupla; semente estável por osso (não
+// "ferve" entre frames). Portado do algoritmo de roughness do rough.js.
+function _hash(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 100000; return h; }
+function _rnd(seed, k) { const v = Math.sin(seed * 12.9898 + k * 78.233) * 43758.5453; return (v - Math.floor(v)) - 0.5; }
+function linhaRabisco(ctx, x1, y1, x2, y2, w, cor, seed) {
+  const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy) || 1, nx = -dy / len, ny = dx / len;
+  const amp = Math.min(3.6, 1.1 + len * 0.02);
+  ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.strokeStyle = cor;
+  for (let pass = 0; pass < 2; pass++) {
+    const o1x = _rnd(seed, pass * 4 + 1) * amp, o1y = _rnd(seed, pass * 4 + 2) * amp;
+    const o2x = _rnd(seed, pass * 4 + 3) * amp, o2y = _rnd(seed, pass * 4 + 4) * amp;
+    const bow = _rnd(seed, pass + 9) * amp * 1.4;
+    ctx.beginPath();
+    ctx.moveTo(x1 + o1x, y1 + o1y);
+    ctx.quadraticCurveTo((x1 + x2) / 2 + nx * bow, (y1 + y2) / 2 + ny * bow, x2 + o2x, y2 + o2y);
+    ctx.stroke();
+  }
+}
+function circuloRabisco(ctx, cx, cy, r, w, cor, seed) {
+  const amp = Math.min(4, r * 0.06); ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.strokeStyle = cor;
+  const N = 20;
+  for (let pass = 0; pass < 2; pass++) {
+    ctx.beginPath();
+    for (let i = 0; i <= N; i++) {
+      const a = pass * 0.35 + (i / N) * Math.PI * 2 * 1.03, rr = r + _rnd(seed, i + pass * 40) * amp;
+      const x = cx + Math.cos(a) * rr, y = cy + Math.sin(a) * rr;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+}
+
+// ---- Desenho do esqueleto (estilos de traço) --------------------------
 function desenharOsso(ctx, b, cor, estilo) {
   if (b.length <= 0) return;
-  if (estilo === 'caligrafico') {
+  if (estilo === 'rascunho') {
+    linhaRabisco(ctx, b.x, b.y, b.ex, b.ey, Math.max(2, b.thickness * 0.9), cor, _hash(b.nome));
+  } else if (estilo === 'caligrafico') {
     // Simula caneta: largura variável (mais grosso na base, afina na ponta).
     const w1 = b.thickness * 1.25, w2 = b.thickness * 0.45;
     const dx = b.ex - b.x, dy = b.ey - b.y, len = Math.hypot(dx, dy) || 1;
@@ -1032,7 +1068,8 @@ function desenharStickman(ctx, sk, modelo, raioCabeca, mostrarOssos) {
   ctx.strokeStyle = cor; ctx.fillStyle = '#ffffff';
   ctx.beginPath(); ctx.arc(c.x, c.y, raioCabeca, 0, Math.PI * 2);
   if (estilo !== 'caligrafico') ctx.fill();
-  ctx.stroke();
+  if (estilo === 'rascunho') circuloRabisco(ctx, c.x, c.y, raioCabeca, Math.max(2, ctx.lineWidth), cor, _hash('cabeca'));
+  else ctx.stroke();
 
   // Rosto (expressão) — acompanha a inclinação da cabeça.
   const rotRosto = (sk.get('cabeca').worldAngle + 90) * D2R;
