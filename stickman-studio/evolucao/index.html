@@ -160,6 +160,7 @@
         <label><input type="checkbox" id="axChapeu" /> Chapéu</label>
         <label><input type="checkbox" id="axOrelhas" /> Orelhas</label>
         <label><input type="checkbox" id="axCabelo" /> Cabelo</label>
+        <label><input type="checkbox" id="axBarba" /> Barba</label>
         <label><input type="checkbox" id="axGravata" /> Gravata</label>
         <label><input type="checkbox" id="axPaleto" /> Paletó</label>
         <label><input type="checkbox" id="axCalca" /> Calça</label>
@@ -293,9 +294,9 @@ function modeloBase() {
   return {
     nome: 'Neutro', dna: dnaBase(),
     corTraco: '#1a1d24', estilo: 'fino',
-    corCabelo: '#2a2118', corGravata: '#3a3a3a', corPaleto: '#2f3a4a', corCalca: '#2f3a4a', corSapato: '#20242c',
+    corCabelo: '#2a2118', corBarba: '#241c2e', corGravata: '#3a3a3a', corPaleto: '#2f3a4a', corCalca: '#2f3a4a', corSapato: '#20242c',
     cenario: 'nenhum', expressao: 'neutro', perfil: false,
-    anexos: { capa: false, espada: false, chapeu: false, orelhas: false, cabelo: false, gravata: false, paleto: false, calca: false, sapato: false, nota: false, cartao: false, celular: false, sacola: false, envelope: false, documento: false },
+    anexos: { capa: false, espada: false, chapeu: false, orelhas: false, cabelo: false, barba: false, gravata: false, paleto: false, calca: false, sapato: false, nota: false, cartao: false, celular: false, sacola: false, envelope: false, documento: false },
     anguloPernaE: 0, anguloPernaD: 0,
     geracao: 0,
   };
@@ -312,11 +313,11 @@ const PRESETS_FABRICA = [
   // Anderson Patrimônio — mascote do canal: orelhas, cabelo bagunçado (fios),
   // gravata, traço fino escuro. Combina com o preset "Anderson (canal)" do estúdio SVG.
   {
-    nome: 'Anderson', corTraco: '#1a1a1a', estilo: 'fino',
-    corCabelo: '#2a2118', corGravata: '#111111', corPaleto: '#1c1c1c', corCalca: '#1c1c1c', corSapato: '#111111', cenario: 'escritorio',
+    nome: 'Anderson', corTraco: '#141414', estilo: 'fino',
+    corCabelo: '#1a1420', corBarba: '#241c2e', corGravata: '#16223f', corPaleto: '#1b2a55', corCalca: '#1b2a55', corSapato: '#0e0e12', cenario: 'escritorio',
     dna: { tamanhoCabeca: 36, comprimentoBracos: 1.0, comprimentoPernas: 1.05, grossuraTronco: 9, inclinacaoOmbro: 4 },
-    // Visual oficial: cabelo + orelhas, terno preto, traço grosso, pescoço curto.
-    anexos: { capa: false, espada: false, chapeu: false, orelhas: true, cabelo: true, gravata: true, paleto: true, calca: true, sapato: true },
+    // Visual oficial (vetorial): terno AZUL-MARINHO, cabelo espetado, barba, orelhas.
+    anexos: { capa: false, espada: false, chapeu: false, orelhas: true, cabelo: true, barba: true, gravata: true, paleto: true, calca: true, sapato: true },
   },
   { nome: 'Neutro',  dna: { tamanhoCabeca: 30, comprimentoBracos: 1.0,  comprimentoPernas: 1.0,  grossuraTronco: 8,  inclinacaoOmbro: 0 } },
   { nome: 'Herói',   dna: { tamanhoCabeca: 26, comprimentoBracos: 1.15, comprimentoPernas: 1.3,  grossuraTronco: 12, inclinacaoOmbro: 18 } },
@@ -362,7 +363,7 @@ function construir(modelo) {
   // Coluna: pelve → tronco (até a linha dos OMBROS) → pescoço curto → cabeça.
   sk.add(new Bone('quadril', { parent: null, length: 0, angle: -90, thickness: t, grupo: 'raiz' }));
   sk.add(new Bone('tronco',  { parent: 'quadril', length: 74, angle: 0, thickness: t, grupo: 'tronco' }));
-  sk.add(new Bone('pescoco', { parent: 'tronco', length: 6, angle: 0, thickness: t * 0.9, grupo: 'tronco' }));
+  sk.add(new Bone('pescoco', { parent: 'tronco', length: 10, angle: 0, thickness: t * 0.85, grupo: 'tronco' }));
   sk.add(new Bone('cabeca',  { parent: 'pescoco', length: d.tamanhoCabeca, angle: 0, thickness: t * 0.6, grupo: 'cabeca' }));
 
   // Ombros: deslocam do topo do tronco para as laterais (bordas do paletó).
@@ -820,6 +821,29 @@ class Sacola extends PropMao {
   }
 }
 
+// Barba / cavanhaque por fazer: stubble ao longo do maxilar (arco inferior).
+class Barba extends Acessorio {
+  _fios(r) {
+    const fios = [], N = 30;
+    for (let i = 0; i <= N; i++) {
+      const deg = 34 + (i / N) * 112, a = deg * Math.PI / 180, dx = Math.cos(a), dy = Math.sin(a);
+      fios.push({ x0: dx * r * 0.82, y0: dy * r * 0.82, x1: dx * r * 1.02, y1: dy * r * 1.02 });
+      if (i % 2 === 0) fios.push({ x0: dx * r * 0.7, y0: dy * r * 0.7, x1: dx * r * 0.92, y1: dy * r * 0.92 });
+    }
+    return fios;
+  }
+  desenhar(ctx, sk, r) {
+    const c = fim(sk.get('cabeca')), lw = Math.max(1.2, sk.get('tronco').thickness * 0.32);
+    ctx.save(); ctx.strokeStyle = this.cor; ctx.lineWidth = lw; ctx.lineCap = 'round';
+    for (const f of this._fios(r)) { ctx.beginPath(); ctx.moveTo(c.x + f.x0, c.y + f.y0); ctx.lineTo(c.x + f.x1, c.y + f.y1); ctx.stroke(); }
+    ctx.restore();
+  }
+  svg(sk, r) {
+    const c = fim(sk.get('cabeca')), lw = Math.max(1.2, sk.get('tronco').thickness * 0.32);
+    return this._fios(r).map(f => `<line x1="${(c.x + f.x0).toFixed(1)}" y1="${(c.y + f.y0).toFixed(1)}" x2="${(c.x + f.x1).toFixed(1)}" y2="${(c.y + f.y1).toFixed(1)}" stroke="${this.cor}" stroke-width="${lw.toFixed(1)}" stroke-linecap="round"/>`).join('');
+  }
+}
+
 function acessoriosDe(modelo) {
   const a = modelo.anexos || {}, lista = [];
   // camada de trás (atrás do corpo/cabeça)
@@ -830,6 +854,7 @@ function acessoriosDe(modelo) {
   if (a.paleto)  lista.push({ tras: false, obj: new Paleto(modelo.corPaleto || '#2f3a4a') });
   if (a.gravata) lista.push({ tras: false, obj: new Gravata(modelo.corGravata || '#3a3a3a') });
   if (a.sapato)  lista.push({ tras: false, obj: new Sapato(modelo.corSapato || '#20242c') });
+  if (a.barba)   lista.push({ tras: false, obj: new Barba(modelo.corBarba || '#2a2118') });
   if (a.chapeu)  lista.push({ tras: false, obj: new Chapeu('#2f6bff') });
   if (a.cabelo)  lista.push({ tras: false, obj: new CabeloBaguncado(modelo.corCabelo || '#2a2118') });
   // sobre os braços (na mão)
@@ -1530,6 +1555,7 @@ function sincronizarUI() {
   document.getElementById('axChapeu').checked = !!modelo.anexos.chapeu;
   document.getElementById('axOrelhas').checked = !!modelo.anexos.orelhas;
   document.getElementById('axCabelo').checked = !!modelo.anexos.cabelo;
+  document.getElementById('axBarba').checked = !!modelo.anexos.barba;
   document.getElementById('axGravata').checked = !!modelo.anexos.gravata;
   document.getElementById('axPaleto').checked = !!modelo.anexos.paleto;
   document.getElementById('axCalca').checked = !!modelo.anexos.calca;
@@ -1567,7 +1593,7 @@ document.getElementById('btnAndar').addEventListener('click', (e) => {
   if (andando) { animando = false; document.getElementById('btnAnimar').textContent = '▶ Animar'; }
   marcarSujo();
 });
-['axCapa', 'axEspada', 'axChapeu', 'axOrelhas', 'axCabelo', 'axGravata', 'axPaleto', 'axCalca', 'axSapato', 'axNota', 'axCartao', 'axCelular', 'axSacola', 'axEnvelope', 'axDocumento'].forEach(id => document.getElementById(id).addEventListener('change', e => {
+['axCapa', 'axEspada', 'axChapeu', 'axOrelhas', 'axCabelo', 'axBarba', 'axGravata', 'axPaleto', 'axCalca', 'axSapato', 'axNota', 'axCartao', 'axCelular', 'axSacola', 'axEnvelope', 'axDocumento'].forEach(id => document.getElementById(id).addEventListener('change', e => {
   modelo.anexos[id.replace('ax', '').toLowerCase()] = e.target.checked; marcarSujo();
 }));
 
