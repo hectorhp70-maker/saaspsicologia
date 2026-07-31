@@ -76,7 +76,7 @@ export async function gerar({ nome, cenas, escala }) {
         const x = 110 + f * 380, bob = Math.abs(Math.sin(fase * Math.PI * 2)) * 4;
         C.save(); C.translate(x - (bb.minX + bb.largura / 2), chao - bb.maxY + bob); desenharStickman(C, sk, m, r, false); C.restore();
       } else {
-        const anexos = Object.assign({}, window.BASE.anexos, { nota: s.prop === 'nota', cartao: s.prop === 'cartao' });
+        const anexos = Object.assign({}, window.BASE.anexos); if (s.prop) anexos[s.prop] = true;
         const m = Object.assign({}, window.BASE, { expressao: s.expr || 'neutro', cenario: s.cena, anexos });
         const pose = Object.assign({}, s.pose);
         const sway = Math.sin(tt / 520) * 2.5;

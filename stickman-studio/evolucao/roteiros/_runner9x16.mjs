@@ -13,7 +13,7 @@ export const G = {
   APONTA: [44, -54, 6, -6], ALTO: [-46, -46, -8, 8], ABRE: [-40, -40, 8, -8],
 };
 
-export async function gerar9x16({ nome, cenas, escala }) {
+export async function gerar9x16({ nome, cenas, escala, serie }) {
   const W = 1080, H = 1920;
   const url = pathToFileURL(join(__dir, '..', 'index.html')).href;
   const out = join(__dir, 'saida'); mkdirSync(out, { recursive: true });
@@ -27,7 +27,8 @@ export async function gerar9x16({ nome, cenas, escala }) {
   await page.goto(url, { waitUntil: 'networkidle' });
   await page.waitForTimeout(300);
 
-  await page.evaluate(({ W, H, cenas, fator }) => {
+  await page.evaluate(({ W, H, cenas, fator, serie }) => {
+    window.SERIE = serie || null;
     const base = clonar([...PRESETS_FABRICA].find(p => p.nome === 'Anderson'));
     const gesto = (braE, braD, pE, pD) => {
       const m = Object.assign({}, base, { anguloPernaE: pE, anguloPernaD: pD });
@@ -70,7 +71,8 @@ export async function gerar9x16({ nome, cenas, escala }) {
         const x = 160 + f * (W - 320), bob = Math.abs(Math.sin(fase * Math.PI * 2)) * 8;
         C.save(); C.translate(x, H * 0.735 + bob); C.scale(esc, esc); C.translate(-(bb.minX + bb.largura / 2), -bb.maxY); desenharStickman(C, sk, m, r, false); C.restore();
       } else {
-        const m = Object.assign({}, window.BASE, { expressao: s.expr || 'neutro', cenario: s.cena, anexos: Object.assign({}, window.BASE.anexos, { nota: s.prop === 'nota', cartao: s.prop === 'cartao' }) });
+        const ax = Object.assign({}, window.BASE.anexos); if (s.prop) ax[s.prop] = true;
+        const m = Object.assign({}, window.BASE, { expressao: s.expr || 'neutro', cenario: s.cena, anexos: ax });
         const pose = Object.assign({}, s.pose);
         const a = Math.sin(tt / 360), b = Math.sin(tt / 520 + 1);
         pose.bracoSupE = (pose.bracoSupE || 0) + a * 7; pose.bracoSupD = (pose.bracoSupD || 0) - a * 7;
@@ -83,8 +85,16 @@ export async function gerar9x16({ nome, cenas, escala }) {
       }
       if (s.titulo) titulo(C, s.titulo, escuro);
       legenda(C, s.leg);
+      if (window.SERIE) {   // selo da mini-série (topo)
+        C.save(); C.font = '800 34px system-ui, sans-serif'; C.textAlign = 'left'; C.textBaseline = 'middle';
+        const tw = C.measureText(window.SERIE).width, bx = 40, by = 56, bw = tw + 46, bh = 58;
+        C.fillStyle = '#ffd23f';
+        if (C.roundRect) { C.beginPath(); C.roundRect(bx, by, bw, bh, 14); C.fill(); } else C.fillRect(bx, by, bw, bh);
+        C.fillStyle = '#141821'; C.fillText(window.SERIE, bx + 23, by + bh / 2 + 2);
+        C.restore();
+      }
     };
-  }, { W, H, cenas, fator });
+  }, { W, H, cenas, fator, serie });
 
   await page.evaluate(({ W, H }) => { const cv = document.getElementById('tela'); cv.width = W; cv.height = H; }, { W, H });
 
