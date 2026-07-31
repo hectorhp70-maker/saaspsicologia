@@ -1,0 +1,122 @@
+[
+  {
+    "titulo": "Surto com a fatura",
+    "nome_sticker": "surto-fatura",
+    "objetivo_visual": "Comunicar o pânico financeiro ao ver uma cobrança alta — a assinatura emocional do canal Surto Financeiro.",
+    "personagem": {
+      "expressao": "pânico: olhos bem arregalados, boca aberta em susto, gotas de suor",
+      "pose": "as duas mãos na cabeça, corpo levemente inclinado para trás, joelhos dobrados",
+      "acao": "olhando em choque para o celular/fatura na mão"
+    },
+    "cenario": {
+      "ambiente": "home office simples com mesa clara ao fundo",
+      "objetos": ["celular", "papel de fatura com ponto de exclamação vermelho", "gotas de suor", "linhas de impacto"],
+      "paleta": "bege e branco com detalhe vermelho de alerta"
+    },
+    "prompt_pt": "Crie uma ilustração digital em estilo Sticker Man, preservando rigorosamente o modelo visual da imagem de referência. Personagem minimalista com cabeça grande, branca e redonda, olhos pretos simples, boca altamente expressiva, corpo fino preto semelhante a um boneco-palito, braços e pernas flexíveis, contorno preto espesso, borda externa branca de figurinha e sombra suave. O personagem está olhando em choque para uma fatura no celular, demonstrando pânico total, em uma pose com as duas mãos na cabeça e o corpo inclinado para trás. Ao redor estão um celular, um papel de fatura com um ponto de exclamação vermelho, gotas de suor e linhas de impacto. A cena ocorre em um home office simples com mesa clara ao fundo, com composição limpa, iluminação suave, cores neutras e pequenos detalhes coloridos. Ilustração vetorial moderna, amigável, profissional, expressiva, visualmente clara, alta resolução, proporção 1:1, personagem totalmente visível e sem elementos cortados.",
+    "prompt_en": "Create a polished digital Sticker Man illustration, strictly preserving the visual character model and aesthetic language of the provided reference image. A minimalist human character with a large perfectly round white head, simple black oval eyes, a highly expressive mouth, a thin black stick-figure body, flexible arms and legs, simplified hands and feet, thick clean black outlines, a bold white die-cut sticker border and a subtle outer shadow. The character is staring in shock at a bill on a phone, showing total panic, with both hands on the head and the body leaning back. Include a phone, a bill paper with a red exclamation mark, sweat drops and impact lines around the character. The scene takes place in a simple home office with a light desk in the background, using a clean balanced composition, soft lighting, warm neutral colors and a few controlled colorful accents. Modern vector-style digital illustration, friendly, professional, expressive, visually readable, high resolution, 1:1 aspect ratio, full body visible, no cropping.",
+    "negative_prompt": "photorealistic person, realistic human anatomy, detailed nose, detailed skin, anime character, muscular body, complex clothing, different character model, inconsistent head shape, inconsistent eyes, inconsistent proportions, thin or uneven outlines, missing white sticker border, excessive colors, dark scene, cluttered environment, complex background, blurry image, low resolution, cropped head, cropped hands, cropped feet, duplicate limbs, extra arms, extra legs, extra fingers, malformed hands, distorted face, multiple main characters, unreadable text, misspelled words, watermark, logo, signature, brand name, visual noise",
+    "texto_sugerido": "A fatura chegou.",
+    "formato": { "proporcao": "1:1", "fundo": "ambiente detalhado (home office claro)", "resolucao": "alta" }
+  },
+  {
+    "titulo": "Planejando o orçamento",
+    "nome_sticker": "planejando-orcamento",
+    "objetivo_visual": "Mostrar controle e organização financeira: o personagem no comando do próprio dinheiro.",
+    "personagem": {
+      "expressao": "concentrado e confiante, sorriso leve",
+      "pose": "de pé apontando para um checklist em uma prancheta",
+      "acao": "planejando/marcando itens de um orçamento"
+    },
+    "cenario": {
+      "ambiente": "escritório moderno e organizado",
+      "objetos": ["prancheta com checklist", "caneta", "notebook", "calendário na parede"],
+      "paleta": "branco e cinza-claro com madeira clara e detalhe verde de planta"
+    },
+    "prompt_pt": "Crie uma ilustração digital em estilo Sticker Man, preservando rigorosamente o modelo visual da imagem de referência. Personagem minimalista com cabeça grande, branca e redonda, olhos pretos simples, boca altamente expressiva, corpo fino preto semelhante a um boneco-palito, braços e pernas flexíveis, contorno preto espesso, borda externa branca de figurinha e sombra suave. O personagem está apontando para um checklist em uma prancheta, demonstrando concentração e confiança, em uma pose dinâmica de apresentação. Ao redor estão uma prancheta com checklist, uma caneta, um notebook e um calendário na parede. A cena ocorre em um escritório moderno e organizado, com composição limpa, iluminação suave, cores neutras e pequenos detalhes coloridos. Ilustração vetorial moderna, amigável, profissional, expressiva, visualmente clara, alta resolução, proporção 1:1, personagem totalmente visível e sem elementos cortados.",
+    "prompt_en": "Create a polished digital Sticker Man illustration, strictly preserving the visual character model and aesthetic language of the provided reference image. A minimalist human character with a large perfectly round white head, simple black oval eyes, a highly expressive mouth, a thin black stick-figure body, flexible arms and legs, simplified hands and feet, thick clean black outlines, a bold white die-cut sticker border and a subtle outer shadow. The character is pointing at a checklist on a clipboard, showing focus and confidence, in a dynamic presenting pose. Include a clipboard with a checklist, a pen, a laptop and a wall calendar. The scene takes place in a modern, organized office, using a clean balanced composition, soft lighting, warm neutral colors and a few controlled colorful accents. Modern vector-style digital illustration, friendly, professional, expressive, visually readable, high resolution, 1:1 aspect ratio, full body visible, no cropping.",
+    "negative_prompt": "photorealistic person, realistic human anatomy, detailed nose, detailed skin, anime character, muscular body, complex clothing, different character model, inconsistent head shape, inconsistent eyes, inconsistent proportions, thin or uneven outlines, missing white sticker border, excessive colors, dark scene, cluttered environment, complex background, blurry image, low resolution, cropped head, cropped hands, cropped feet, duplicate limbs, extra arms, extra legs, extra fingers, malformed hands, distorted face, multiple main characters, unreadable text, misspelled words, watermark, logo, signature, brand name, visual noise",
+    "texto_sugerido": "Planejar é liberdade.",
+    "formato": { "proporcao": "1:1", "fundo": "ambiente detalhado (escritório claro)", "resolucao": "alta" }
+  },
+  {
+    "titulo": "Meta batida",
+    "nome_sticker": "conquista-meta",
+    "objetivo_visual": "Celebrar uma conquista financeira (meta atingida) para posts de motivação/prova social.",
+    "personagem": {
+      "expressao": "euforia feliz, olhos fechados sorrindo grande",
+      "pose": "braços levantados em comemoração, um pé no ar",
+      "acao": "comemorando uma meta atingida"
+    },
+    "cenario": {
+      "ambiente": "fundo minimalista claro",
+      "objetos": ["troféu", "confete colorido", "alvo com seta no centro"],
+      "paleta": "branco e bege com confete amarelo, azul e laranja"
+    },
+    "prompt_pt": "Crie uma ilustração digital em estilo Sticker Man, preservando rigorosamente o modelo visual da imagem de referência. Personagem minimalista com cabeça grande, branca e redonda, olhos pretos simples, boca altamente expressiva, corpo fino preto semelhante a um boneco-palito, braços e pernas flexíveis, contorno preto espesso, borda externa branca de figurinha e sombra suave. O personagem está comemorando uma conquista, demonstrando euforia e alegria, em uma pose com os dois braços levantados e um pé no ar. Ao redor estão um troféu, confetes coloridos e um alvo com uma seta acertando o centro. A cena ocorre em um fundo minimalista claro, com composição limpa, iluminação suave, cores neutras e pequenos detalhes coloridos. Ilustração vetorial moderna, amigável, profissional, expressiva, visualmente clara, alta resolução, proporção 1:1, personagem totalmente visível e sem elementos cortados.",
+    "prompt_en": "Create a polished digital Sticker Man illustration, strictly preserving the visual character model and aesthetic language of the provided reference image. A minimalist human character with a large perfectly round white head, simple black oval eyes, a highly expressive mouth, a thin black stick-figure body, flexible arms and legs, simplified hands and feet, thick clean black outlines, a bold white die-cut sticker border and a subtle outer shadow. The character is celebrating an achievement, showing joy and euphoria, in a pose with both arms raised and one foot in the air. Include a trophy, colorful confetti and a target with an arrow hitting the bullseye. The scene takes place on a clean minimalist light background, using a clean balanced composition, soft lighting, warm neutral colors and a few controlled colorful accents. Modern vector-style digital illustration, friendly, professional, expressive, visually readable, high resolution, 1:1 aspect ratio, full body visible, no cropping.",
+    "negative_prompt": "photorealistic person, realistic human anatomy, detailed nose, detailed skin, anime character, muscular body, complex clothing, different character model, inconsistent head shape, inconsistent eyes, inconsistent proportions, thin or uneven outlines, missing white sticker border, excessive colors, dark scene, cluttered environment, complex background, blurry image, low resolution, cropped head, cropped hands, cropped feet, duplicate limbs, extra arms, extra legs, extra fingers, malformed hands, distorted face, multiple main characters, unreadable text, misspelled words, watermark, logo, signature, brand name, visual noise",
+    "texto_sugerido": "Meta batida!",
+    "formato": { "proporcao": "1:1", "fundo": "minimalista claro", "resolucao": "alta" }
+  },
+  {
+    "titulo": "Analisando o gráfico",
+    "nome_sticker": "analisando-grafico",
+    "objetivo_visual": "Transmitir análise/estudo de investimentos com curiosidade — conteúdo educativo.",
+    "personagem": {
+      "expressao": "curioso e analítico, sobrancelha levantada",
+      "pose": "inclinado para frente segurando uma lupa sobre um gráfico",
+      "acao": "analisando um gráfico de barras com uma lupa"
+    },
+    "cenario": {
+      "ambiente": "mesa de trabalho com parede clara",
+      "objetos": ["lupa", "gráfico de barras subindo", "moeda com cifrão", "notebook"],
+      "paleta": "bege e branco com detalhe azul e verde no gráfico"
+    },
+    "prompt_pt": "Crie uma ilustração digital em estilo Sticker Man, preservando rigorosamente o modelo visual da imagem de referência. Personagem minimalista com cabeça grande, branca e redonda, olhos pretos simples, boca altamente expressiva, corpo fino preto semelhante a um boneco-palito, braços e pernas flexíveis, contorno preto espesso, borda externa branca de figurinha e sombra suave. O personagem está analisando um gráfico de barras com uma lupa, demonstrando curiosidade e concentração, em uma pose inclinada para frente. Ao redor estão uma lupa, um gráfico de barras subindo, uma moeda com cifrão e um notebook. A cena ocorre em uma mesa de trabalho com parede clara ao fundo, com composição limpa, iluminação suave, cores neutras e pequenos detalhes coloridos. Ilustração vetorial moderna, amigável, profissional, expressiva, visualmente clara, alta resolução, proporção 1:1, personagem totalmente visível e sem elementos cortados.",
+    "prompt_en": "Create a polished digital Sticker Man illustration, strictly preserving the visual character model and aesthetic language of the provided reference image. A minimalist human character with a large perfectly round white head, simple black oval eyes, a highly expressive mouth, a thin black stick-figure body, flexible arms and legs, simplified hands and feet, thick clean black outlines, a bold white die-cut sticker border and a subtle outer shadow. The character is analyzing a bar chart with a magnifying glass, showing curiosity and focus, leaning forward. Include a magnifying glass, a rising bar chart, a coin with a dollar sign and a laptop. The scene takes place at a work desk with a light wall in the background, using a clean balanced composition, soft lighting, warm neutral colors and a few controlled colorful accents. Modern vector-style digital illustration, friendly, professional, expressive, visually readable, high resolution, 1:1 aspect ratio, full body visible, no cropping.",
+    "negative_prompt": "photorealistic person, realistic human anatomy, detailed nose, detailed skin, anime character, muscular body, complex clothing, different character model, inconsistent head shape, inconsistent eyes, inconsistent proportions, thin or uneven outlines, missing white sticker border, excessive colors, dark scene, cluttered environment, complex background, blurry image, low resolution, cropped head, cropped hands, cropped feet, duplicate limbs, extra arms, extra legs, extra fingers, malformed hands, distorted face, multiple main characters, unreadable text, misspelled words, watermark, logo, signature, brand name, visual noise",
+    "texto_sugerido": "",
+    "formato": { "proporcao": "1:1", "fundo": "ambiente detalhado (mesa clara)", "resolucao": "alta" }
+  },
+  {
+    "titulo": "E-mail importante",
+    "nome_sticker": "email-importante",
+    "objetivo_visual": "Tema evergreen de produtividade: atenção a uma mensagem/e-mail importante.",
+    "personagem": {
+      "expressao": "surpreso e atento, olhos arregalados",
+      "pose": "segurando um envelope no alto e apontando para ele",
+      "acao": "lendo/mostrando um e-mail importante"
+    },
+    "cenario": {
+      "ambiente": "home office claro",
+      "objetos": ["envelope com ponto de exclamação", "notebook", "pequenos balões de e-mail voando"],
+      "paleta": "branco e cinza-claro com detalhe vermelho e azul"
+    },
+    "prompt_pt": "Crie uma ilustração digital em estilo Sticker Man, preservando rigorosamente o modelo visual da imagem de referência. Personagem minimalista com cabeça grande, branca e redonda, olhos pretos simples, boca altamente expressiva, corpo fino preto semelhante a um boneco-palito, braços e pernas flexíveis, contorno preto espesso, borda externa branca de figurinha e sombra suave. O personagem está segurando um envelope no alto e apontando para ele, demonstrando surpresa e atenção, em uma pose dinâmica. Ao redor estão um envelope com um ponto de exclamação, um notebook e pequenos balões de e-mail voando. A cena ocorre em um home office claro, com composição limpa, iluminação suave, cores neutras e pequenos detalhes coloridos. Ilustração vetorial moderna, amigável, profissional, expressiva, visualmente clara, alta resolução, proporção 1:1, personagem totalmente visível e sem elementos cortados.",
+    "prompt_en": "Create a polished digital Sticker Man illustration, strictly preserving the visual character model and aesthetic language of the provided reference image. A minimalist human character with a large perfectly round white head, simple black oval eyes, a highly expressive mouth, a thin black stick-figure body, flexible arms and legs, simplified hands and feet, thick clean black outlines, a bold white die-cut sticker border and a subtle outer shadow. The character is holding up an envelope and pointing at it, showing surprise and attention, in a dynamic pose. Include an envelope with an exclamation mark, a laptop and small flying email icons. The scene takes place in a bright home office, using a clean balanced composition, soft lighting, warm neutral colors and a few controlled colorful accents. Modern vector-style digital illustration, friendly, professional, expressive, visually readable, high resolution, 1:1 aspect ratio, full body visible, no cropping.",
+    "negative_prompt": "photorealistic person, realistic human anatomy, detailed nose, detailed skin, anime character, muscular body, complex clothing, different character model, inconsistent head shape, inconsistent eyes, inconsistent proportions, thin or uneven outlines, missing white sticker border, excessive colors, dark scene, cluttered environment, complex background, blurry image, low resolution, cropped head, cropped hands, cropped feet, duplicate limbs, extra arms, extra legs, extra fingers, malformed hands, distorted face, multiple main characters, unreadable text, misspelled words, watermark, logo, signature, brand name, visual noise",
+    "texto_sugerido": "Algo importante no e-mail!",
+    "formato": { "proporcao": "1:1", "fundo": "ambiente detalhado (home office claro)", "resolucao": "alta" }
+  },
+  {
+    "titulo": "Pausa com café",
+    "nome_sticker": "pausa-cafe",
+    "objetivo_visual": "Tema evergreen de saúde mental/equilíbrio: a importância da pausa.",
+    "personagem": {
+      "expressao": "sereno e relaxado, olhos fechados com sorriso tranquilo",
+      "pose": "em pé, relaxado, segurando uma xícara com as duas mãos",
+      "acao": "tomando um café em um momento de pausa"
+    },
+    "cenario": {
+      "ambiente": "ambiente doméstico aconchegante",
+      "objetos": ["xícara de café fumegante", "planta em vaso"],
+      "paleta": "bege e madeira clara com verde suave da planta"
+    },
+    "prompt_pt": "Crie uma ilustração digital em estilo Sticker Man, preservando rigorosamente o modelo visual da imagem de referência. Personagem minimalista com cabeça grande, branca e redonda, olhos pretos simples, boca altamente expressiva, corpo fino preto semelhante a um boneco-palito, braços e pernas flexíveis, contorno preto espesso, borda externa branca de figurinha e sombra suave. O personagem está tomando um café em uma pausa, demonstrando serenidade e tranquilidade, em uma pose relaxada segurando a xícara com as duas mãos. Ao redor estão uma xícara de café fumegante e uma planta em vaso. A cena ocorre em um ambiente doméstico aconchegante, com composição limpa, iluminação suave e acolhedora, cores neutras e pequenos detalhes coloridos. Ilustração vetorial moderna, amigável, profissional, expressiva, visualmente clara, alta resolução, proporção 1:1, personagem totalmente visível e sem elementos cortados.",
+    "prompt_en": "Create a polished digital Sticker Man illustration, strictly preserving the visual character model and aesthetic language of the provided reference image. A minimalist human character with a large perfectly round white head, simple black oval eyes, a highly expressive mouth, a thin black stick-figure body, flexible arms and legs, simplified hands and feet, thick clean black outlines, a bold white die-cut sticker border and a subtle outer shadow. The character is drinking coffee on a break, showing calm and serenity, in a relaxed pose holding the mug with both hands. Include a steaming coffee mug and a potted plant. The scene takes place in a cozy home environment, using a clean balanced composition, soft warm lighting, neutral colors and a few controlled colorful accents. Modern vector-style digital illustration, friendly, professional, expressive, visually readable, high resolution, 1:1 aspect ratio, full body visible, no cropping.",
+    "negative_prompt": "photorealistic person, realistic human anatomy, detailed nose, detailed skin, anime character, muscular body, complex clothing, different character model, inconsistent head shape, inconsistent eyes, inconsistent proportions, thin or uneven outlines, missing white sticker border, excessive colors, dark scene, cluttered environment, complex background, blurry image, low resolution, cropped head, cropped hands, cropped feet, duplicate limbs, extra arms, extra legs, extra fingers, malformed hands, distorted face, multiple main characters, unreadable text, misspelled words, watermark, logo, signature, brand name, visual noise",
+    "texto_sugerido": "Respira. Um café primeiro.",
+    "formato": { "proporcao": "1:1", "fundo": "ambiente detalhado (casa aconchegante)", "resolucao": "alta" }
+  }
+]
