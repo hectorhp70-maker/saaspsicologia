@@ -40,7 +40,7 @@ await page.evaluate(() => {
     { tipo: 'fala', dur: 3200, cena: 'shopping', expr: 'surpreso', prop: 'cartao', g: MOSTRA, leg: 'No crédito, a dor vem DEPOIS — então você gasta mais.' },
     { tipo: 'andar', dur: 2800, cena: 'rua', leg: 'Débito e Pix doem mais que o crédito: saem na hora.' },
     { tipo: 'fala', dur: 3200, cena: 'banco', expr: 'preocupado', g: REFLETE, leg: "Parcelar “sem juros” engana o cérebro: some a dor de pagar." },
-    { tipo: 'fala', dur: 2800, cena: 'dramatico', expr: 'furioso', g: [-46, -46, -8, 8], leg: 'Aí chega a fatura… e vem o SURTO.' },
+    { tipo: 'fala', dur: 2800, cena: 'dramatico', expr: 'surto', g: [-46, -46, -8, 8], leg: 'Aí chega a fatura… e vem o SURTO.' },
     { tipo: 'fala', dur: 3200, cena: 'casa', expr: 'neutro', g: NEUTRO, leg: 'Truque: pague no débito ou dinheiro para SENTIR o gasto.' },
     { tipo: 'fala', dur: 3400, cena: 'shopping', expr: 'feliz', titulo: 'Surto Financeiro', g: [28, -50, 4, -4], leg: 'Sinta o dinheiro. Gaste com consciência.' },
   ];

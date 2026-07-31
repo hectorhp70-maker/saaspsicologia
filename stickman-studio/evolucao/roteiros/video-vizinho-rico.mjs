@@ -7,7 +7,7 @@ await gerar({
     { tipo: 'fala', dur: 3000, cena: 'rua', expr: 'neutro', g: G.APONTA, leg: 'O carro do vizinho não é problema seu (de verdade).' },
     { tipo: 'fala', dur: 2800, cena: 'shopping', expr: 'surpreso', prop: 'cartao', g: G.MOSTRA, leg: 'Comparação social: gastar pra “empatar” com quem você nem conhece.' },
     { tipo: 'fala', dur: 2800, cena: 'casa', expr: 'preocupado', g: G.REFLETE, leg: 'A vitrine do vizinho esconde a fatura dele.' },
-    { tipo: 'fala', dur: 2800, cena: 'dramatico', expr: 'furioso', g: G.ALTO, leg: 'Você comprou o carro… e a inveja veio de brinde. SURTO.' },
+    { tipo: 'fala', dur: 2800, cena: 'dramatico', expr: 'surto', g: G.ALTO, leg: 'Você comprou o carro… e a inveja veio de brinde. SURTO.' },
     { tipo: 'andar', dur: 2600, cena: 'rua', leg: 'Corra a SUA corrida. As outras não têm a sua meta.' },
     { tipo: 'fala', dur: 3200, cena: 'casa', expr: 'feliz', titulo: 'Surto Financeiro', g: G.ABRE, leg: 'Rico é quem dorme tranquilo, não quem aparenta.' },
   ],

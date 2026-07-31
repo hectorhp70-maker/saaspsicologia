@@ -10,7 +10,7 @@ await gerar({
     { tipo: 'fala', dur: 3000, cena: 'casa', expr: 'neutro', g: G.APONTA, leg: 'Compra por impulso é emoção pedindo alívio, não necessidade.' },
     { tipo: 'andar', dur: 2600, cena: 'mercado', leg: 'Regra das 24h: adie a compra por um dia.' },
     { tipo: 'fala', dur: 2800, cena: 'casa', expr: 'neutro', g: G.APONTA, leg: 'Dê um “teto” a cada categoria ANTES de gastar.' },
-    { tipo: 'fala', dur: 2800, cena: 'dramatico', expr: 'furioso', g: G.ALTO, leg: 'Sem plano, o fim do mês vira SURTO.' },
+    { tipo: 'fala', dur: 2800, cena: 'dramatico', expr: 'surto', g: G.ALTO, leg: 'Sem plano, o fim do mês vira SURTO.' },
     { tipo: 'fala', dur: 3200, cena: 'casa', expr: 'feliz', titulo: 'Surto Financeiro', g: G.ABRE, leg: 'Orçamento não é prisão: é liberdade com consciência.' },
   ],
 });

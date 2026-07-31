@@ -33,7 +33,7 @@ await page.evaluate(({ W, H, fator }) => {
     { cena: 'suburbio', expr: 'neutro', g: NEUTRO, titulo: 'A síndrome do\nvizinho rico', leg: 'O carro novo do vizinho tirou o seu sono?', dur: 3400 },
     { cena: 'suburbio', expr: 'surpreso', prop: 'cartao', g: MOSTRA, leg: 'Comparação social: a gente gasta pra “empatar” com os outros.', dur: 3600 },
     { cena: 'suburbio', expr: 'preocupado', g: REFLETE, leg: 'A vitrine do vizinho esconde a fatura dele.', dur: 3200 },
-    { cena: 'dramatico', expr: 'furioso', g: ALTO, leg: 'Comprou o carro… e a inveja veio de brinde. SURTO!', dur: 3000 },
+    { cena: 'dramatico', expr: 'surto', g: ALTO, leg: 'Comprou o carro… e a inveja veio de brinde. SURTO!', dur: 3000 },
     { cena: 'suburbio', expr: 'neutro', g: APONTA, leg: 'Corra a SUA corrida — as outras não têm a sua meta.', dur: 3200 },
     { cena: 'suburbio', expr: 'feliz', g: ABRE, titulo: 'Surto Financeiro', leg: 'Rico é quem dorme tranquilo, não quem aparenta.', dur: 3600 },
   ];
