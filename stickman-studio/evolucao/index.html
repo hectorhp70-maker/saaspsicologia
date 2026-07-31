@@ -639,7 +639,10 @@ class Paleto extends Acessorio {
       ctx.beginPath(); ctx.moveTo(arr[0].x, arr[0].y); arr.slice(1).forEach(p => ctx.lineTo(p.x, p.y)); ctx.closePath();
       ctx.fillStyle = fill; ctx.fill(); if (st) { ctx.strokeStyle = st; ctx.lineWidth = sw; ctx.stroke(); }
     };
-    poly([A, B, C, D], this.cor, '#00000055', 1.5);   // corpo
+    const gTopY = Math.min(A.y, B.y), gBotY = Math.max(C.y, D.y);   // gradiente vertical (3D)
+    const grad = ctx.createLinearGradient(0, gTopY, 0, gBotY);
+    grad.addColorStop(0, shade(this.cor, 22)); grad.addColorStop(1, shade(this.cor, -24));
+    poly([A, B, C, D], grad, '#00000055', 1.5);   // corpo (com leve gradiente)
     poly([cL, cR, vB], '#f2ede2');                     // camisa em V
     ctx.lineJoin = 'round';
     ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(vB.x, vB.y); ctx.lineTo(B.x, B.y);
@@ -913,11 +916,13 @@ function desenharPerfil(ctx, sk, modelo, r) {
   const paleto = ach(Paleto), gravata = ach(Gravata), calca = ach(Calca), sapato = ach(Sapato), cabelo = ach(CabeloBaguncado);
   const O = (n, c) => desenharOsso(ctx, sk.get(n), c, estilo);
 
+  if (estilo !== 'neon') sombraChao(ctx, sk, r);
   ctx.save();
   if (estilo === 'neon') { ctx.shadowBlur = 16; ctx.shadowColor = cor; }
 
   // --- LADO DE TRÁS (E), mais claro ---
   O('bracoSupE', corFar); O('bracoInfE', corFar);
+  desenharMaos(ctx, sk, cor, r, ['bracoInfE'], corFar);
   O('pernaSupE', corFar); O('pernaInfE', corFar);
   if (calca) calca.desenharLado(ctx, sk, r, 0, shade(modelo.corCalca || '#2f3a4a', 52));
   if (sapato) sapato.desenharPe(ctx, sk, r, 0, shade(modelo.corSapato || '#20242c', 46), dir);
@@ -940,8 +945,9 @@ function desenharPerfil(ctx, sk, modelo, r) {
   if (estilo === 'neon') { ctx.shadowBlur = 16; ctx.shadowColor = cor; }
   if (cabelo) cabelo.desenhar(ctx, sk, r);
 
-  // --- BRAÇO DA FRENTE (D), por cima do paletó ---
+  // --- BRAÇO DA FRENTE (D), por cima do paletó + mão ---
   O('bracoSupD', cor); O('bracoInfD', cor);
+  desenharMaos(ctx, sk, cor, r, ['bracoInfD']);
   ctx.restore();
 }
 
@@ -965,11 +971,26 @@ function desenharOsso(ctx, b, cor, estilo) {
   }
 }
 
+// Sombra macia no chão, sob os pés — dá peso/profundidade ao personagem.
+function sombraChao(ctx, sk, r) {
+  const pe = ['pernaInfE', 'pernaInfD'].map(n => fim(sk.get(n)));
+  const feetY = Math.max(pe[0].y, pe[1].y), cx = (pe[0].x + pe[1].x) / 2;
+  ctx.save(); ctx.fillStyle = 'rgba(0,0,0,0.15)';
+  ctx.beginPath(); ctx.ellipse(cx, feetY + r * 0.12, r * 1.6, r * 0.3, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+}
+// Mãos: pequenos círculos na ponta dos antebraços (ficam sob o prop, se houver).
+function desenharMaos(ctx, sk, cor, r, quais = ['bracoInfE', 'bracoInfD'], corOverride) {
+  const hr = Math.max(3, r * 0.17); ctx.save();
+  for (const n of quais) { const p = fim(sk.get(n)); ctx.fillStyle = corOverride || cor; ctx.beginPath(); ctx.arc(p.x, p.y, hr, 0, Math.PI * 2); ctx.fill(); }
+  ctx.restore();
+}
+
 // Desenha o Stickman completo (corpo + cabeça + acessórios) no contexto atual.
 // Usa ctx.save()/restore(); no estilo neon aplica ctx.shadowBlur.
 function desenharStickman(ctx, sk, modelo, raioCabeca, mostrarOssos) {
   const cor = modelo.corTraco, estilo = modelo.estilo;
   if (modelo.perfil) { desenharPerfil(ctx, sk, modelo, raioCabeca); return; }
+  if (estilo !== 'neon') sombraChao(ctx, sk, raioCabeca);
   const acs = acessoriosDe(modelo);
 
   ctx.save();
@@ -1003,8 +1024,9 @@ function desenharStickman(ctx, sk, modelo, raioCabeca, mostrarOssos) {
   // Acessórios da frente que ficam ATRÁS dos braços (paletó, gravata, cabelo).
   acs.filter(a => !a.tras && !a.sobreBracos).forEach(a => a.obj.desenhar(ctx, sk, raioCabeca));
 
-  // Braços por cima do paletó (mangas).
+  // Braços por cima do paletó (mangas) + mãos nas pontas.
   for (const nome of BRACOS) desenharOsso(ctx, sk.get(nome), cor, estilo);
+  desenharMaos(ctx, sk, cor, raioCabeca);
 
   // Acessórios que ficam na mão / sobre os braços (espada).
   acs.filter(a => !a.tras && a.sobreBracos).forEach(a => a.obj.desenhar(ctx, sk, raioCabeca));
