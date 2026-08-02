@@ -1,0 +1,16 @@
+{
+  "titulo": "CÉREBRO x DINHEIRO",
+  "personagem": "anderson-canal",
+  "fps": 24,
+  "largura": 400,
+  "altura": 500,
+  "transicao": 10,
+  "cenas": [
+    { "pose": "present", "expressao": "neutro", "fundo": "creme", "quadros": 40, "fala": "Seu cérebro trata dinheiro físico e cartão de jeitos bem diferentes." },
+    { "pose": "point", "expressao": "triste", "fundo": "creme", "objeto": "dinheiro", "quadros": 44, "fala": "Dinheiro físico dói: você vê e sente as notas saindo da mão." },
+    { "pose": "point", "expressao": "neutro", "fundo": "creme", "objeto": "cartao", "quadros": 44, "fala": "No cartão, comprar e pagar ficam separados no tempo." },
+    { "pose": "present", "expressao": "feliz", "fundo": "creme", "quadros": 40, "fala": "O cérebro sente que ainda não gastou. A dor some." },
+    { "pose": "melt", "expressao": "furioso", "fundo": "explosao", "surto": 9, "quadros": 44, "fala": "Aí o cérebro soma tudo de uma vez, e vem o SURTO." },
+    { "pose": "point", "expressao": "neutro", "fundo": "creme", "objeto": "dinheiro", "quadros": 42, "fala": "A dica: dê forma ao dinheiro. Pague olhando o valor." }
+  ]
+}

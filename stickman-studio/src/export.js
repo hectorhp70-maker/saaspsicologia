@@ -1,0 +1,234 @@
+// export.js
+// Exportação: SVG único, sequência de PNGs (zip) e vídeo .webm.
+
+import JSZip from 'jszip';
+import { poseToSVG } from './skeleton.js';
+
+function download(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// --- Legendas .SRT -----------------------------------------------------------
+function srtTime(sec) {
+  const ms = Math.round(sec * 1000);
+  const h = String(Math.floor(ms / 3600000)).padStart(2, '0');
+  const m = String(Math.floor((ms % 3600000) / 60000)).padStart(2, '0');
+  const s = String(Math.floor((ms % 60000) / 1000)).padStart(2, '0');
+  const mmm = String(ms % 1000).padStart(3, '0');
+  return `${h}:${m}:${s},${mmm}`;
+}
+
+// Gera um .SRT a partir dos quadros-chave (legenda + duração até o próximo) e o FPS.
+export function exportSRT(timeline, fps) {
+  const parts = [];
+  let t = 0;
+  let idx = 1;
+  for (let i = 0; i < timeline.length - 1; i++) {
+    const kf = timeline[i];
+    const dur = (kf.frames || 12) / fps;
+    const cap = (kf.caption || '').trim();
+    if (cap) {
+      parts.push(`${idx++}\n${srtTime(t)} --> ${srtTime(t + dur)}\n${cap}\n`);
+    }
+    t += dur;
+  }
+  if (!parts.length) throw new Error('Nenhuma legenda nos quadros-chave.');
+  download(new Blob([parts.join('\n')], { type: 'text/plain;charset=utf-8' }), 'legendas.srt');
+}
+
+// --- SVG único ---------------------------------------------------------------
+export function exportSVG(pose, character, options) {
+  const svg = poseToSVG(pose, character, options);
+  download(new Blob([svg], { type: 'image/svg+xml' }), 'stickman.svg');
+}
+
+// --- Thumbnail PNG em alta (vetor rasterizado em `scale`x) --------------------
+export async function exportThumbnail(pose, character, options, scale = 2) {
+  const w = options.width ?? 400;
+  const h = options.height ?? 500;
+  // Aumenta só os atributos width/height do <svg> (viewBox mantém as coords),
+  // então o SVG rasteriza nítido na resolução maior.
+  const svg = poseToSVG(pose, character, options).replace(
+    `width="${w}" height="${h}"`,
+    `width="${w * scale}" height="${h * scale}"`
+  );
+  const fbg = options.background ?? 'white';
+  const canvas = await svgToCanvas(svg, w * scale, h * scale, fbg);
+  const blob = await canvasToBlob(canvas, 'image/png');
+  download(blob, 'thumbnail.png');
+}
+
+// Converte uma string SVG num canvas (Promise). background 'transparent' mantém alfa.
+function svgToCanvas(svg, width, height, background) {
+  return new Promise((resolve, reject) => {
+    const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (background === 'white') {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, width, height);
+      }
+      ctx.drawImage(img, 0, 0, width, height);
+      URL.revokeObjectURL(url);
+      resolve(canvas);
+    };
+    img.onerror = (e) => {
+      URL.revokeObjectURL(url);
+      reject(e);
+    };
+    img.src = url;
+  });
+}
+
+function canvasToBlob(canvas, type = 'image/png') {
+  return new Promise((resolve) => canvas.toBlob(resolve, type));
+}
+
+// Exporta uma sequência de strings SVG já prontas (ex.: cenas com 2 personagens)
+// como zip de PNGs.
+export async function exportFramesZip(svgs, options, onProgress, filename = 'stickman-cena-png.zip') {
+  const zip = new JSZip();
+  const width = options.width ?? 480;
+  const height = options.height ?? 500;
+  const bg = options.background ?? 'white';
+  const pad = String(svgs.length).length;
+  for (let i = 0; i < svgs.length; i++) {
+    const canvas = await svgToCanvas(svgs[i], width, height, bg);
+    const blob = await canvasToBlob(canvas, 'image/png');
+    zip.file(`frame_${String(i + 1).padStart(pad, '0')}.png`, blob);
+    onProgress?.(i + 1, svgs.length);
+  }
+  const content = await zip.generateAsync({ type: 'blob' });
+  download(content, filename);
+}
+
+// Exporta uma sequência de strings SVG como vídeo .webm.
+export async function exportFramesWebM(svgs, options, fps = 12, onProgress, filename = 'stickman-cena.webm') {
+  if (typeof MediaRecorder === 'undefined') throw new Error('MediaRecorder não é suportado neste navegador.');
+  const width = options.width ?? 480;
+  const height = options.height ?? 500;
+  const bg = options.background ?? 'white';
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+
+  const images = [];
+  for (let i = 0; i < svgs.length; i++) {
+    images.push(await svgToCanvas(svgs[i], width, height, bg));
+  }
+  const stream = canvas.captureStream(fps);
+  const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm';
+  const recorder = new MediaRecorder(stream, { mimeType: mime });
+  const chunks = [];
+  recorder.ondataavailable = (e) => e.data.size > 0 && chunks.push(e.data);
+  const done = new Promise((resolve) => (recorder.onstop = () => resolve(new Blob(chunks, { type: 'video/webm' }))));
+  recorder.start();
+  const delay = 1000 / fps;
+  for (let i = 0; i < images.length; i++) {
+    if (bg === 'white') { ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, width, height); }
+    else ctx.clearRect(0, 0, width, height);
+    ctx.drawImage(images[i], 0, 0);
+    onProgress?.(i + 1, images.length);
+    await new Promise((r) => setTimeout(r, delay));
+  }
+  await new Promise((r) => setTimeout(r, delay * 2));
+  recorder.stop();
+  download(await done, filename);
+}
+
+// Renderiza cada frame (pose) para PNG e empacota num zip.
+// frames: array de ângulos. onProgress(i, total) opcional.
+export async function exportPNGSequence(frames, character, options, onProgress) {
+  const zip = new JSZip();
+  const width = options.width ?? 400;
+  const height = options.height ?? 500;
+  const pad = String(frames.length).length;
+
+  for (let i = 0; i < frames.length; i++) {
+    const f = frames[i];
+    const phase = frames.length > 1 ? i / frames.length : 0;
+    const fbg = f.bg ?? options.background ?? 'white';
+    const fsurto = f.surto ?? options.surto ?? 0;
+    const svg = poseToSVG(f.angles, character, { ...options, expression: f.expression, background: fbg, surto: fsurto, caption: f.caption ?? null, phase });
+    const canvas = await svgToCanvas(svg, width, height, fbg);
+    const blob = await canvasToBlob(canvas, 'image/png');
+    const name = `frame_${String(i + 1).padStart(pad, '0')}.png`;
+    zip.file(name, blob);
+    onProgress?.(i + 1, frames.length);
+  }
+
+  const content = await zip.generateAsync({ type: 'blob' });
+  download(content, 'stickman-sequencia-png.zip');
+}
+
+// Gera um vídeo .webm desenhando os frames num canvas + MediaRecorder.
+// fps ajustável. onProgress(i, total) opcional.
+export async function exportWebM(frames, character, options, fps = 12, onProgress) {
+  if (typeof MediaRecorder === 'undefined') {
+    throw new Error('MediaRecorder não é suportado neste navegador.');
+  }
+  const width = options.width ?? 400;
+  const height = options.height ?? 500;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+
+  // Pré-renderiza cada frame como imagem para desenho síncrono.
+  const images = [];
+  const bgs = [];
+  for (let i = 0; i < frames.length; i++) {
+    const f = frames[i];
+    const phase = frames.length > 1 ? i / frames.length : 0;
+    const fbg = f.bg ?? options.background ?? 'white';
+    const fsurto = f.surto ?? options.surto ?? 0;
+    const svg = poseToSVG(f.angles, character, { ...options, expression: f.expression, background: fbg, surto: fsurto, caption: f.caption ?? null, phase });
+    const c = await svgToCanvas(svg, width, height, fbg);
+    images.push(c);
+    bgs.push(fbg);
+  }
+
+  const stream = canvas.captureStream(fps);
+  const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+    ? 'video/webm;codecs=vp9'
+    : 'video/webm';
+  const recorder = new MediaRecorder(stream, { mimeType: mime });
+  const chunks = [];
+  recorder.ondataavailable = (e) => e.data.size > 0 && chunks.push(e.data);
+
+  const done = new Promise((resolve) => {
+    recorder.onstop = () => resolve(new Blob(chunks, { type: 'video/webm' }));
+  });
+
+  recorder.start();
+  const frameDelay = 1000 / fps;
+  for (let i = 0; i < images.length; i++) {
+    if (bgs[i] === 'white') {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, width, height);
+    } else {
+      ctx.clearRect(0, 0, width, height);
+    }
+    ctx.drawImage(images[i], 0, 0);
+    onProgress?.(i + 1, images.length);
+    await new Promise((r) => setTimeout(r, frameDelay));
+  }
+  // segura o último frame um instante para não cortar
+  await new Promise((r) => setTimeout(r, frameDelay * 2));
+  recorder.stop();
+
+  const blob = await done;
+  download(blob, 'stickman.webm');
+}

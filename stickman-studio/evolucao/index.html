@@ -1,0 +1,1823 @@
+<meta charset="utf-8" />
+<title>Stickman Studio — Evolução Procedural</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root {
+    --bg: #0e1117; --painel: #161b22; --painel2: #1c222c; --borda: #2a3140;
+    --tinta: #e6edf3; --tinta2: #8b97a7; --acento: #2f6bff; --ok: #23c552;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font: 14px/1.45 system-ui, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--tinta);
+  }
+  header {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 10px 16px; background: var(--painel); border-bottom: 1px solid var(--borda);
+    position: sticky; top: 0; z-index: 5;
+  }
+  header h1 { font-size: 16px; margin: 0; letter-spacing: .3px; }
+  header .tag { color: var(--tinta2); font-size: 12px; }
+  header .acoes { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+  button {
+    font: inherit; color: var(--tinta); background: var(--painel2);
+    border: 1px solid var(--borda); border-radius: 8px; padding: 8px 12px; cursor: pointer;
+  }
+  button:hover { border-color: var(--acento); }
+  button.primario { background: var(--acento); border-color: var(--acento); color: #fff; font-weight: 600; }
+  button.ok { background: var(--ok); border-color: var(--ok); color: #06210f; font-weight: 600; }
+
+  .studio { display: grid; grid-template-columns: 220px 1fr 260px; gap: 12px; padding: 12px; align-items: start; }
+  aside, .centro { background: var(--painel); border: 1px solid var(--borda); border-radius: 12px; }
+  aside { padding: 12px; }
+  aside h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .8px; color: var(--tinta2); margin: 0 0 10px; }
+
+  /* Presets (esquerda) */
+  .presets { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .preset { background: var(--painel2); border: 1px solid var(--borda); border-radius: 10px; padding: 6px; cursor: pointer; text-align: center; }
+  .preset:hover { border-color: var(--acento); }
+  .preset canvas { width: 80px; height: 80px; display: block; margin: 0 auto 4px; background: #fff; border-radius: 6px; }
+  .preset span { font-size: 11px; color: var(--tinta2); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* Centro */
+  .centro { padding: 12px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  #tela { background: #ffffff; border-radius: 10px; cursor: grab; touch-action: none; max-width: 100%; }
+  #tela:active { cursor: grabbing; }
+  .dica { color: var(--tinta2); font-size: 12px; }
+  #ninhada { display: none; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  #ninhada.aberta { display: flex; }
+  .cria { background: var(--painel2); border: 2px solid var(--borda); border-radius: 10px; padding: 6px; cursor: pointer; text-align: center; }
+  .cria:hover { border-color: var(--acento); }
+  .cria.pai { border-color: var(--ok); }
+  .cria canvas { width: 130px; height: 130px; background: #fff; border-radius: 6px; display: block; }
+  .cria span { font-size: 11px; color: var(--tinta2); }
+
+  /* Controles (direita) */
+  .campo { margin-bottom: 12px; }
+  .campo label { display: flex; justify-content: space-between; font-size: 12px; color: var(--tinta2); margin-bottom: 4px; }
+  .campo label b { color: var(--tinta); font-variant-numeric: tabular-nums; }
+  input[type="range"] { width: 100%; accent-color: var(--acento); }
+  input[type="color"] { width: 100%; height: 34px; padding: 0; border: 1px solid var(--borda); border-radius: 8px; background: none; cursor: pointer; }
+  select { width: 100%; padding: 7px; background: var(--painel2); color: var(--tinta); border: 1px solid var(--borda); border-radius: 8px; }
+  .anexos { display: flex; gap: 12px; flex-wrap: wrap; }
+  .anexos label { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--tinta); }
+  .divisor { height: 1px; background: var(--borda); margin: 14px 0; }
+  .rodape { color: var(--tinta2); font-size: 11px; padding: 4px 16px 16px; }
+  .geracao { font-size: 12px; color: var(--tinta2); }
+  .geracao b { color: var(--acento); }
+</style>
+
+<header>
+  <h1>Stickman Studio</h1>
+  <span class="tag">Evolução Procedural · 100% local</span>
+  <span class="geracao">Geração <b id="lblGeracao">0</b></span>
+  <div class="acoes">
+    <button id="btnEvoluir" class="primario">🧬 Evoluir Modelo</button>
+    <button id="btnSalvar" class="ok">💾 Salvar</button>
+    <button id="btnSVG">⬇ SVG</button>
+    <button id="btnPNG">⬇ PNG</button>
+  </div>
+</header>
+
+<div class="studio">
+  <!-- ESQUERDA: biblioteca de presets com miniaturas -->
+  <aside>
+    <h2>Presets</h2>
+    <div class="presets" id="listaPresets"></div>
+  </aside>
+
+  <!-- CENTRO: canvas principal + ninhada de evolução -->
+  <div class="centro">
+    <canvas id="tela" width="600" height="600"></canvas>
+    <div class="dica">Arraste as <b>mãos</b> ou os <b>pés</b> para posar (IK) · roda do mouse dá zoom</div>
+    <div id="ninhada"></div>
+  </div>
+
+  <!-- DIREITA: painel de propriedades -->
+  <aside>
+    <h2>Propriedades</h2>
+
+    <div class="campo">
+      <label>Grossura do traço <b id="vGrossura">8</b></label>
+      <input type="range" id="sGrossura" min="3" max="18" step="0.5" value="8" />
+    </div>
+    <div class="campo">
+      <label>Comprimento das pernas <b id="vPernas">100%</b></label>
+      <input type="range" id="sPernas" min="0.6" max="1.7" step="0.02" value="1" />
+    </div>
+    <div class="campo">
+      <label>Comprimento dos braços <b id="vBracos">100%</b></label>
+      <input type="range" id="sBracos" min="0.6" max="1.6" step="0.02" value="1" />
+    </div>
+    <div class="campo">
+      <label>Tamanho da cabeça <b id="vCabeca">30</b></label>
+      <input type="range" id="sCabeca" min="16" max="60" step="1" value="30" />
+    </div>
+    <div class="campo">
+      <label>Ângulo perna esquerda <b id="vPernaE">0°</b></label>
+      <input type="range" id="sPernaE" min="-45" max="45" step="1" value="0" />
+    </div>
+    <div class="campo">
+      <label>Ângulo perna direita <b id="vPernaD">0°</b></label>
+      <input type="range" id="sPernaD" min="-45" max="45" step="1" value="0" />
+    </div>
+
+    <div class="divisor"></div>
+
+    <div class="campo">
+      <label>Cor do traço</label>
+      <input type="color" id="corTraco" value="#1a1d24" />
+    </div>
+    <div class="campo">
+      <label>Expressão facial</label>
+      <select id="expressao"></select>
+    </div>
+    <div class="campo">
+      <label>Estilo do traço</label>
+      <select id="estilo">
+        <option value="fino">Traço Fino</option>
+        <option value="caligrafico">Traço Caligráfico</option>
+        <option value="neon">Traço Neon</option>
+        <option value="rascunho">Desenhado à mão (Excalidraw)</option>
+      </select>
+    </div>
+    <div class="campo">
+      <label>Grade / eixos</label>
+      <div class="anexos">
+        <label><input type="checkbox" id="chkGrade" checked /> Mostrar grade</label>
+        <label><input type="checkbox" id="chkOssos" /> Ver ossos</label>
+        <label><input type="checkbox" id="chkPerfil" /> Perfil (lado)</label>
+      </div>
+    </div>
+
+    <div class="divisor"></div>
+
+    <div class="campo">
+      <label>Acessórios</label>
+      <div class="anexos">
+        <label><input type="checkbox" id="axCapa" /> Capa</label>
+        <label><input type="checkbox" id="axEspada" /> Espada</label>
+        <label><input type="checkbox" id="axChapeu" /> Chapéu</label>
+        <label><input type="checkbox" id="axOrelhas" /> Orelhas</label>
+        <label><input type="checkbox" id="axCabelo" /> Cabelo</label>
+        <label><input type="checkbox" id="axBarba" /> Barba</label>
+        <label><input type="checkbox" id="axGravata" /> Gravata</label>
+        <label><input type="checkbox" id="axPaleto" /> Paletó</label>
+        <label><input type="checkbox" id="axCalca" /> Calça</label>
+        <label><input type="checkbox" id="axSapato" /> Sapato</label>
+        <label><input type="checkbox" id="axNota" /> Dinheiro</label>
+        <label><input type="checkbox" id="axCartao" /> Cartão</label>
+        <label><input type="checkbox" id="axCelular" /> Celular</label>
+        <label><input type="checkbox" id="axSacola" /> Sacola</label>
+        <label><input type="checkbox" id="axEnvelope" /> E-mail</label>
+        <label><input type="checkbox" id="axDocumento" /> Documento</label>
+      </div>
+    </div>
+
+    <div class="campo">
+      <label>Cenário de fundo</label>
+      <select id="cenario"></select>
+    </div>
+
+    <div class="divisor"></div>
+
+    <h2>Animação (Keyframes)</h2>
+    <div class="campo">
+      <div class="anexos">
+        <button id="btnCapturar" style="flex:1">➕ Capturar frame</button>
+        <button id="btnAnimar" style="flex:1">▶ Animar</button>
+        <button id="btnAndar" style="flex:1">🚶 Andar (perfil)</button>
+      </div>
+    </div>
+    <div class="campo">
+      <label>Keyframes salvos <b id="vFrames">0</b></label>
+      <div id="fitaFrames" style="display:flex;gap:4px;flex-wrap:wrap;min-height:44px"></div>
+    </div>
+    <div class="campo">
+      <label>Duração por frame (ms) <b id="vDur">700</b></label>
+      <input type="range" id="sDur" min="200" max="1500" step="50" value="700" />
+    </div>
+    <div class="campo">
+      <button id="btnLimparFrames" style="width:100%">🗑 Limpar keyframes</button>
+    </div>
+  </aside>
+</div>
+
+<p class="rodape">
+  Dica: clique em <b>Evoluir</b> para gerar 3 mutações do modelo atual e escolha a melhor (seleção
+  manual). A cada 5 gerações o melhor modelo é salvo em <code>localStorage['melhoresModelos']</code>.
+</p>
+
+<script>
+/* =====================================================================
+   STICKMAN STUDIO — JavaScript puro, sem bibliotecas.
+   Organizado em 3 blocos: MODEL · VIEW · CONTROLLER.
+   Convenção de ângulos: graus, 0 = direita, sentido horário (y p/ baixo).
+   ===================================================================== */
+
+/* =========================================================
+   ========== MODEL (Dados) ================================
+   ========================================================= */
+
+const D2R = Math.PI / 180, R2D = 180 / Math.PI;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const rand = (a, b) => a + Math.random() * (b - a);
+
+// ---- Bone: um osso do esqueleto (x,y,angle,length,thickness,parent) -----
+class Bone {
+  constructor(nome, { parent = null, length = 0, angle = 0, thickness = 6, grupo = '' } = {}) {
+    this.nome = nome;
+    this.parent = parent;         // nome do osso pai (string) ou null
+    this.length = length;         // comprimento
+    this.angle = angle;           // ângulo LOCAL (relativo ao pai), em graus
+    this.thickness = thickness;   // espessura do traço
+    this.grupo = grupo;
+    // Preenchidos pela FK:
+    this.x = 0; this.y = 0;       // início no mundo (worldStart)
+    this.ex = 0; this.ey = 0;     // fim no mundo (worldEnd)
+    this.worldAngle = 0;          // ângulo absoluto acumulado
+  }
+}
+
+// ---- Stickman: contém um array/mapa de Bones e resolve a FK ------------
+class Stickman {
+  constructor() { this.bones = new Map(); this.ordem = []; }
+  add(b) { this.bones.set(b.nome, b); this._ordenar(); return b; }
+  get(n) { return this.bones.get(n); }
+
+  // Ordena topologicamente (todo pai antes dos filhos).
+  _ordenar() {
+    const visto = new Set(), ordem = [];
+    const visitar = (nome) => {
+      const b = this.bones.get(nome);
+      if (!b || visto.has(nome)) return;
+      if (b.parent) visitar(b.parent);
+      visto.add(nome); ordem.push(nome);
+    };
+    for (const n of this.bones.keys()) visitar(n);
+    this.ordem = ordem;
+  }
+
+  // Forward Kinematics: propaga posição/ângulo a partir da origem.
+  fk(ox = 0, oy = 0) {
+    for (const nome of this.ordem) {
+      const b = this.bones.get(nome);
+      if (!b.parent) {
+        b.x = ox; b.y = oy; b.worldAngle = b.angle;
+      } else {
+        const p = this.bones.get(b.parent);
+        b.x = p.ex; b.y = p.ey; b.worldAngle = p.worldAngle + b.angle;
+      }
+      const r = b.worldAngle * D2R;
+      b.ex = b.x + Math.cos(r) * b.length;
+      b.ey = b.y + Math.sin(r) * b.length;
+    }
+    return this;
+  }
+
+  // Caixa envolvente (inclui o círculo da cabeça). Usada p/ escalar/exportar.
+  getBoundingBox(raioCabeca = 0) {
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    const eng = (x, y) => { minX = Math.min(minX, x); minY = Math.min(minY, y); maxX = Math.max(maxX, x); maxY = Math.max(maxY, y); };
+    for (const b of this.bones.values()) { eng(b.x, b.y); eng(b.ex, b.ey); }
+    const c = this.get('cabeca');
+    if (c) { eng(c.ex - raioCabeca, c.ey - raioCabeca); eng(c.ex + raioCabeca, c.ey + raioCabeca); }
+    return { minX, minY, maxX, maxY, largura: maxX - minX, altura: maxY - minY };
+  }
+}
+
+// ---- DNA + Modelo: o "genoma" serializável do boneco -------------------
+function dnaBase() {
+  return { tamanhoCabeca: 30, comprimentoBracos: 1.0, comprimentoPernas: 1.0, grossuraTronco: 8, inclinacaoOmbro: 0 };
+}
+function modeloBase() {
+  return {
+    nome: 'Neutro', dna: dnaBase(),
+    corTraco: '#1a1d24', estilo: 'fino',
+    corCabelo: '#2a2118', corBarba: '#241c2e', corGravata: '#3a3a3a', corPaleto: '#2f3a4a', corCalca: '#2f3a4a', corSapato: '#20242c',
+    cenario: 'nenhum', expressao: 'neutro', perfil: false,
+    anexos: { capa: false, espada: false, chapeu: false, orelhas: false, cabelo: false, barba: false, gravata: false, paleto: false, calca: false, sapato: false, nota: false, cartao: false, celular: false, sacola: false, envelope: false, documento: false },
+    anguloPernaE: 0, anguloPernaD: 0,
+    geracao: 0,
+  };
+}
+
+// Faixas seguras do DNA (evitam aberrações nas mutações).
+const FAIXAS_DNA = {
+  tamanhoCabeca: [16, 60], comprimentoBracos: [0.6, 1.6], comprimentoPernas: [0.6, 1.7],
+  grossuraTronco: [3, 18], inclinacaoOmbro: [-40, 40],
+};
+
+// Presets de fábrica (arquétipos).
+const PRESETS_FABRICA = [
+  // Anderson Patrimônio — mascote do canal: orelhas, cabelo bagunçado (fios),
+  // gravata, traço fino escuro. Combina com o preset "Anderson (canal)" do estúdio SVG.
+  {
+    nome: 'Anderson', corTraco: '#141414', estilo: 'fino',
+    corCabelo: '#1a1420', corBarba: '#241c2e', corGravata: '#16223f', corPaleto: '#1b2a55', corCalca: '#1b2a55', corSapato: '#0e0e12', cenario: 'escritorio',
+    dna: { tamanhoCabeca: 36, comprimentoBracos: 1.0, comprimentoPernas: 1.05, grossuraTronco: 9, inclinacaoOmbro: 4 },
+    // Visual oficial (vetorial): terno AZUL-MARINHO, cabelo espetado, barba, orelhas.
+    anexos: { capa: false, espada: false, chapeu: false, orelhas: false, cabelo: true, barba: true, gravata: true, paleto: true, calca: true, sapato: true },
+  },
+  { nome: 'Neutro',  dna: { tamanhoCabeca: 30, comprimentoBracos: 1.0,  comprimentoPernas: 1.0,  grossuraTronco: 8,  inclinacaoOmbro: 0 } },
+  { nome: 'Herói',   dna: { tamanhoCabeca: 26, comprimentoBracos: 1.15, comprimentoPernas: 1.3,  grossuraTronco: 12, inclinacaoOmbro: 18 } },
+  { nome: 'Cômico',  dna: { tamanhoCabeca: 52, comprimentoBracos: 0.82, comprimentoPernas: 0.78, grossuraTronco: 9,  inclinacaoOmbro: -8 } },
+  { nome: 'Esguio',  dna: { tamanhoCabeca: 24, comprimentoBracos: 1.1,  comprimentoPernas: 1.4,  grossuraTronco: 4,  inclinacaoOmbro: 6 } },
+];
+
+// Constrói o esqueleto e sobrescreve os ângulos com uma POSE (mapa osso→ângulo).
+// Usado pela animação de keyframes (interpolação).
+function construirPose(modelo, pose) {
+  const sk = construir(modelo);
+  if (pose) for (const n in pose) { const b = sk.get(n); if (b) b.angle = pose[n]; }
+  return sk;
+}
+
+// Ciclo de caminhada de PERFIL (paramétrico). fase ∈ [0,1). Retorna um mapa
+// de ângulos LOCAIS que sobrescreve a pose. Vista lateral olhando p/ a direita:
+// pernas/braços balançam para frente/trás (eixo x), joelho flexiona no swing,
+// braços em contrapasso, leve inclinação do tronco e "bob" (no gerador).
+function poseCaminhada(fase, { passo = 1 } = {}) {
+  const TAU = Math.PI * 2, HIP = 28 * passo, KNEE = 56, ARM = 32, LEAN = 6;
+  const norm = (p) => ((p % 1) + 1) % 1;
+  const kneeFlex = (p) => { p = norm(p); const s = p < 0.5 ? 0 : (p - 0.5) / 0.5; return 4 + KNEE * Math.sin(Math.PI * s); };
+  const thigh = (p) => 180 - HIP * Math.cos(TAU * norm(p));       // perna: local (world = -90+local)
+  // pernas: D (perto) fase; E (longe) fase+0.5
+  // braços: contrapasso da perna do mesmo lado (D usa fase+0.5, E usa fase)
+  return {
+    tronco: LEAN, cabeca: -LEAN,
+    pernaSupD: thigh(fase),        pernaInfD: kneeFlex(fase),
+    pernaSupE: thigh(fase + 0.5),  pernaInfE: kneeFlex(fase + 0.5),
+    bracoSupD: 80 - ARM * Math.cos(TAU * (fase + 0.5)), bracoInfD: 18,
+    bracoSupE: -80 + ARM * Math.cos(TAU * fase),        bracoInfE: -18,
+  };
+}
+
+// Constrói o Stickman (esqueleto) a partir de um modelo (DNA + pose).
+function construir(modelo) {
+  const d = modelo.dna, sk = new Stickman();
+  const t = d.grossuraTronco, inc = d.inclinacaoOmbro;
+  const braco = 40 * d.comprimentoBracos, perna = 60 * d.comprimentoPernas;
+  const ombroW = d.tamanhoCabeca * 1.05; // meia-largura do ombro ~ borda do paletó
+
+  // Coluna: pelve → tronco (até a linha dos OMBROS) → pescoço curto → cabeça.
+  sk.add(new Bone('quadril', { parent: null, length: 0, angle: -90, thickness: t, grupo: 'raiz' }));
+  sk.add(new Bone('tronco',  { parent: 'quadril', length: 74, angle: 0, thickness: t, grupo: 'tronco' }));
+  sk.add(new Bone('pescoco', { parent: 'tronco', length: 10, angle: 0, thickness: t * 0.85, grupo: 'tronco' }));
+  sk.add(new Bone('cabeca',  { parent: 'pescoco', length: d.tamanhoCabeca, angle: 0, thickness: t * 0.6, grupo: 'cabeca' }));
+
+  // Ombros: deslocam do topo do tronco para as laterais (bordas do paletó).
+  // Desenhados atrás do paletó; os braços saem dessas pontas externas.
+  sk.add(new Bone('ombroE', { parent: 'tronco', length: ombroW, angle: -90 - inc * 0.4, thickness: t * 0.85, grupo: 'ombro' }));
+  sk.add(new Bone('ombroD', { parent: 'tronco', length: ombroW, angle: 90 + inc * 0.4, thickness: t * 0.85, grupo: 'ombro' }));
+
+  // Braços a partir dos ombros externos. Antebraço um pouco mais curto → natural.
+  sk.add(new Bone('bracoSupE', { parent: 'ombroE', length: braco, angle: -80, thickness: t * 0.8, grupo: 'braco' }));
+  sk.add(new Bone('bracoInfE', { parent: 'bracoSupE', length: braco * 0.92, angle: -12, thickness: t * 0.72, grupo: 'braco' }));
+  sk.add(new Bone('bracoSupD', { parent: 'ombroD', length: braco, angle: 80, thickness: t * 0.8, grupo: 'braco' }));
+  sk.add(new Bone('bracoInfD', { parent: 'bracoSupD', length: braco * 0.92, angle: 12, thickness: t * 0.72, grupo: 'braco' }));
+
+  // Pernas (saem da pelve). Ângulos-base ~para baixo, ajustados pelos sliders.
+  sk.add(new Bone('pernaSupE', { parent: 'quadril', length: perna, angle: 186 + modelo.anguloPernaE, thickness: t * 0.85, grupo: 'perna' }));
+  sk.add(new Bone('pernaInfE', { parent: 'pernaSupE', length: perna, angle: 12, thickness: t * 0.75, grupo: 'perna' }));
+  sk.add(new Bone('pernaSupD', { parent: 'quadril', length: perna, angle: 174 + modelo.anguloPernaD, thickness: t * 0.85, grupo: 'perna' }));
+  sk.add(new Bone('pernaInfD', { parent: 'pernaSupD', length: perna, angle: -12, thickness: t * 0.75, grupo: 'perna' }));
+
+  return sk;
+}
+
+// ---- Inverse Kinematics (2 segmentos, lei dos cossenos) ----------------
+const CADEIAS_IK = {
+  maoE: { sup: 'bracoSupE', inf: 'bracoInfE', dobra: +1 },
+  maoD: { sup: 'bracoSupD', inf: 'bracoInfD', dobra: -1 },
+  peE:  { sup: 'pernaSupE', inf: 'pernaInfE', dobra: -1 },
+  peD:  { sup: 'pernaSupD', inf: 'pernaInfD', dobra: +1 },
+};
+// Ajusta os ângulos dos 2 ossos da cadeia para a ponta alcançar (tx,ty).
+function resolverIK(sk, cadeia, tx, ty) {
+  const c = CADEIAS_IK[cadeia];
+  const sup = sk.get(c.sup), inf = sk.get(c.inf);
+  const bx = sup.x, by = sup.y;               // base (não se move ao girar sup)
+  const l1 = sup.length, l2 = inf.length;
+  let dx = tx - bx, dy = ty - by;
+  let dist = clamp(Math.hypot(dx, dy), Math.abs(l1 - l2) + 0.01, l1 + l2 - 0.01);
+  const theta = Math.atan2(dy, dx);
+  const a1 = Math.acos(clamp((l1 * l1 + dist * dist - l2 * l2) / (2 * l1 * dist), -1, 1));
+  const supWorld = theta + c.dobra * a1;
+  const paiWorld = sk.get(sup.parent).worldAngle;   // ângulo do pai (graus)
+  sup.angle = supWorld * R2D - paiWorld;
+  // cotovelo/joelho e osso inferior:
+  const ex = bx + Math.cos(supWorld) * l1, ey = by + Math.sin(supWorld) * l1;
+  const infWorld = Math.atan2(ty - ey, tx - ex);
+  inf.angle = (infWorld - supWorld) * R2D;
+}
+
+// ---- EVOLUÇÃO: mutação de DNA + acessórios -----------------------------
+// Muta cada gene por ±15% (aditivo p/ genes que podem ser 0), dentro das faixas.
+function mutarDNA(dna) {
+  const n = {};
+  for (const k in dna) {
+    const [lo, hi] = FAIXAS_DNA[k];
+    let v = k === 'inclinacaoOmbro'
+      ? dna[k] + rand(-6, 6)                 // aditivo (pode valer 0)
+      : dna[k] * (1 + rand(-0.15, 0.15));    // ±15% multiplicativo
+    n[k] = clamp(v, lo, hi);
+  }
+  return n;
+}
+// Gera 1 cria a partir de um modelo pai (com 30% de chance de mexer nos acessórios).
+function gerarCria(pai) {
+  const cria = JSON.parse(JSON.stringify(pai));
+  cria.dna = mutarDNA(pai.dna);
+  if (Math.random() < 0.30) {
+    const chaves = ['capa', 'espada', 'chapeu'];
+    const alvo = chaves[Math.floor(Math.random() * chaves.length)];
+    cria.anexos[alvo] = !cria.anexos[alvo];   // adiciona OU remove aleatoriamente
+  }
+  return cria;
+}
+
+// ---- Persistência (localStorage['melhoresModelos']) --------------------
+const CHAVE = 'melhoresModelos';
+function lerSalvos() {
+  try { return JSON.parse(localStorage.getItem(CHAVE)) || []; } catch { return []; }
+}
+function salvarModelo(modelo, nome) {
+  const lista = lerSalvos();
+  const copia = JSON.parse(JSON.stringify(modelo));
+  copia.nome = nome || copia.nome || ('Gen ' + modelo.geracao);
+  copia.salvoEm = Date.now();
+  lista.unshift(copia);
+  localStorage.setItem(CHAVE, JSON.stringify(lista.slice(0, 24))); // limite p/ não crescer sem fim
+  return copia;
+}
+
+
+/* =========================================================
+   ========== VIEW (Renderização) ==========================
+   ========================================================= */
+
+// ---- Acessórios: classe base + tipos (Capa, Espada, Chapéu) ------------
+// Cada acessório sabe se desenhar no canvas e gerar seu trecho de SVG.
+class Acessorio {
+  constructor(cor) { this.cor = cor; }
+  desenhar(ctx, sk, raioCabeca) {}
+  svg(sk, raioCabeca) { return ''; }
+}
+// Atalho: ponto final (worldEnd) de um osso como {x, y}.
+const fim = (b) => ({ x: b.ex, y: b.ey });
+
+class Capa extends Acessorio {
+  _pontos(sk) {
+    const pescoco = fim(sk.get('tronco'));   // topo do tronco
+    const quadril = fim(sk.get('quadril'));
+    const w = sk.get('cabeca').length * 1.5;
+    const baseY = quadril.y + (quadril.y - pescoco.y) * 0.35;
+    return [
+      [pescoco.x - w * 0.5, pescoco.y], [pescoco.x + w * 0.5, pescoco.y],
+      [quadril.x + w * 1.25, baseY], [quadril.x - w * 1.25, baseY],
+    ];
+  }
+  desenhar(ctx, sk) {
+    const p = this._pontos(sk);
+    ctx.save(); ctx.beginPath(); ctx.moveTo(p[0][0], p[0][1]);
+    p.slice(1).forEach(([x, y]) => ctx.lineTo(x, y)); ctx.closePath();
+    ctx.fillStyle = 'rgba(178,58,72,.92)'; ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = '#141821'; ctx.stroke(); ctx.restore();
+  }
+  svg(sk) {
+    const p = this._pontos(sk).map(([x, y]) => x.toFixed(1) + ',' + y.toFixed(1)).join(' ');
+    return `<polygon points="${p}" fill="#b23a48" fill-opacity="0.92" stroke="#141821" stroke-width="2"/>`;
+  }
+}
+class Espada extends Acessorio {
+  _geo(sk) {
+    const mao = fim(sk.get('bracoInfD'));
+    const comp = sk.get('cabeca').length * 2.2;
+    return { mao, ponta: { x: mao.x, y: mao.y - comp }, larg: 8 };
+  }
+  desenhar(ctx, sk) {
+    const g = this._geo(sk);
+    ctx.save();
+    ctx.strokeStyle = '#c9ccd6'; ctx.lineWidth = g.larg; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(g.mao.x, g.mao.y); ctx.lineTo(g.ponta.x, g.ponta.y); ctx.stroke();
+    ctx.strokeStyle = '#141821'; ctx.lineWidth = 4;  // guarda
+    ctx.beginPath(); ctx.moveTo(g.mao.x - 14, g.mao.y); ctx.lineTo(g.mao.x + 14, g.mao.y); ctx.stroke();
+    ctx.restore();
+  }
+  svg(sk) {
+    const g = this._geo(sk);
+    return `<line x1="${g.mao.x.toFixed(1)}" y1="${g.mao.y.toFixed(1)}" x2="${g.ponta.x.toFixed(1)}" y2="${g.ponta.y.toFixed(1)}" stroke="#c9ccd6" stroke-width="8" stroke-linecap="round"/>`
+      + `<line x1="${(g.mao.x - 14).toFixed(1)}" y1="${g.mao.y.toFixed(1)}" x2="${(g.mao.x + 14).toFixed(1)}" y2="${g.mao.y.toFixed(1)}" stroke="#141821" stroke-width="4"/>`;
+  }
+}
+class Chapeu extends Acessorio {
+  _geo(sk, r) { const c = fim(sk.get('cabeca')); return { c, r }; }
+  desenhar(ctx, sk, r) {
+    const { c } = this._geo(sk, r);
+    ctx.save(); ctx.strokeStyle = '#141821'; ctx.fillStyle = this.cor; ctx.lineWidth = 2;
+    // aba
+    ctx.beginPath(); ctx.moveTo(c.x - r * 1.4, c.y - r * 0.35); ctx.lineTo(c.x + r * 1.4, c.y - r * 0.35);
+    ctx.stroke();
+    // copa (arco acima da cabeça)
+    ctx.beginPath(); ctx.arc(c.x, c.y - r * 0.35, r * 0.85, Math.PI, 0); ctx.closePath();
+    ctx.fill(); ctx.stroke(); ctx.restore();
+  }
+  svg(sk, r) {
+    const c = fim(sk.get('cabeca')), y = c.y - r * 0.35;
+    return `<path d="M ${(c.x - r * 0.85).toFixed(1)} ${y.toFixed(1)} A ${(r * 0.85).toFixed(1)} ${(r * 0.85).toFixed(1)} 0 0 1 ${(c.x + r * 0.85).toFixed(1)} ${y.toFixed(1)} Z" fill="#2f6bff" stroke="#141821" stroke-width="2"/>`
+      + `<line x1="${(c.x - r * 1.4).toFixed(1)}" y1="${y.toFixed(1)}" x2="${(c.x + r * 1.4).toFixed(1)}" y2="${y.toFixed(1)}" stroke="#141821" stroke-width="2"/>`;
+  }
+}
+// --- Acessórios do personagem do canal (Anderson): orelhas, cabelo, gravata ---
+// Geometria relativa ao centro da cabeça (c) e raio r, portada do estúdio SVG.
+
+class Orelhas extends Acessorio {
+  constructor(cor, fill = '#ffffff') { super(cor); this.fill = fill; }
+  desenhar(ctx, sk, r) {
+    const c = fim(sk.get('cabeca')), lw = Math.max(1.5, sk.get('tronco').thickness * 0.55);
+    ctx.save(); ctx.strokeStyle = this.cor; ctx.fillStyle = this.fill; ctx.lineWidth = lw; ctx.lineCap = 'round';
+    const orelha = (lado) => {
+      const s = lado; // -1 esquerda, +1 direita
+      ctx.beginPath();
+      ctx.moveTo(c.x + s * r * 0.96, c.y - 0.20 * r);
+      ctx.bezierCurveTo(c.x + s * r * 1.34, c.y - 0.14 * r, c.x + s * r * 1.34, c.y + 0.22 * r, c.x + s * r * 0.96, c.y + 0.26 * r);
+      ctx.fill(); ctx.stroke();
+    };
+    orelha(-1); orelha(1); ctx.restore();
+  }
+  svg(sk, r) {
+    const c = fim(sk.get('cabeca')), lw = Math.max(1.5, sk.get('tronco').thickness * 0.55);
+    const st = `fill="${this.fill}" stroke="${this.cor}" stroke-width="${lw.toFixed(1)}" stroke-linecap="round"`;
+    const orelha = (s) => `<path d="M ${(c.x + s * r * 0.96).toFixed(1)} ${(c.y - 0.2 * r).toFixed(1)} C ${(c.x + s * r * 1.34).toFixed(1)} ${(c.y - 0.14 * r).toFixed(1)} ${(c.x + s * r * 1.34).toFixed(1)} ${(c.y + 0.22 * r).toFixed(1)} ${(c.x + s * r * 0.96).toFixed(1)} ${(c.y + 0.26 * r).toFixed(1)}" ${st}/>`;
+    return orelha(-1) + orelha(1);
+  }
+}
+
+class CabeloBaguncado extends Acessorio {
+  // Muitos fios individuais (denso, estilo caneta) — sem massa preenchida.
+  _strands(r) {
+    const rr = (s) => { const x = Math.sin(s * 91.7 + 13.1) * 43758.5453; return x - Math.floor(x); };
+    const fios = [];
+    const um = (fx, spread, layer) => {
+      const x = fx * r, inset = layer === 1 ? 0.86 : 0.99;
+      const by = -Math.sqrt(Math.max(0, r * r - x * x)) * inset;
+      const dir = fx < -0.08 ? -1 : fx > 0.08 ? 1 : (rr(fx * 7) > 0.5 ? 1 : -1);
+      const len = r * (0.4 + 0.5 * rr(fx * 3 + layer));
+      const bend = dir * r * (0.08 + 0.16 * rr(fx * 5 + layer)) * spread;
+      fios.push({ x, by, cx: x + bend * 0.35, cy: by - len * 0.62, tx: x + bend, ty: by - len });
+    };
+    const N = 20;
+    for (let i = 0; i < N; i++) um(-0.82 + (1.64 * i) / (N - 1), 0.7, 1);
+    for (let i = 0; i < N; i++) um(-0.8 + (1.6 * (i + 0.5)) / (N - 1), 1, 2);
+    return fios;
+  }
+  desenhar(ctx, sk, r) {
+    const c = fim(sk.get('cabeca')), lw = Math.max(2, sk.get('tronco').thickness * 0.5);
+    ctx.save(); ctx.strokeStyle = this.cor; ctx.lineWidth = lw; ctx.lineCap = 'round';
+    for (const f of this._strands(r)) {
+      ctx.beginPath(); ctx.moveTo(c.x + f.x, c.y + f.by);
+      ctx.quadraticCurveTo(c.x + f.cx, c.y + f.cy, c.x + f.tx, c.y + f.ty); ctx.stroke();
+    }
+    ctx.restore();
+  }
+  svg(sk, r) {
+    const c = fim(sk.get('cabeca')), lw = Math.max(2, sk.get('tronco').thickness * 0.5);
+    return this._strands(r).map(f =>
+      `<path d="M ${(c.x + f.x).toFixed(1)} ${(c.y + f.by).toFixed(1)} Q ${(c.x + f.cx).toFixed(1)} ${(c.y + f.cy).toFixed(1)} ${(c.x + f.tx).toFixed(1)} ${(c.y + f.ty).toFixed(1)}" fill="none" stroke="${this.cor}" stroke-width="${lw.toFixed(1)}" stroke-linecap="round"/>`
+    ).join('');
+  }
+}
+
+class Gravata extends Acessorio {
+  _pts(sk, r) {
+    const neck = fim(sk.get('tronco'));                       // topo do tronco (pescoço)
+    const hip = { x: sk.get('tronco').x, y: sk.get('tronco').y }; // base do tronco
+    const dx = hip.x - neck.x, dy = hip.y - neck.y, L = Math.hypot(dx, dy) || 1;
+    const ux = dx / L, uy = dy / L, px = -uy, py = ux;
+    const P = (d, w) => ({ x: neck.x + ux * d + px * w, y: neck.y + uy * d + py * w });
+    const w0 = r * 0.14, w1 = r * 0.3;
+    return {
+      no: [P(r * 0.12, w0 * 1.25), P(r * 0.12, -w0 * 1.25), P(r * 0.44, -w0), P(r * 0.44, w0)],
+      corpo: [P(r * 0.44, w0), P(r * 0.44, -w0), P(r * 1.15, -w1), P(r * 1.48, 0), P(r * 1.15, w1)],
+    };
+  }
+  desenhar(ctx, sk, r) {
+    const g = this._pts(sk, r);
+    ctx.save();
+    for (const poly of [g.no, g.corpo]) {
+      ctx.beginPath(); ctx.moveTo(poly[0].x, poly[0].y);
+      poly.slice(1).forEach(p => ctx.lineTo(p.x, p.y)); ctx.closePath();
+      ctx.fillStyle = this.cor; ctx.fill(); ctx.strokeStyle = 'rgba(0,0,0,.33)'; ctx.lineWidth = 1; ctx.stroke();
+    }
+    ctx.restore();
+  }
+  svg(sk, r) {
+    const g = this._pts(sk, r);
+    const poly = (pts) => `<polygon points="${pts.map(p => p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ')}" fill="${this.cor}" stroke="#00000055" stroke-width="1"/>`;
+    return poly(g.no) + poly(g.corpo);
+  }
+}
+
+// Clareia/escurece uma cor #rrggbb por um delta (-255..255).
+function shade(hex, amt) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = clamp((n >> 16) + amt, 0, 255), g = clamp(((n >> 8) & 255) + amt, 0, 255), b = clamp((n & 255) + amt, 0, 255);
+  return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+}
+
+class Paleto extends Acessorio {
+  // Paletó social: corpo + colarinho/camisa em V + lapelas + botão. Portado do jacketSVG.
+  _geo(sk, r) {
+    const neck = fim(sk.get('tronco'));
+    const hip = { x: sk.get('tronco').x, y: sk.get('tronco').y };
+    const dx = hip.x - neck.x, dy = hip.y - neck.y, L = Math.hypot(dx, dy) || 1;
+    const ux = dx / L, uy = dy / L, px = -uy, py = ux;
+    const P = (d, w) => ({ x: neck.x + ux * d + px * w, y: neck.y + uy * d + py * w });
+    const Wt = r * 1.05, Wh = r * 0.82;
+    return { P, L, Wt, Wh };
+  }
+  desenhar(ctx, sk, r) {
+    const { P, L, Wt, Wh } = this._geo(sk, r), dk = shade(this.cor, -28);
+    const A = P(0, Wt), B = P(0, -Wt), C = P(L * 0.98, -Wh), D = P(L * 0.98, Wh);
+    const cL = P(L * 0.02, Wt * 0.5), cR = P(L * 0.02, -Wt * 0.5), vB = P(L * 0.5, 0), bBot = P(L * 0.9, 0);
+    ctx.save();
+    const poly = (arr, fill, st, sw) => {
+      ctx.beginPath(); ctx.moveTo(arr[0].x, arr[0].y); arr.slice(1).forEach(p => ctx.lineTo(p.x, p.y)); ctx.closePath();
+      ctx.fillStyle = fill; ctx.fill(); if (st) { ctx.strokeStyle = st; ctx.lineWidth = sw; ctx.stroke(); }
+    };
+    const gTopY = Math.min(A.y, B.y), gBotY = Math.max(C.y, D.y);   // gradiente vertical (3D)
+    const grad = ctx.createLinearGradient(0, gTopY, 0, gBotY);
+    grad.addColorStop(0, shade(this.cor, 22)); grad.addColorStop(1, shade(this.cor, -24));
+    poly([A, B, C, D], grad, '#00000055', 1.5);   // corpo (com leve gradiente)
+    poly([cL, cR, vB], '#f2ede2');                     // camisa em V
+    ctx.lineJoin = 'round';
+    ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(vB.x, vB.y); ctx.lineTo(B.x, B.y);
+    ctx.strokeStyle = dk; ctx.lineWidth = r * 0.12; ctx.stroke();               // lapelas
+    ctx.beginPath(); ctx.moveTo(vB.x, vB.y); ctx.lineTo(bBot.x, bBot.y);
+    ctx.strokeStyle = dk; ctx.lineWidth = r * 0.07; ctx.stroke();               // botão
+    ctx.restore();
+  }
+  svg(sk, r) {
+    const { P, L, Wt, Wh } = this._geo(sk, r), dk = shade(this.cor, -28);
+    const A = P(0, Wt), B = P(0, -Wt), C = P(L * 0.98, -Wh), D = P(L * 0.98, Wh);
+    const cL = P(L * 0.02, Wt * 0.5), cR = P(L * 0.02, -Wt * 0.5), vB = P(L * 0.5, 0), bBot = P(L * 0.9, 0);
+    const pts = (arr) => arr.map(p => p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ');
+    return `<polygon points="${pts([A, B, C, D])}" fill="${this.cor}" stroke="#00000055" stroke-width="1.5"/>`
+      + `<polygon points="${pts([cL, cR, vB])}" fill="#f2ede2"/>`
+      + `<path d="M ${A.x.toFixed(1)} ${A.y.toFixed(1)} L ${vB.x.toFixed(1)} ${vB.y.toFixed(1)} L ${B.x.toFixed(1)} ${B.y.toFixed(1)}" fill="none" stroke="${dk}" stroke-width="${(r * 0.12).toFixed(1)}" stroke-linejoin="round"/>`
+      + `<line x1="${vB.x.toFixed(1)}" y1="${vB.y.toFixed(1)}" x2="${bBot.x.toFixed(1)}" y2="${bBot.y.toFixed(1)}" stroke="${dk}" stroke-width="${(r * 0.07).toFixed(1)}"/>`;
+  }
+}
+
+// Calça: cobre as pernas com uma "fita" que afina da coxa até o tornozelo,
+// mais um bloco na cintura. Desenhada por cima dos ossos das pernas.
+class Calca extends Acessorio {
+  _pernas(sk) {
+    const legs = [];
+    for (const [sup, inf] of [['pernaSupE', 'pernaInfE'], ['pernaSupD', 'pernaInfD']]) {
+      legs.push([{ x: sk.get(sup).x, y: sk.get(sup).y }, fim(sk.get(sup)), fim(sk.get(inf))]);
+    }
+    return { hip: fim(sk.get('quadril')), legs };
+  }
+  _ribbon([A, B, C], wH, wK, wA) {
+    const perp = (p, q) => { const dx = q.x - p.x, dy = q.y - p.y, l = Math.hypot(dx, dy) || 1; return { x: -dy / l, y: dx / l }; };
+    const n1 = perp(A, B), n2 = perp(B, C);
+    let nm = { x: n1.x + n2.x, y: n1.y + n2.y }; const lm = Math.hypot(nm.x, nm.y) || 1; nm = { x: nm.x / lm, y: nm.y / lm };
+    const o = (p, n, w) => ({ x: p.x + n.x * w, y: p.y + n.y * w });
+    return [o(A, n1, wH), o(B, nm, wK), o(C, n2, wA), o(C, n2, -wA), o(B, nm, -wK), o(A, n1, -wH)];
+  }
+  _poly(ctx, pts, fill, st, sw) {
+    ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y); pts.slice(1).forEach(p => ctx.lineTo(p.x, p.y)); ctx.closePath();
+    ctx.fillStyle = fill; ctx.fill(); if (st) { ctx.strokeStyle = st; ctx.lineWidth = sw; ctx.stroke(); }
+  }
+  desenharCintura(ctx, sk, r, cor) {
+    const { hip } = this._pernas(sk), wq = r * 0.6;
+    this._poly(ctx, [{ x: hip.x - wq, y: hip.y - r * 0.5 }, { x: hip.x + wq, y: hip.y - r * 0.5 }, { x: hip.x + wq, y: hip.y + r * 0.18 }, { x: hip.x - wq, y: hip.y + r * 0.18 }], cor, '#00000044', 1.2);
+  }
+  desenharLado(ctx, sk, r, idx, cor) {
+    const { legs } = this._pernas(sk);
+    this._poly(ctx, this._ribbon(legs[idx], r * 0.5, r * 0.4, r * 0.34), cor, '#00000044', 1.2);
+  }
+  desenhar(ctx, sk, r) {
+    ctx.save();
+    this.desenharCintura(ctx, sk, r, this.cor);
+    this.desenharLado(ctx, sk, r, 0, this.cor); this.desenharLado(ctx, sk, r, 1, this.cor);
+    ctx.restore();
+  }
+  svg(sk, r) {
+    const { hip, legs } = this._pernas(sk), wq = r * 0.6;
+    const pol = (pts) => `<polygon points="${pts.map(p => p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ')}" fill="${this.cor}" stroke="#00000044" stroke-width="1.2"/>`;
+    return pol([{ x: hip.x - wq, y: hip.y - r * 0.5 }, { x: hip.x + wq, y: hip.y - r * 0.5 }, { x: hip.x + wq, y: hip.y + r * 0.18 }, { x: hip.x - wq, y: hip.y + r * 0.18 }])
+      + legs.map(l => pol(this._ribbon(l, r * 0.5, r * 0.4, r * 0.34))).join('');
+  }
+}
+
+// Sapato: no fim de cada perna (tornozelo), aponta para fora com um solado.
+class Sapato extends Acessorio {
+  _pes(sk, r, dir) {
+    return [['pernaInfE', -1], ['pernaInfD', 1]].map(([inf, s]) => {
+      const ank = fim(sk.get(inf)), d = dir != null ? dir : s;
+      return { ank, toe: { x: ank.x + d * r * 0.8, y: ank.y }, h: r * 0.32 };
+    });
+  }
+  _desenharUm(ctx, p, cor) {
+    ctx.lineCap = 'round'; ctx.strokeStyle = cor; ctx.lineWidth = p.h;
+    ctx.beginPath(); ctx.moveTo(p.ank.x, p.ank.y); ctx.lineTo(p.toe.x, p.toe.y); ctx.stroke();
+    ctx.strokeStyle = '#111'; ctx.lineWidth = p.h * 0.3; ctx.lineCap = 'butt';
+    ctx.beginPath(); ctx.moveTo(Math.min(p.ank.x, p.toe.x), p.ank.y + p.h * 0.45); ctx.lineTo(Math.max(p.ank.x, p.toe.x), p.ank.y + p.h * 0.45); ctx.stroke();
+    ctx.lineCap = 'round';
+  }
+  desenharPe(ctx, sk, r, idx, cor, dir) { ctx.save(); this._desenharUm(ctx, this._pes(sk, r, dir)[idx], cor); ctx.restore(); }
+  desenhar(ctx, sk, r) {
+    ctx.save();
+    for (const p of this._pes(sk, r)) this._desenharUm(ctx, p, this.cor);
+    ctx.restore();
+  }
+  svg(sk, r) {
+    return this._pes(sk, r).map(p =>
+      `<line x1="${p.ank.x.toFixed(1)}" y1="${p.ank.y.toFixed(1)}" x2="${p.toe.x.toFixed(1)}" y2="${p.toe.y.toFixed(1)}" stroke="${this.cor}" stroke-width="${p.h.toFixed(1)}" stroke-linecap="round"/>`
+      + `<line x1="${Math.min(p.ank.x, p.toe.x).toFixed(1)}" y1="${(p.ank.y + p.h * 0.45).toFixed(1)}" x2="${Math.max(p.ank.x, p.toe.x).toFixed(1)}" y2="${(p.ank.y + p.h * 0.45).toFixed(1)}" stroke="#111" stroke-width="${(p.h * 0.3).toFixed(1)}"/>`
+    ).join('');
+  }
+}
+
+// Props na mão direita (fim do bracoInfD). Nota de dinheiro e cartão — úteis
+// para o tema "dinheiro físico x crédito/débito".
+class PropMao extends Acessorio {
+  _mao(sk) { return fim(sk.get('bracoInfD')); }
+}
+class Nota extends PropMao {
+  desenhar(ctx, sk, r) {
+    const m = this._mao(sk), w = r * 1.15, h = r * 0.66;
+    ctx.save(); ctx.translate(m.x, m.y); ctx.rotate(-0.18);
+    ctx.fillStyle = '#79c47a'; ctx.strokeStyle = '#2f7d38'; ctx.lineWidth = Math.max(1.5, r * 0.05);
+    if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(-w / 2, -h / 2, w, h, r * 0.12); ctx.fill(); ctx.stroke(); }
+    else { ctx.fillRect(-w / 2, -h / 2, w, h); ctx.strokeRect(-w / 2, -h / 2, w, h); }
+    ctx.beginPath(); ctx.arc(0, 0, h * 0.3, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = '#1f5f27'; ctx.font = `bold ${(h * 0.5).toFixed(0)}px Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('$', 0, h * 0.04);
+    ctx.restore();
+  }
+  svg(sk, r) {
+    const m = this._mao(sk), w = r * 1.15, h = r * 0.66;
+    return `<g transform="translate(${m.x.toFixed(1)} ${m.y.toFixed(1)}) rotate(-10)"><rect x="${(-w / 2).toFixed(1)}" y="${(-h / 2).toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" rx="${(r * 0.12).toFixed(1)}" fill="#79c47a" stroke="#2f7d38" stroke-width="${(r * 0.05).toFixed(1)}"/><text x="0" y="${(h * 0.2).toFixed(1)}" font-family="Arial" font-weight="bold" font-size="${(h * 0.5).toFixed(1)}" text-anchor="middle" fill="#1f5f27">$</text></g>`;
+  }
+}
+class Cartao extends PropMao {
+  desenhar(ctx, sk, r) {
+    const m = this._mao(sk), w = r * 1.2, h = r * 0.76;
+    ctx.save(); ctx.translate(m.x, m.y); ctx.rotate(-0.12);
+    ctx.fillStyle = this.cor || '#2f6bff'; ctx.strokeStyle = '#1a3f8f'; ctx.lineWidth = Math.max(1.5, r * 0.05);
+    if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(-w / 2, -h / 2, w, h, r * 0.14); ctx.fill(); ctx.stroke(); }
+    else { ctx.fillRect(-w / 2, -h / 2, w, h); }
+    ctx.fillStyle = '#0e1117'; ctx.fillRect(-w / 2, -h * 0.22, w, h * 0.2);        // tarja
+    ctx.fillStyle = '#ffd23f';                                                     // chip
+    if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(-w * 0.36, h * 0.06, w * 0.24, h * 0.26, r * 0.05); ctx.fill(); }
+    else ctx.fillRect(-w * 0.36, h * 0.06, w * 0.24, h * 0.26);
+    ctx.restore();
+  }
+  svg(sk, r) {
+    const m = this._mao(sk), w = r * 1.2, h = r * 0.76;
+    return `<g transform="translate(${m.x.toFixed(1)} ${m.y.toFixed(1)}) rotate(-7)"><rect x="${(-w / 2).toFixed(1)}" y="${(-h / 2).toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" rx="${(r * 0.14).toFixed(1)}" fill="${this.cor || '#2f6bff'}" stroke="#1a3f8f" stroke-width="${(r * 0.05).toFixed(1)}"/><rect x="${(-w / 2).toFixed(1)}" y="${(-h * 0.22).toFixed(1)}" width="${w.toFixed(1)}" height="${(h * 0.2).toFixed(1)}" fill="#0e1117"/><rect x="${(-w * 0.36).toFixed(1)}" y="${(h * 0.06).toFixed(1)}" width="${(w * 0.24).toFixed(1)}" height="${(h * 0.26).toFixed(1)}" fill="#ffd23f"/></g>`;
+  }
+}
+
+// Celular (smartphone) na mão — útil p/ temas de apps, delivery, PIX, compras.
+class Celular extends PropMao {
+  desenhar(ctx, sk, r) {
+    const m = this._mao(sk), w = r * 0.54, h = r * 1.0;
+    ctx.save(); ctx.translate(m.x, m.y); ctx.rotate(-0.12);
+    ctx.fillStyle = '#141821';
+    if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(-w / 2, -h / 2, w, h, r * 0.14); ctx.fill(); } else ctx.fillRect(-w / 2, -h / 2, w, h);
+    ctx.fillStyle = '#5aa9e6';
+    if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(-w * 0.38, -h * 0.4, w * 0.76, h * 0.72, r * 0.05); ctx.fill(); } else ctx.fillRect(-w * 0.38, -h * 0.4, w * 0.76, h * 0.72);
+    ctx.fillStyle = '#eef4fa'; ctx.fillRect(-w * 0.28, -h * 0.28, w * 0.56, h * 0.06); ctx.fillRect(-w * 0.28, -h * 0.14, w * 0.4, h * 0.05);
+    ctx.fillStyle = '#3a3f47'; ctx.beginPath(); ctx.arc(0, h * 0.4, w * 0.08, 0, 7); ctx.fill();
+    ctx.restore();
+  }
+  svg(sk, r) {
+    const m = this._mao(sk), w = r * 0.54, h = r * 1.0;
+    return `<g transform="translate(${m.x.toFixed(1)} ${m.y.toFixed(1)}) rotate(-7)"><rect x="${(-w / 2).toFixed(1)}" y="${(-h / 2).toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" rx="${(r * 0.14).toFixed(1)}" fill="#141821"/><rect x="${(-w * 0.38).toFixed(1)}" y="${(-h * 0.4).toFixed(1)}" width="${(w * 0.76).toFixed(1)}" height="${(h * 0.72).toFixed(1)}" fill="#5aa9e6"/></g>`;
+  }
+}
+// Sacola de compras pendurada na mão.
+class Sacola extends PropMao {
+  _geo(sk, r) { const m = this._mao(sk), w = r * 0.92, h = r * 1.0, topY = m.y + r * 0.22; return { m, w, h, topY }; }
+  desenhar(ctx, sk, r) {
+    const { m, w, h, topY } = this._geo(sk, r);
+    ctx.save(); ctx.lineCap = 'round';
+    ctx.strokeStyle = '#8a5a2b'; ctx.lineWidth = Math.max(2, r * 0.06);
+    ctx.beginPath(); ctx.moveTo(m.x - w * 0.26, topY); ctx.quadraticCurveTo(m.x - w * 0.14, m.y - r * 0.06, m.x, topY); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(m.x, topY); ctx.quadraticCurveTo(m.x + w * 0.14, m.y - r * 0.06, m.x + w * 0.26, topY); ctx.stroke();
+    ctx.fillStyle = '#d6a15a'; ctx.strokeStyle = '#8a5a2b'; ctx.lineWidth = Math.max(1.5, r * 0.045);
+    ctx.beginPath(); ctx.moveTo(m.x - w * 0.34, topY); ctx.lineTo(m.x + w * 0.34, topY); ctx.lineTo(m.x + w * 0.4, topY + h); ctx.lineTo(m.x - w * 0.4, topY + h); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#7a4a1a'; ctx.font = `bold ${(h * 0.48).toFixed(0)}px Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('$', m.x, topY + h * 0.6);
+    ctx.restore();
+  }
+  svg(sk, r) {
+    const { m, w, h, topY } = this._geo(sk, r);
+    return `<polygon points="${(m.x - w * 0.34).toFixed(1)},${topY.toFixed(1)} ${(m.x + w * 0.34).toFixed(1)},${topY.toFixed(1)} ${(m.x + w * 0.4).toFixed(1)},${(topY + h).toFixed(1)} ${(m.x - w * 0.4).toFixed(1)},${(topY + h).toFixed(1)}" fill="#d6a15a" stroke="#8a5a2b" stroke-width="2"/>`;
+  }
+}
+
+// Barba / cavanhaque por fazer: stubble ao longo do maxilar (arco inferior).
+class Barba extends Acessorio {
+  _fios(r) {
+    const fios = [], N = 30;
+    for (let i = 0; i <= N; i++) {
+      const deg = 34 + (i / N) * 112, a = deg * Math.PI / 180, dx = Math.cos(a), dy = Math.sin(a);
+      fios.push({ x0: dx * r * 0.82, y0: dy * r * 0.82, x1: dx * r * 1.02, y1: dy * r * 1.02 });
+      if (i % 2 === 0) fios.push({ x0: dx * r * 0.7, y0: dy * r * 0.7, x1: dx * r * 0.92, y1: dy * r * 0.92 });
+    }
+    return fios;
+  }
+  desenhar(ctx, sk, r) {
+    const c = fim(sk.get('cabeca')), lw = Math.max(1.2, sk.get('tronco').thickness * 0.32);
+    ctx.save(); ctx.strokeStyle = this.cor; ctx.lineWidth = lw; ctx.lineCap = 'round';
+    for (const f of this._fios(r)) { ctx.beginPath(); ctx.moveTo(c.x + f.x0, c.y + f.y0); ctx.lineTo(c.x + f.x1, c.y + f.y1); ctx.stroke(); }
+    ctx.restore();
+  }
+  svg(sk, r) {
+    const c = fim(sk.get('cabeca')), lw = Math.max(1.2, sk.get('tronco').thickness * 0.32);
+    return this._fios(r).map(f => `<line x1="${(c.x + f.x0).toFixed(1)}" y1="${(c.y + f.y0).toFixed(1)}" x2="${(c.x + f.x1).toFixed(1)}" y2="${(c.y + f.y1).toFixed(1)}" stroke="${this.cor}" stroke-width="${lw.toFixed(1)}" stroke-linecap="round"/>`).join('');
+  }
+}
+
+function acessoriosDe(modelo) {
+  const a = modelo.anexos || {}, lista = [];
+  // camada de trás (atrás do corpo/cabeça)
+  if (a.orelhas) lista.push({ tras: true, obj: new Orelhas(modelo.corTraco) });
+  if (a.capa)    lista.push({ tras: true, obj: new Capa('#b23a48') });
+  // camada da frente (atrás dos braços)
+  if (a.calca)   lista.push({ tras: false, obj: new Calca(modelo.corCalca || '#2f3a4a') });
+  if (a.paleto)  lista.push({ tras: false, obj: new Paleto(modelo.corPaleto || '#2f3a4a') });
+  if (a.gravata) lista.push({ tras: false, obj: new Gravata(modelo.corGravata || '#3a3a3a') });
+  if (a.sapato)  lista.push({ tras: false, obj: new Sapato(modelo.corSapato || '#20242c') });
+  if (a.barba)   lista.push({ tras: false, obj: new Barba(modelo.corBarba || '#2a2118') });
+  if (a.chapeu)  lista.push({ tras: false, obj: new Chapeu('#2f6bff') });
+  if (a.cabelo)  lista.push({ tras: false, obj: new CabeloBaguncado(modelo.corCabelo || '#2a2118') });
+  // sobre os braços (na mão)
+  if (a.espada)  lista.push({ tras: false, sobreBracos: true, obj: new Espada('#c9ccd6') });
+  if (a.nota)    lista.push({ tras: false, sobreBracos: true, obj: new Nota('#79c47a') });
+  if (a.cartao)  lista.push({ tras: false, sobreBracos: true, obj: new Cartao('#2f6bff') });
+  if (a.celular) lista.push({ tras: false, sobreBracos: true, obj: new Celular() });
+  if (a.sacola)  lista.push({ tras: false, sobreBracos: true, obj: new Sacola() });
+  if (a.envelope) lista.push({ tras: false, sobreBracos: true, obj: new Envelope() });
+  if (a.documento) lista.push({ tras: false, sobreBracos: true, obj: new Documento() });
+  return lista;
+}
+
+// Objetos EVERGREEN (produtividade/genéricos): envelope (e-mail) e documento.
+class Envelope extends PropMao {
+  desenhar(ctx, sk, r) {
+    const m = this._mao(sk), w = r * 1.02, h = r * 0.66;
+    ctx.save(); ctx.translate(m.x, m.y); ctx.rotate(-0.06);
+    ctx.fillStyle = '#fff'; ctx.strokeStyle = '#141821'; ctx.lineWidth = Math.max(1.5, r * 0.06); ctx.lineJoin = 'round';
+    ctx.beginPath(); ctx.rect(-w / 2, -h / 2, w, h); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-w / 2, -h / 2); ctx.lineTo(0, h * 0.06); ctx.lineTo(w / 2, -h / 2); ctx.stroke();
+    ctx.fillStyle = '#e0452f'; ctx.beginPath(); ctx.arc(w * 0.34, -h * 0.34, r * 0.17, 0, 7); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = `bold ${(r * 0.26).toFixed(0)}px Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('!', w * 0.34, -h * 0.31);
+    ctx.restore();
+  }
+  svg(sk, r) {
+    const m = this._mao(sk), w = r * 1.02, h = r * 0.66;
+    return `<g transform="translate(${m.x.toFixed(1)} ${m.y.toFixed(1)}) rotate(-3)"><rect x="${(-w / 2).toFixed(1)}" y="${(-h / 2).toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="#fff" stroke="#141821" stroke-width="2"/><path d="M ${(-w / 2).toFixed(1)} ${(-h / 2).toFixed(1)} L 0 ${(h * 0.06).toFixed(1)} L ${(w / 2).toFixed(1)} ${(-h / 2).toFixed(1)}" fill="none" stroke="#141821" stroke-width="2"/></g>`;
+  }
+}
+class Documento extends PropMao {
+  desenhar(ctx, sk, r) {
+    const m = this._mao(sk), w = r * 0.78, h = r * 1.04;
+    ctx.save(); ctx.translate(m.x, m.y); ctx.rotate(-0.05);
+    ctx.fillStyle = '#fff'; ctx.strokeStyle = '#141821'; ctx.lineWidth = Math.max(1.5, r * 0.06);
+    ctx.beginPath(); ctx.rect(-w / 2, -h / 2, w, h); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = '#8a929c'; ctx.lineWidth = Math.max(1, r * 0.035);
+    for (let i = 0; i < 4; i++) { const y = -h * 0.26 + i * h * 0.17; ctx.beginPath(); ctx.moveTo(-w * 0.3, y); ctx.lineTo(w * 0.3, y); ctx.stroke(); }
+    ctx.restore();
+  }
+  svg(sk, r) {
+    const m = this._mao(sk), w = r * 0.78, h = r * 1.04;
+    return `<g transform="translate(${m.x.toFixed(1)} ${m.y.toFixed(1)})"><rect x="${(-w / 2).toFixed(1)}" y="${(-h / 2).toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="#fff" stroke="#141821" stroke-width="2"/></g>`;
+  }
+}
+
+// ---- Rosto / Expressões faciais ---------------------------------------
+// Portado do faceToSVG do estúdio principal. Gera uma lista de primitivas
+// (ellipse/circle/path) neutra ao meio de saída → desenha no canvas E exporta SVG.
+const EXPRESSOES = [
+  { id: 'neutro', label: 'Neutro' }, { id: 'feliz', label: 'Feliz' },
+  { id: 'triste', label: 'Triste' }, { id: 'bravo', label: 'Bravo' },
+  { id: 'surpreso', label: 'Surpreso' }, { id: 'preocupado', label: 'Preocupado' },
+  { id: 'furioso', label: 'Furioso (surto)' }, { id: 'tonto', label: 'Tonto (X)' },
+  { id: 'surto', label: 'Surto (pânico)' },
+];
+
+function construirRosto(r, expr, cor, lineWidth) {
+  const eyeDX = 0.36 * r, eyeY = -0.15 * r, exr = 0.11 * r, eyr = 0.145 * r;
+  const browY = eyeY - 0.28 * r, mouthY = 0.36 * r, mw = 0.42 * r;
+  const lw = Math.max(1.5, lineWidth * 0.5), lwB = lw * 1.35, noseCol = shade(cor, 60);
+  const P = [];
+  const path = (ops, o) => P.push({ k: 'path', ops, ...o });
+  const line = (x1, y1, x2, y2, st, sw) => path([['M', x1, y1], ['L', x2, y2]], { stroke: st, sw });
+
+  const eye = (x) => { P.push({ k: 'ellipse', x, y: eyeY, rx: exr, ry: eyr, fill: cor }); P.push({ k: 'circle', x: x - exr * 0.35, y: eyeY - eyr * 0.35, r: exr * 0.34, fill: '#fff' }); };
+  const eyes = () => { eye(-eyeDX); eye(eyeDX); };
+  const eyeWide = (x) => { P.push({ k: 'circle', x, y: eyeY, r: 0.16 * r, fill: '#fff', stroke: cor, sw: lw }); P.push({ k: 'circle', x, y: eyeY + 0.02 * r, r: 0.06 * r, fill: cor }); };
+  const eyesWide = () => { eyeWide(-eyeDX); eyeWide(eyeDX); };
+  const eyeHappy = (x) => path([['M', x - 0.13 * r, eyeY + 0.04 * r], ['Q', x, eyeY - 0.13 * r, x + 0.13 * r, eyeY + 0.04 * r]], { stroke: cor, sw: lwB });
+  const eyesHappy = () => { eyeHappy(-eyeDX); eyeHappy(eyeDX); };
+  const eyesX = () => { const d = 0.11 * r; const one = (ex) => { line(ex - d, eyeY - d, ex + d, eyeY + d, cor, lw); line(ex - d, eyeY + d, ex + d, eyeY - d, cor, lw); }; one(-eyeDX); one(eyeDX); };
+
+  const brow = (x, innerDY, outerDY) => {
+    const toC = x < 0 ? 1 : -1, outerX = x - toC * 0.16 * r, innerX = x + toC * 0.14 * r;
+    const topY = Math.min(browY + innerDY, browY + outerDY) - 0.05 * r;
+    path([['M', outerX, browY + outerDY], ['Q', x, topY, innerX, browY + innerDY]], { stroke: cor, sw: lwB });
+  };
+  const brows = (i, o) => { brow(-eyeDX, i, o); brow(eyeDX, i, o); };
+  const nose = () => path([['M', 0, 0.02 * r], ['Q', 0.05 * r, 0.1 * r, 0, 0.13 * r]], { stroke: noseCol, sw: lw * 0.9 });
+  const blush = () => { P.push({ k: 'ellipse', x: -0.44 * r, y: 0.16 * r, rx: 0.11 * r, ry: 0.06 * r, fill: '#ff8f9a', op: 0.55 }); P.push({ k: 'ellipse', x: 0.44 * r, y: 0.16 * r, rx: 0.11 * r, ry: 0.06 * r, fill: '#ff8f9a', op: 0.55 }); };
+  const sweat = (x, y) => path([['M', x, y - 0.1 * r], ['Q', x + 0.07 * r, y + 0.02 * r, x, y + 0.06 * r], ['Q', x - 0.07 * r, y + 0.02 * r, x, y - 0.1 * r]], { fill: '#5fb8ec', stroke: '#2f86c0', sw: lw * 0.5, close: true });
+
+  const openSmile = () => { path([['M', -mw * 0.85, mouthY - 0.02 * r], ['Q', 0, mouthY + 0.36 * r, mw * 0.85, mouthY - 0.02 * r], ['Q', 0, mouthY + 0.06 * r, -mw * 0.85, mouthY - 0.02 * r]], { fill: '#93404a', stroke: cor, sw: lw, close: true }); path([['M', -mw * 0.7, mouthY - 0.01 * r], ['Q', 0, mouthY + 0.03 * r, mw * 0.7, mouthY - 0.01 * r]], { stroke: '#fff', sw: lw * 0.8 }); };
+  const frown = (s = 0.18 * r) => path([['M', -mw, mouthY + 0.04 * r], ['Q', 0, mouthY - s, mw, mouthY + 0.04 * r]], { stroke: cor, sw: lwB });
+  const flat = () => line(-mw * 0.8, mouthY, mw * 0.8, mouthY, cor, lw);
+  const circleMouth = (rr = 0.14 * r) => P.push({ k: 'ellipse', x: 0, y: mouthY, rx: rr * 0.85, ry: rr, fill: '#7a3138', stroke: cor, sw: lw });
+  const wavy = () => path([['M', -mw * 0.8, mouthY], ['Q', -mw * 0.4, mouthY - 0.1 * r, 0, mouthY], ['Q', mw * 0.4, mouthY + 0.1 * r, mw * 0.8, mouthY]], { stroke: cor, sw: lw });
+
+  switch (expr) {
+    case 'feliz': brows(-0.04 * r, -0.06 * r); eyesHappy(); nose(); blush(); openSmile(); break;
+    case 'triste': brows(-0.06 * r, 0.12 * r); eyes(); nose(); frown(); sweat(-eyeDX - 0.16 * r, eyeY + 0.05 * r); break;
+    case 'bravo': brows(0.18 * r, -0.02 * r); eyes(); nose(); frown(0.22 * r); break;
+    case 'surpreso': brows(-0.14 * r, -0.14 * r); eyesWide(); circleMouth(0.15 * r); sweat(eyeDX + 0.18 * r, eyeY); break;
+    case 'preocupado': brows(-0.08 * r, 0.06 * r); eyes(); nose(); wavy(); sweat(eyeDX + 0.18 * r, eyeY); break;
+    case 'furioso':
+      brows(0.22 * r, -0.06 * r); eyes();
+      path([['M', -mw, mouthY - 0.04 * r], ['Q', 0, mouthY - 0.16 * r, mw, mouthY - 0.04 * r], ['Q', mw * 0.8, mouthY + 0.32 * r, 0, mouthY + 0.36 * r], ['Q', -mw * 0.8, mouthY + 0.32 * r, -mw, mouthY - 0.04 * r]], { fill: '#7a2e2e', stroke: cor, sw: lw, close: true });
+      line(-mw * 0.8, mouthY, mw * 0.8, mouthY, '#fff', lw * 0.7);
+      break;
+    case 'tonto': eyesX(); circleMouth(0.12 * r); break;
+    case 'surto': {
+      // rosto de pânico: olhos esbugalhados, dentes cerrados, suor e tremor.
+      brows(-0.16 * r, -0.10 * r);
+      const bugado = (x, rr) => { P.push({ k: 'circle', x, y: eyeY, r: rr, fill: '#fff', stroke: cor, sw: lw }); P.push({ k: 'circle', x: x + rr * 0.12, y: eyeY + 0.03 * r, r: rr * 0.3, fill: cor }); };
+      bugado(-eyeDX, 0.2 * r); bugado(eyeDX, 0.185 * r);
+      // boca cerrada com dentes
+      const mwG = 0.5 * r, th = 0.15 * r, my = mouthY + 0.03 * r;
+      P.push({ k: 'path', ops: [['M', -mwG, my - th], ['Q', -mwG - 0.05 * r, my, -mwG, my + th], ['L', mwG, my + th], ['Q', mwG + 0.05 * r, my, mwG, my - th]], close: true, fill: '#f2efe6', stroke: cor, sw: lw });
+      P.push({ k: 'path', ops: [['M', -mwG, my], ['L', mwG, my]], stroke: cor, sw: lw * 0.85 });
+      for (let i = 1; i < 6; i++) { const x = -mwG + (2 * mwG) * (i / 6); P.push({ k: 'path', ops: [['M', x, my - th], ['L', x, my + th]], stroke: cor, sw: lw * 0.6 }); }
+      // gotas de suor voando
+      sweat(-eyeDX - 0.05 * r, eyeY - 0.34 * r); sweat(eyeDX + 0.28 * r, eyeY + 0.02 * r); sweat(-0.72 * r, 0.08 * r); sweat(0.66 * r, 0.34 * r);
+      // linhas de tremor ao redor da cabeça
+      const tr = (x1, y1, x2, y2) => P.push({ k: 'path', ops: [['M', x1, y1], ['L', x2, y2]], stroke: cor, sw: lwB });
+      tr(-1.12 * r, -0.5 * r, -1.34 * r, -0.62 * r); tr(-1.18 * r, -0.28 * r, -1.42 * r, -0.34 * r);
+      tr(1.02 * r, -0.68 * r, 1.2 * r, -0.82 * r); tr(0.78 * r, -0.86 * r, 0.88 * r, -1.04 * r);
+      break;
+    }
+    default: brows(0, 0); eyes(); nose(); flat();
+  }
+  return P;
+}
+
+function desenharRostoCanvas(ctx, cx, cy, rot, prims) {
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate(rot); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  for (const p of prims) {
+    ctx.globalAlpha = p.op != null ? p.op : 1;
+    ctx.beginPath();
+    if (p.k === 'ellipse') ctx.ellipse(p.x, p.y, p.rx, p.ry, 0, 0, Math.PI * 2);
+    else if (p.k === 'circle') ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    else for (const o of p.ops) { if (o[0] === 'M') ctx.moveTo(o[1], o[2]); else if (o[0] === 'L') ctx.lineTo(o[1], o[2]); else ctx.quadraticCurveTo(o[1], o[2], o[3], o[4]); }
+    if (p.close) ctx.closePath();
+    if (p.fill) { ctx.fillStyle = p.fill; ctx.fill(); }
+    if (p.stroke) { ctx.strokeStyle = p.stroke; ctx.lineWidth = p.sw || 1; ctx.stroke(); }
+  }
+  ctx.globalAlpha = 1; ctx.restore();
+}
+
+function rostoSVG(cx, cy, rot, prims) {
+  const f = (n) => n.toFixed(2);
+  const el = prims.map(p => {
+    const op = p.op != null ? ` opacity="${p.op}"` : '';
+    const fill = p.fill ? `fill="${p.fill}"` : 'fill="none"';
+    const st = p.stroke ? ` stroke="${p.stroke}" stroke-width="${f(p.sw || 1)}" stroke-linecap="round" stroke-linejoin="round"` : '';
+    if (p.k === 'ellipse') return `<ellipse cx="${f(p.x)}" cy="${f(p.y)}" rx="${f(p.rx)}" ry="${f(p.ry)}" ${fill}${st}${op}/>`;
+    if (p.k === 'circle') return `<circle cx="${f(p.x)}" cy="${f(p.y)}" r="${f(p.r)}" ${fill}${st}${op}/>`;
+    let d = ''; for (const o of p.ops) { if (o[0] === 'M') d += `M ${f(o[1])} ${f(o[2])} `; else if (o[0] === 'L') d += `L ${f(o[1])} ${f(o[2])} `; else d += `Q ${f(o[1])} ${f(o[2])} ${f(o[3])} ${f(o[4])} `; }
+    if (p.close) d += 'Z';
+    return `<path d="${d}" ${fill}${st}${op}/>`;
+  }).join('');
+  return `<g transform="translate(${f(cx)} ${f(cy)}) rotate(${f(rot * 180 / Math.PI)})">${el}</g>`;
+}
+
+// Rosto de PERFIL (lateral): nariz na frente, um olho, sobrancelha e boca.
+// dir = +1 olhando para a direita. Retorna primitivas (mesmo pipeline do rosto).
+function construirRostoPerfil(r, expr, cor, lineWidth, dir) {
+  const lw = Math.max(1.5, lineWidth * 0.5), lwB = lw * 1.35;
+  const P = [], ex = dir * 0.28 * r, ey = -0.10 * r, my = 0.34 * r, mx = dir * 0.30 * r, mw = 0.22 * r;
+  // nariz (saliência na frente da cabeça)
+  P.push({ k: 'path', ops: [['M', dir * 0.82 * r, -0.04 * r], ['Q', dir * 1.12 * r, 0.06 * r, dir * 0.82 * r, 0.18 * r]], stroke: cor, sw: lwB });
+  // olho
+  P.push({ k: 'circle', x: ex, y: ey, r: 0.085 * r, fill: cor });
+  // sobrancelha (inclinação por expressão)
+  let tilt = 0;
+  if (expr === 'bravo' || expr === 'furioso') tilt = 0.12 * r;
+  else if (expr === 'triste' || expr === 'preocupado') tilt = -0.10 * r;
+  P.push({ k: 'path', ops: [['M', ex - dir * 0.13 * r, ey - 0.22 * r + tilt], ['L', ex + dir * 0.14 * r, ey - 0.22 * r - tilt]], stroke: cor, sw: lwB });
+  // boca por expressão
+  if (expr === 'feliz') P.push({ k: 'path', ops: [['M', mx - dir * mw * 0.5, my], ['Q', mx, my + 0.16 * r, mx + dir * mw * 0.5, my - 0.02 * r]], stroke: cor, sw: lwB });
+  else if (expr === 'furioso') { P.push({ k: 'ellipse', x: mx, y: my + 0.02 * r, rx: mw * 0.5, ry: 0.1 * r, fill: '#7a2e2e', stroke: cor, sw: lw }); }
+  else if (expr === 'triste' || expr === 'bravo') P.push({ k: 'path', ops: [['M', mx - dir * mw * 0.5, my + 0.04 * r], ['Q', mx, my - 0.08 * r, mx + dir * mw * 0.5, my + 0.04 * r]], stroke: cor, sw: lwB });
+  else if (expr === 'surpreso') P.push({ k: 'ellipse', x: mx, y: my, rx: 0.07 * r, ry: 0.09 * r, fill: '#7a3138', stroke: cor, sw: lw });
+  else P.push({ k: 'path', ops: [['M', mx - dir * mw * 0.5, my], ['L', mx + dir * mw * 0.5, my]], stroke: cor, sw: lw });
+  return P;
+}
+
+// Desenha o boneco em VISTA DE PERFIL (com profundidade: lado de trás mais claro).
+function desenharPerfil(ctx, sk, modelo, r) {
+  const cor = modelo.corTraco, estilo = modelo.estilo, dir = 1;
+  const corFar = shade(cor, 72);
+  const acs = acessoriosDe(modelo);
+  const ach = (Cls) => { const a = acs.find(x => x.obj instanceof Cls); return a && a.obj; };
+  const paleto = ach(Paleto), gravata = ach(Gravata), calca = ach(Calca), sapato = ach(Sapato), cabelo = ach(CabeloBaguncado);
+  const O = (n, c) => desenharOsso(ctx, sk.get(n), c, estilo);
+
+  if (estilo !== 'neon') sombraChao(ctx, sk, r);
+  ctx.save();
+  if (estilo === 'neon') { ctx.shadowBlur = 16; ctx.shadowColor = cor; }
+
+  // --- LADO DE TRÁS (E), mais claro ---
+  O('bracoSupE', corFar); O('bracoInfE', corFar);
+  desenharMaos(ctx, sk, cor, r, ['bracoInfE'], corFar);
+  O('pernaSupE', corFar); O('pernaInfE', corFar);
+  if (calca) calca.desenharLado(ctx, sk, r, 0, shade(modelo.corCalca || '#2f3a4a', 52));
+  if (sapato) sapato.desenharPe(ctx, sk, r, 0, shade(modelo.corSapato || '#20242c', 46), dir);
+
+  // --- TRONCO + PERNA DA FRENTE (D) ---
+  O('tronco', cor); O('pescoco', cor);
+  O('pernaSupD', cor); O('pernaInfD', cor);
+  if (calca) { calca.desenharCintura(ctx, sk, r, modelo.corCalca || '#2f3a4a'); calca.desenharLado(ctx, sk, r, 1, modelo.corCalca || '#2f3a4a'); }
+  if (sapato) sapato.desenharPe(ctx, sk, r, 1, modelo.corSapato || '#20242c', dir);
+  if (paleto) paleto.desenhar(ctx, sk, r);
+  if (gravata) gravata.desenhar(ctx, sk, r);
+
+  // --- CABEÇA + ROSTO DE PERFIL + CABELO ---
+  const c = fim(sk.get('cabeca'));
+  ctx.lineWidth = Math.max(2, sk.get('tronco').thickness * 0.6); ctx.strokeStyle = cor; ctx.fillStyle = '#ffffff';
+  ctx.beginPath(); ctx.arc(c.x, c.y, r, 0, Math.PI * 2); if (estilo !== 'caligrafico') ctx.fill(); ctx.stroke();
+  const rot = (sk.get('cabeca').worldAngle + 90) * D2R;
+  if (estilo === 'neon') ctx.shadowBlur = 0;
+  desenharRostoCanvas(ctx, c.x, c.y, rot, construirRostoPerfil(r, modelo.expressao || 'neutro', cor, Math.max(3, sk.get('tronco').thickness), dir));
+  if (estilo === 'neon') { ctx.shadowBlur = 16; ctx.shadowColor = cor; }
+  if (cabelo) cabelo.desenhar(ctx, sk, r);
+
+  // --- BRAÇO DA FRENTE (D), por cima do paletó + mão ---
+  O('bracoSupD', cor); O('bracoInfD', cor);
+  desenharMaos(ctx, sk, cor, r, ['bracoInfD']);
+  ctx.restore();
+}
+
+// ---- Estilo "desenhado à mão" (rough.js/Excalidraw) -------------------
+// Linhas com leve tremor + passada dupla; semente estável por osso (não
+// "ferve" entre frames). Portado do algoritmo de roughness do rough.js.
+function _hash(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 100000; return h; }
+function _rnd(seed, k) { const v = Math.sin(seed * 12.9898 + k * 78.233) * 43758.5453; return (v - Math.floor(v)) - 0.5; }
+function linhaRabisco(ctx, x1, y1, x2, y2, w, cor, seed) {
+  const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy) || 1, nx = -dy / len, ny = dx / len;
+  const amp = Math.min(3.6, 1.1 + len * 0.02);
+  ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.strokeStyle = cor;
+  for (let pass = 0; pass < 2; pass++) {
+    const o1x = _rnd(seed, pass * 4 + 1) * amp, o1y = _rnd(seed, pass * 4 + 2) * amp;
+    const o2x = _rnd(seed, pass * 4 + 3) * amp, o2y = _rnd(seed, pass * 4 + 4) * amp;
+    const bow = _rnd(seed, pass + 9) * amp * 1.4;
+    ctx.beginPath();
+    ctx.moveTo(x1 + o1x, y1 + o1y);
+    ctx.quadraticCurveTo((x1 + x2) / 2 + nx * bow, (y1 + y2) / 2 + ny * bow, x2 + o2x, y2 + o2y);
+    ctx.stroke();
+  }
+}
+function circuloRabisco(ctx, cx, cy, r, w, cor, seed) {
+  const amp = Math.min(4, r * 0.06); ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.strokeStyle = cor;
+  const N = 20;
+  for (let pass = 0; pass < 2; pass++) {
+    ctx.beginPath();
+    for (let i = 0; i <= N; i++) {
+      const a = pass * 0.35 + (i / N) * Math.PI * 2 * 1.03, rr = r + _rnd(seed, i + pass * 40) * amp;
+      const x = cx + Math.cos(a) * rr, y = cy + Math.sin(a) * rr;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+}
+
+// Membro SÓLIDO levemente afinado (base mais grossa → ponta mais fina) com
+// juntas arredondadas — traço "de quadrinho", mais encorpado que uma linha.
+function membroSolido(ctx, b, cor, w1 = 1.14, w2 = 0.82) {
+  const a = b.thickness * w1, c = b.thickness * w2;
+  const dx = b.ex - b.x, dy = b.ey - b.y, len = Math.hypot(dx, dy) || 1, nx = -dy / len, ny = dx / len;
+  ctx.fillStyle = cor;
+  ctx.beginPath();
+  ctx.moveTo(b.x + nx * a / 2, b.y + ny * a / 2);
+  ctx.lineTo(b.ex + nx * c / 2, b.ey + ny * c / 2);
+  ctx.lineTo(b.ex - nx * c / 2, b.ey - ny * c / 2);
+  ctx.lineTo(b.x - nx * a / 2, b.y - ny * a / 2);
+  ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.arc(b.x, b.y, a / 2, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(b.ex, b.ey, c / 2, 0, Math.PI * 2); ctx.fill();
+}
+
+// ---- Desenho do esqueleto (estilos de traço) --------------------------
+function desenharOsso(ctx, b, cor, estilo) {
+  if (b.length <= 0) return;
+  if (estilo === 'rascunho') {
+    linhaRabisco(ctx, b.x, b.y, b.ex, b.ey, Math.max(2, b.thickness * 0.9), cor, _hash(b.nome));
+  } else if (estilo === 'neon') {
+    ctx.lineWidth = b.thickness; ctx.lineCap = 'round'; ctx.strokeStyle = cor;
+    ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(b.ex, b.ey); ctx.stroke();
+  } else if (estilo === 'caligrafico') {
+    // Simula caneta: largura variável (mais grosso na base, afina na ponta).
+    const w1 = b.thickness * 1.25, w2 = b.thickness * 0.45;
+    const dx = b.ex - b.x, dy = b.ey - b.y, len = Math.hypot(dx, dy) || 1;
+    const nx = -dy / len, ny = dx / len;   // normal
+    ctx.beginPath();
+    ctx.moveTo(b.x + nx * w1 / 2, b.y + ny * w1 / 2);
+    ctx.lineTo(b.ex + nx * w2 / 2, b.ey + ny * w2 / 2);
+    ctx.lineTo(b.ex - nx * w2 / 2, b.ey - ny * w2 / 2);
+    ctx.lineTo(b.x - nx * w1 / 2, b.y - ny * w1 / 2);
+    ctx.closePath(); ctx.fillStyle = cor; ctx.fill();
+  } else {
+    membroSolido(ctx, b, cor);   // 'fino' agora é membro sólido afinado (traço de quadrinho)
+  }
+}
+
+// Sombra macia no chão, sob os pés — dá peso/profundidade ao personagem.
+function sombraChao(ctx, sk, r) {
+  const pe = ['pernaInfE', 'pernaInfD'].map(n => fim(sk.get(n)));
+  const feetY = Math.max(pe[0].y, pe[1].y), cx = (pe[0].x + pe[1].x) / 2;
+  ctx.save(); ctx.fillStyle = 'rgba(0,0,0,0.15)';
+  ctx.beginPath(); ctx.ellipse(cx, feetY + r * 0.12, r * 1.6, r * 0.3, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+}
+// Mãos: pequenos círculos na ponta dos antebraços (ficam sob o prop, se houver).
+function desenharMaos(ctx, sk, cor, r, quais = ['bracoInfE', 'bracoInfD'], corOverride) {
+  const hr = Math.max(3, r * 0.17); ctx.save();
+  for (const n of quais) { const p = fim(sk.get(n)); ctx.fillStyle = corOverride || cor; ctx.beginPath(); ctx.arc(p.x, p.y, hr, 0, Math.PI * 2); ctx.fill(); }
+  ctx.restore();
+}
+
+// Desenha o Stickman completo (corpo + cabeça + acessórios) no contexto atual.
+// Usa ctx.save()/restore(); no estilo neon aplica ctx.shadowBlur.
+function desenharStickman(ctx, sk, modelo, raioCabeca, mostrarOssos) {
+  const cor = modelo.corTraco, estilo = modelo.estilo;
+  if (modelo.perfil) { desenharPerfil(ctx, sk, modelo, raioCabeca); return; }
+  if (estilo !== 'neon') sombraChao(ctx, sk, raioCabeca);
+  const acs = acessoriosDe(modelo);
+
+  ctx.save();
+  if (estilo === 'neon') { ctx.shadowBlur = 16; ctx.shadowColor = cor; }
+
+  acs.filter(a => a.tras).forEach(a => a.obj.desenhar(ctx, sk, raioCabeca)); // capa atrás
+
+  // Ossos do CORPO (tronco/pescoço/pernas). Braços ficam para o fim, para
+  // aparecerem POR CIMA do paletó (mangas visíveis); a cabeça é círculo.
+  const BRACOS = ['bracoSupE', 'bracoInfE', 'bracoSupD', 'bracoInfD'];
+  for (const nome of sk.ordem) {
+    if (nome === 'cabeca' || BRACOS.includes(nome)) continue;
+    desenharOsso(ctx, sk.get(nome), cor, estilo);
+  }
+
+  // Cabeça = círculo no fim do osso 'cabeca'.
+  const c = fim(sk.get('cabeca'));
+  ctx.lineWidth = Math.max(2, sk.get('tronco').thickness * 0.6);
+  ctx.strokeStyle = cor; ctx.fillStyle = '#ffffff';
+  ctx.beginPath(); ctx.arc(c.x, c.y, raioCabeca, 0, Math.PI * 2);
+  if (estilo !== 'caligrafico') ctx.fill();
+  if (estilo === 'rascunho') circuloRabisco(ctx, c.x, c.y, raioCabeca, Math.max(2, ctx.lineWidth), cor, _hash('cabeca'));
+  else ctx.stroke();
+
+  // Rosto (expressão) — acompanha a inclinação da cabeça.
+  const rotRosto = (sk.get('cabeca').worldAngle + 90) * D2R;
+  const primsRosto = construirRosto(raioCabeca, modelo.expressao || 'neutro', cor, Math.max(3, sk.get('tronco').thickness));
+  if (estilo === 'neon') ctx.shadowBlur = 0; // rosto sem brilho para leitura
+  desenharRostoCanvas(ctx, c.x, c.y, rotRosto, primsRosto);
+  if (estilo === 'neon') { ctx.shadowBlur = 16; ctx.shadowColor = cor; }
+
+  // Acessórios da frente que ficam ATRÁS dos braços (paletó, gravata, cabelo).
+  acs.filter(a => !a.tras && !a.sobreBracos).forEach(a => a.obj.desenhar(ctx, sk, raioCabeca));
+
+  // Braços por cima do paletó (mangas) + mãos nas pontas.
+  for (const nome of BRACOS) desenharOsso(ctx, sk.get(nome), cor, estilo);
+  desenharMaos(ctx, sk, cor, raioCabeca);
+
+  // Acessórios que ficam na mão / sobre os braços (espada).
+  acs.filter(a => !a.tras && a.sobreBracos).forEach(a => a.obj.desenhar(ctx, sk, raioCabeca));
+  ctx.restore();
+
+  // Sobreposição de ossos (debug do rig).
+  if (mostrarOssos) {
+    ctx.save();
+    for (const b of sk.bones.values()) {
+      if (b.length > 0) {
+        ctx.strokeStyle = 'rgba(47,107,255,.9)'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(b.ex, b.ey); ctx.stroke();
+      }
+      ctx.fillStyle = '#ff4d6d'; ctx.beginPath(); ctx.arc(b.ex, b.ey, 3.5, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+// Desenha grade + eixos no canvas principal.
+function desenharGrade(ctx, w, h) {
+  ctx.save();
+  ctx.strokeStyle = 'rgba(0,0,0,.06)'; ctx.lineWidth = 1;
+  for (let x = 0; x <= w; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
+  for (let y = 0; y <= h; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+  ctx.strokeStyle = 'rgba(47,107,255,.35)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(w / 2, 0); ctx.lineTo(w / 2, h); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, h / 2); ctx.lineTo(w, h / 2); ctx.stroke();
+  ctx.restore();
+}
+
+// Cenários de fundo (vetoriais, desenhados direto no canvas). Portados do
+// tema "Surto Financeiro". Chão em ~0.86h para o personagem "pisar".
+const CENARIOS = [
+  { id: 'nenhum', label: 'Nenhum (grade)' },
+  { id: 'creme', label: 'Creme (papel)' },
+  { id: 'escritorio', label: 'Escritório' },
+  { id: 'rua', label: 'Rua' },
+  { id: 'banco', label: 'Banco / Agência' },
+  { id: 'noite', label: 'Cidade à noite' },
+  { id: 'mercado', label: 'Mercado' },
+  { id: 'parque', label: 'Parque' },
+  { id: 'quarto', label: 'Quarto' },
+  { id: 'academia', label: 'Academia' },
+  { id: 'cafe', label: 'Cafeteria' },
+  { id: 'casa', label: 'Sala de casa' },
+  { id: 'praia', label: 'Praia' },
+  { id: 'shopping', label: 'Shopping' },
+  { id: 'suburbio', label: 'Subúrbio (casas/carros)' },
+  { id: 'dramatico', label: 'Dramático (surto)' },
+];
+function desenharCenario(ctx, id, w, h) {
+  if (!id || id === 'nenhum') return;
+  const g = h * 0.86;
+  const R = (x, y, ww, hh, f) => { ctx.fillStyle = f; ctx.fillRect(x, y, ww, hh); };
+  const C = (cx, cy, r, f) => { ctx.fillStyle = f; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.fill(); };
+  const LN = (x1, y1, x2, y2, st, sw) => { ctx.strokeStyle = st; ctx.lineWidth = sw; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); };
+  const SR = (x, y, ww, hh, st, sw) => { ctx.strokeStyle = st; ctx.lineWidth = sw; ctx.strokeRect(x, y, ww, hh); };
+
+  if (id === 'creme') { R(0, 0, w, h, '#f7edc7'); return; }
+
+  if (id === 'dramatico') {
+    const gr = ctx.createRadialGradient(w / 2, h * 0.42, 0, w / 2, h * 0.42, w * 0.75);
+    gr.addColorStop(0, '#3a2140'); gr.addColorStop(0.55, '#1b1424'); gr.addColorStop(1, '#070509');
+    ctx.fillStyle = gr; ctx.fillRect(0, 0, w, h);
+    const cx = w / 2, cy = h * 0.42, RR = Math.max(w, h);
+    for (let i = 0; i < 24; i++) {
+      const a0 = (i / 24) * Math.PI * 2, a1 = a0 + Math.PI / 24;
+      ctx.fillStyle = '#e0452f'; ctx.globalAlpha = i % 2 ? 0.06 : 0.11;
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a0) * RR, cy + Math.sin(a0) * RR); ctx.lineTo(cx + Math.cos(a1) * RR, cy + Math.sin(a1) * RR); ctx.closePath(); ctx.fill();
+    }
+    ctx.globalAlpha = 1; return;
+  }
+
+  if (id === 'escritorio') {
+    R(0, 0, w, h, '#d9cdb8'); R(0, g, w, h - g, '#b08d5c');
+    R(w * 0.12, h * 0.16, w * 0.34, h * 0.32, '#a9c7dd'); SR(w * 0.12, h * 0.16, w * 0.34, h * 0.32, '#8a7f6b', 6);
+    LN(w * 0.29, h * 0.16, w * 0.29, h * 0.48, '#8a7f6b', 4); LN(w * 0.12, h * 0.32, w * 0.46, h * 0.32, '#8a7f6b', 4);
+    R(w * 0.8, g - 52, 6, 52, '#7a5230'); C(w * 0.81, g - 62, 22, '#5aa06a');   // vaso de planta
+    return;
+  }
+
+  if (id === 'rua') {
+    const gr = ctx.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#8ecbf0'); gr.addColorStop(1, '#dff0fb');
+    ctx.fillStyle = gr; ctx.fillRect(0, 0, w, h);
+    C(w * 0.82, h * 0.16, 26, '#ffe9a8');
+    const bld = (x, ww, hh, f) => {
+      R(x, g - hh, ww, hh, f);
+      for (let r = 0; r < Math.floor(hh / 26); r++) for (let cc = 0; cc < Math.floor(ww / 22); cc++) R(x + 8 + cc * 22, g - hh + 10 + r * 26, 10, 14, '#bcd3e6');
+    };
+    bld(w * 0.02, 90, 220, '#6d7f92'); bld(w * 0.3, 70, 160, '#8496a8'); bld(w * 0.62, 110, 250, '#5f7183'); bld(w * 0.86, 60, 190, '#7c8ea0');
+    R(0, g, w, h - g, '#9aa3ab'); R(0, g, w, 6, '#c3ccd3');
+    return;
+  }
+
+  if (id === 'banco') {
+    R(0, 0, w, h, '#e7e2d6'); R(0, g, w, h - g, '#9fa7ac');
+    R(w * 0.62, h * 0.2, w * 0.3, h * 0.14, '#2f5d8a');
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 18px Arial'; ctx.textAlign = 'center'; ctx.fillText('BANCO', w * 0.77, h * 0.29);
+    R(w * 0.08, g - 70, w * 0.5, 70, '#5a6b7a'); R(w * 0.08, g - 82, w * 0.5, 16, '#48586a');
+    C(w * 0.2, h * 0.24, 14, '#c9a24a'); C(w * 0.2, h * 0.24, 8, '#e6c869');
+    ctx.textAlign = 'start'; return;
+  }
+
+  if (id === 'suburbio') {
+    const gr = ctx.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#8ecbf0'); gr.addColorStop(1, '#e3f2fb');
+    ctx.fillStyle = gr; ctx.fillRect(0, 0, w, h);
+    C(w * 0.82, h * 0.12, w * 0.05, '#ffe9a8');           // sol
+    R(0, g, w, h - g, '#8fb96a'); R(0, g, w, Math.max(6, h * 0.008), '#7aa458'); // grama + calçada
+    const casa = (x, ww, cor, teto) => {
+      const hh = ww * 0.82, by = g - hh;
+      R(x, by, ww, hh, cor);
+      ctx.fillStyle = teto; ctx.beginPath(); ctx.moveTo(x - ww * 0.08, by); ctx.lineTo(x + ww / 2, by - ww * 0.44); ctx.lineTo(x + ww * 1.08, by); ctx.closePath(); ctx.fill();
+      R(x + ww * 0.42, g - hh * 0.42, ww * 0.16, hh * 0.42, '#6b4a2c');           // porta
+      R(x + ww * 0.12, by + hh * 0.16, ww * 0.2, hh * 0.2, '#bfe0f2'); R(x + ww * 0.68, by + hh * 0.16, ww * 0.2, hh * 0.2, '#bfe0f2'); // janelas
+    };
+    const carro = (x, ww, cor) => {
+      const hh = ww * 0.34, y = g - hh;
+      ctx.fillStyle = cor;
+      if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(x, y, ww, hh, hh * 0.3); ctx.fill(); } else ctx.fillRect(x, y, ww, hh);
+      ctx.beginPath(); ctx.moveTo(x + ww * 0.24, y); ctx.lineTo(x + ww * 0.36, y - hh * 0.62); ctx.lineTo(x + ww * 0.7, y - hh * 0.62); ctx.lineTo(x + ww * 0.82, y); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#cfe8f5'; ctx.beginPath(); ctx.moveTo(x + ww * 0.3, y - hh * 0.06); ctx.lineTo(x + ww * 0.39, y - hh * 0.52); ctx.lineTo(x + ww * 0.66, y - hh * 0.52); ctx.lineTo(x + ww * 0.66, y - hh * 0.06); ctx.closePath(); ctx.fill();
+      C(x + ww * 0.26, g, hh * 0.34, '#222'); C(x + ww * 0.74, g, hh * 0.34, '#222');
+      C(x + ww * 0.26, g, hh * 0.15, '#999'); C(x + ww * 0.74, g, hh * 0.15, '#999');
+    };
+    casa(w * 0.02, w * 0.28, '#e7d7b0', '#9a5b4a'); casa(w * 0.55, w * 0.32, '#dfe6ee', '#5a6b7a');
+    carro(w * 0.62, w * 0.24, '#455a74');                 // carro comum
+    carro(w * 0.05, w * 0.26, '#c0392b');                 // carrão vermelho do vizinho (destaque)
+    return;
+  }
+
+  if (id === 'parque') {
+    const gr = ctx.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#9fd8f2'); gr.addColorStop(1, '#e6f6ff');
+    ctx.fillStyle = gr; ctx.fillRect(0, 0, w, h);
+    C(w * 0.16, h * 0.16, 28, '#ffe58a'); R(0, g, w, h - g, '#7cc36a');
+    C(w * 0.62, h * 0.2, 20, '#fff'); C(w * 0.68, h * 0.2, 24, '#fff'); C(w * 0.74, h * 0.2, 18, '#fff');
+    const arvore = (x) => { R(x - 7, g - 70, 14, 74, '#7a5230'); C(x, g - 88, 40, '#4a9d5a'); C(x - 28, g - 74, 28, '#57ab66'); C(x + 28, g - 74, 28, '#57ab66'); };
+    arvore(w * 0.86); arvore(w * 0.16);
+    return;
+  }
+
+  if (id === 'quarto') {
+    R(0, 0, w, h, '#c7d6e6'); R(0, g, w, h - g, '#c79a6b');
+    R(w * 0.52, g - 120, w * 0.44, 120, '#8a6a4a'); R(w * 0.52, g - 142, w * 0.44, 26, '#a5825d'); // cama
+    R(w * 0.53, g - 158, 46, 22, '#f5f0e6');                                                       // travesseiro
+    R(w * 0.1, h * 0.16, w * 0.26, h * 0.24, '#7fb0d8'); SR(w * 0.1, h * 0.16, w * 0.26, h * 0.24, '#5f7e94', 6); // janela
+    LN(w * 0.23, h * 0.16, w * 0.23, h * 0.4, '#5f7e94', 4); LN(w * 0.1, h * 0.28, w * 0.36, h * 0.28, '#5f7e94', 4);
+    R(w * 0.02, g - 90, 26, 90, '#9a6b3a');                                                        // criado-mudo
+    return;
+  }
+
+  if (id === 'academia') {
+    R(0, 0, w, h, '#cdd3da'); R(0, g, w, h - g, '#5b5f66');
+    const halter = (x, y) => { C(x - 20, y, 12, '#2b2f36'); C(x + 20, y, 12, '#2b2f36'); R(x - 20, y - 4, 40, 8, '#4a4f57'); };
+    R(w * 0.05, g - 120, 40, 120, '#3a3f47'); R(w * 0.02, g - 130, 46, 16, '#2b2f36');
+    halter(w * 0.34, g - 18); halter(w * 0.52, g - 18);
+    R(w * 0.66, g - 70, w * 0.28, 70, '#33383f'); R(w * 0.66, g - 82, w * 0.28, 16, '#22262c');
+    ctx.fillStyle = '#8a9099'; ctx.font = 'bold 16px Arial'; ctx.textAlign = 'center'; ctx.fillText('ACADEMIA', w * 0.5, h * 0.18); ctx.textAlign = 'start';
+    return;
+  }
+
+  if (id === 'cafe') {
+    R(0, 0, w, h, '#e9dcc6'); R(0, g, w, h - g, '#6e4a2c');
+    R(w * 0.06, g - 62, w * 0.52, 62, '#5c3b22'); R(w * 0.06, g - 74, w * 0.52, 14, '#4a2f1a'); // balcão
+    R(w * 0.1, g - 104, 28, 30, '#9aa0a8');                                                      // máquina
+    C(w * 0.26, g - 82, 8, '#f3efe6'); C(w * 0.33, g - 82, 8, '#f3efe6'); C(w * 0.4, g - 82, 8, '#f3efe6'); // xícaras
+    R(w * 0.64, h * 0.15, w * 0.28, h * 0.14, '#3b2a1a');
+    ctx.fillStyle = '#f0d9a8'; ctx.font = 'bold 22px Georgia'; ctx.textAlign = 'center'; ctx.fillText('CAFÉ', w * 0.78, h * 0.24); ctx.textAlign = 'start';
+    return;
+  }
+
+  if (id === 'casa') {
+    R(0, 0, w, h, '#dfe6ee'); R(0, g, w, h - g, '#c79a6b');
+    R(w * 0.16, g - 4, w * 0.56, 10, '#b25b5b');                                                  // tapete
+    R(w * 0.1, g - 66, w * 0.42, 66, '#5a7a9a'); R(w * 0.1, g - 94, w * 0.42, 30, '#6a8aac');     // sofá
+    R(w * 0.1, g - 94, 16, 94, '#4a6a8a'); R(w * 0.5, g - 94, 16, 94, '#4a6a8a');                 // braços
+    R(w * 0.86, g - 96, 6, 96, '#7a5230');                                                        // abajur (haste)
+    ctx.fillStyle = '#f2d98a'; ctx.beginPath(); ctx.moveTo(w * 0.86 - 18, g - 96); ctx.lineTo(w * 0.86 + 24, g - 96); ctx.lineTo(w * 0.86 + 14, g - 128); ctx.lineTo(w * 0.86 - 8, g - 128); ctx.closePath(); ctx.fill();
+    SR(w * 0.58, h * 0.18, w * 0.18, h * 0.18, '#8a7f6b', 6); R(w * 0.6, h * 0.2, w * 0.14, h * 0.14, '#a9c7dd'); // quadro
+    return;
+  }
+
+  if (id === 'praia') {
+    const gr = ctx.createLinearGradient(0, 0, 0, h * 0.6); gr.addColorStop(0, '#7ec8f0'); gr.addColorStop(1, '#cdeefb');
+    ctx.fillStyle = gr; ctx.fillRect(0, 0, w, h * 0.58);
+    R(0, h * 0.58, w, g - h * 0.58, '#2aa7c4');                                                    // mar
+    R(0, g, w, h - g, '#ecd9a0');                                                                  // areia
+    C(w * 0.8, h * 0.16, 26, '#ffe9a8');
+    for (let i = 0; i < 4; i++) LN(0, h * 0.58 + 10 + i * 12, w, h * 0.58 + 6 + i * 12, '#8fd2e0', 2); // ondas
+    R(w * 0.14, g - 70, 6, 70, '#8a6a4a');                                                          // guarda-sol (haste)
+    ctx.fillStyle = '#e2574c'; ctx.beginPath(); ctx.arc(w * 0.145, g - 70, 46, Math.PI, 0); ctx.closePath(); ctx.fill();
+    return;
+  }
+
+  if (id === 'shopping') {
+    R(0, 0, w, h, '#eef1f5'); R(0, g, w, h - g, '#cfd3d8');
+    const loja = (x, cor, nome) => {
+      R(x, g - 150, w * 0.26, 150, cor); R(x, g - 150, w * 0.26, 26, shade(cor, -34));
+      R(x + 8, g - 116, w * 0.26 - 16, 100, '#dbe6ef');
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 13px Arial'; ctx.textAlign = 'center'; ctx.fillText(nome, x + w * 0.13, g - 132);
+    };
+    loja(w * 0.04, '#8a5a9a', 'MODA'); loja(w * 0.4, '#5a8a6a', 'TECH'); loja(w * 0.76, '#9a6a5a', 'CASA');
+    ctx.textAlign = 'start';
+    return;
+  }
+
+  if (id === 'mercado') {
+    R(0, 0, w, h, '#eef1e6'); R(0, g, w, h - g, '#cfd3cf');
+    const cores = ['#d55', '#5a9', '#59d', '#dc5'];
+    const shelf = (x) => {
+      R(x, g - 150, w * 0.26, 150, '#b9a07a');
+      for (let r = 0; r < 4; r++) { R(x, g - 150 + r * 38, w * 0.26, 8, '#8a795a'); for (let cc = 0; cc < 4; cc++) R(x + 6 + cc * 20, g - 150 + r * 38 - 20, 14, 20, cores[(r + cc) % 4]); }
+    };
+    shelf(w * 0.04); shelf(w * 0.4); shelf(w * 0.76);
+    return;
+  }
+
+  if (id === 'noite') {
+    const gr = ctx.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#0b1030'); gr.addColorStop(1, '#2a2350');
+    ctx.fillStyle = gr; ctx.fillRect(0, 0, w, h);
+    C(w * 0.8, h * 0.16, 24, '#f4f0d0');
+    for (let i = 0; i < 30; i++) C((i * 137) % w, (i * 89) % (h * 0.6), 1.4, '#fff');
+    const bld = (x, ww, hh) => {
+      R(x, g - hh, ww, hh, '#141a33');
+      for (let r = 0; r < Math.floor(hh / 24); r++) for (let cc = 0; cc < Math.floor(ww / 20); cc++) if (((r + cc + x) | 0) % 2) R(x + 6 + cc * 20, g - hh + 8 + r * 24, 8, 12, '#ffd97a');
+    };
+    bld(w * 0.02, 90, 240); bld(w * 0.32, 70, 180); bld(w * 0.6, 110, 260); bld(w * 0.85, 70, 200);
+    R(0, g, w, h - g, '#0a0d1c');
+    return;
+  }
+}
+
+// Renderiza um modelo dentro de um mini-canvas (preset/preview), auto-enquadrado.
+function renderMini(canvas, modelo) {
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const sk = construir(modelo).fk(0, 0);
+  const r = modelo.dna.tamanhoCabeca;
+  const bb = sk.getBoundingBox(r);
+  const margem = 12;
+  const s = Math.min((canvas.width - margem * 2) / (bb.largura || 1), (canvas.height - margem * 2) / (bb.altura || 1));
+  ctx.save();
+  ctx.translate(canvas.width / 2, canvas.height / 2);
+  ctx.scale(s, s);
+  ctx.translate(-(bb.minX + bb.largura / 2), -(bb.minY + bb.altura / 2));
+  desenharStickman(ctx, sk, modelo, r, false);
+  ctx.restore();
+}
+
+
+/* =========================================================
+   ========== CONTROLLER (Eventos) =========================
+   ========================================================= */
+
+const tela = document.getElementById('tela');
+const ctx = tela.getContext('2d');
+const ORIGEM = { x: 300, y: 400 };   // pelve no canvas principal
+let modelo = clonar(PRESETS_FABRICA[0]);  // modelo atual (pai)
+let skAtual = null;                   // esqueleto FK do frame corrente
+let dirty = true;                     // dirty flag: só renderiza quando muda
+let zoom = 1;
+
+// Estado da animação por keyframes.
+let keyframes = [];                   // lista de poses {osso: ânguloLocal}
+let animando = false;                 // loop de animação ativo?
+let andando = false;                  // ciclo de caminhada de perfil ativo?
+let durMs = 700;                      // duração de cada trecho entre keyframes
+let animInicio = 0;                   // timestamp de início do loop
+
+function clonar(x) { return Object.assign(modeloBase(), JSON.parse(JSON.stringify(x))); }
+function marcarSujo() { dirty = true; }
+
+// Captura a pose corrente (ângulos locais de cada osso do frame atual).
+function poseAtual() {
+  const p = {}; if (skAtual) for (const b of skAtual.bones.values()) p[b.nome] = b.angle; return p;
+}
+// Interpola a POSE entre keyframes com lerp + ease-in-out (via cosseno,
+// equivalente a usar Math.sin): f = 0.5 - 0.5*cos(t*π). Faz loop pelo conjunto.
+// A EXPRESSÃO é discreta (não interpola): troca no meio da transição — usa a do
+// keyframe de origem até f<0.5 e a do destino depois. Retorna { pose, expr }.
+function quadroInterpolado(now) {
+  const n = keyframes.length;
+  const total = n * durMs;                       // fecha o ciclo (último → primeiro)
+  const tt = (((now - animInicio) % total) / durMs);
+  const i = Math.floor(tt) % n, j = (i + 1) % n;
+  const f0 = tt - Math.floor(tt);
+  const f = 0.5 - 0.5 * Math.cos(f0 * Math.PI);  // ease-in-out
+  const a = keyframes[i].pose, b = keyframes[j].pose, pose = {};
+  for (const k in a) { const bk = (k in b) ? b[k] : a[k]; pose[k] = a[k] + (bk - a[k]) * f; }
+  const expr = f0 < 0.5 ? keyframes[i].expr : keyframes[j].expr;
+  return { pose, expr };
+}
+
+// ----- Loop principal com requestAnimationFrame + dirty flag -----------
+function loop(now) {
+  if (andando || (animando && keyframes.length >= 2)) dirty = true;   // animação sempre redesenha
+  if (dirty) {
+    const t0 = performance.now();
+    render(now || 0);
+    const t1 = performance.now();
+    if (!animando) console.log(`[render] ${(t1 - t0).toFixed(2)} ms — geração ${modelo.geracao}`);
+    dirty = false;
+  }
+  requestAnimationFrame(loop);
+}
+
+function render(now) {
+  ctx.clearRect(0, 0, tela.width, tela.height);
+  const cen = modelo.cenario || 'nenhum';
+  if (cen !== 'nenhum') desenharCenario(ctx, cen, tela.width, tela.height);
+  else if (document.getElementById('chkGrade').checked) desenharGrade(ctx, tela.width, tela.height);
+  // Andando: ciclo de caminhada de perfil; Animando: keyframes; senão, modelo (IK).
+  let modeloRender = modelo;
+  if (andando) {
+    const fase = ((now || 0) % 900) / 900;
+    const bob = Math.abs(Math.sin(fase * Math.PI * 2)) * 4;
+    modeloRender = Object.assign({}, modelo, { perfil: true });
+    skAtual = construirPose(modeloRender, poseCaminhada(fase)).fk(ORIGEM.x, ORIGEM.y - bob);
+  } else if (animando && keyframes.length >= 2) {
+    const q = quadroInterpolado(now);
+    modeloRender = Object.assign({}, modelo, { expressao: q.expr });
+    skAtual = construirPose(modeloRender, q.pose).fk(ORIGEM.x, ORIGEM.y);
+  } else {
+    skAtual = construir(modelo).fk(ORIGEM.x, ORIGEM.y);
+  }
+  ctx.save();
+  // zoom em torno do centro
+  ctx.translate(tela.width / 2, tela.height / 2); ctx.scale(zoom, zoom); ctx.translate(-tela.width / 2, -tela.height / 2);
+  desenharStickman(ctx, skAtual, modeloRender, modeloRender.dna.tamanhoCabeca, document.getElementById('chkOssos').checked);
+  ctx.restore();
+}
+
+// ----- Sincroniza sliders/painel a partir do modelo --------------------
+function sincronizarUI() {
+  const d = modelo.dna;
+  set('sGrossura', d.grossuraTronco); set('vGrossura', d.grossuraTronco.toFixed(1));
+  set('sPernas', d.comprimentoPernas); set('vPernas', Math.round(d.comprimentoPernas * 100) + '%');
+  set('sBracos', d.comprimentoBracos); set('vBracos', Math.round(d.comprimentoBracos * 100) + '%');
+  set('sCabeca', d.tamanhoCabeca); set('vCabeca', Math.round(d.tamanhoCabeca));
+  set('sPernaE', modelo.anguloPernaE); set('vPernaE', modelo.anguloPernaE + '°');
+  set('sPernaD', modelo.anguloPernaD); set('vPernaD', modelo.anguloPernaD + '°');
+  document.getElementById('corTraco').value = modelo.corTraco;
+  document.getElementById('estilo').value = modelo.estilo;
+  document.getElementById('expressao').value = modelo.expressao || 'neutro';
+  document.getElementById('axCapa').checked = !!modelo.anexos.capa;
+  document.getElementById('axEspada').checked = !!modelo.anexos.espada;
+  document.getElementById('axChapeu').checked = !!modelo.anexos.chapeu;
+  document.getElementById('axOrelhas').checked = !!modelo.anexos.orelhas;
+  document.getElementById('axCabelo').checked = !!modelo.anexos.cabelo;
+  document.getElementById('axBarba').checked = !!modelo.anexos.barba;
+  document.getElementById('axGravata').checked = !!modelo.anexos.gravata;
+  document.getElementById('axPaleto').checked = !!modelo.anexos.paleto;
+  document.getElementById('axCalca').checked = !!modelo.anexos.calca;
+  document.getElementById('axSapato').checked = !!modelo.anexos.sapato;
+  document.getElementById('axNota').checked = !!modelo.anexos.nota;
+  document.getElementById('axCartao').checked = !!modelo.anexos.cartao;
+  document.getElementById('axCelular').checked = !!modelo.anexos.celular;
+  document.getElementById('axSacola').checked = !!modelo.anexos.sacola;
+  document.getElementById('axEnvelope').checked = !!modelo.anexos.envelope;
+  document.getElementById('axDocumento').checked = !!modelo.anexos.documento;
+  document.getElementById('cenario').value = modelo.cenario || 'nenhum';
+  document.getElementById('chkPerfil').checked = !!modelo.perfil;
+  document.getElementById('lblGeracao').textContent = modelo.geracao;
+}
+function set(id, v) { const el = document.getElementById(id); if (el.tagName === 'INPUT') el.value = v; else el.textContent = v; }
+
+// ----- Sliders (DNA + pose) --------------------------------------------
+const liga = (id, fn) => document.getElementById(id).addEventListener('input', (e) => { fn(parseFloat(e.target.value)); marcarSujo(); sincronizarUI(); });
+liga('sGrossura', v => modelo.dna.grossuraTronco = v);
+liga('sPernas',   v => modelo.dna.comprimentoPernas = v);
+liga('sBracos',   v => modelo.dna.comprimentoBracos = v);
+liga('sCabeca',   v => modelo.dna.tamanhoCabeca = v);
+liga('sPernaE',   v => modelo.anguloPernaE = v);
+liga('sPernaD',   v => modelo.anguloPernaD = v);
+
+document.getElementById('corTraco').addEventListener('input', e => { modelo.corTraco = e.target.value; marcarSujo(); });
+document.getElementById('estilo').addEventListener('change', e => { modelo.estilo = e.target.value; marcarSujo(); });
+const selExpr = document.getElementById('expressao');
+EXPRESSOES.forEach(x => { const o = document.createElement('option'); o.value = x.id; o.textContent = x.label; selExpr.append(o); });
+selExpr.addEventListener('change', e => { modelo.expressao = e.target.value; marcarSujo(); });
+['chkGrade', 'chkOssos'].forEach(id => document.getElementById(id).addEventListener('change', marcarSujo));
+document.getElementById('chkPerfil').addEventListener('change', e => { modelo.perfil = e.target.checked; marcarSujo(); });
+document.getElementById('btnAndar').addEventListener('click', (e) => {
+  andando = !andando; e.target.textContent = andando ? '⏹ Parar' : '🚶 Andar (perfil)';
+  if (andando) { animando = false; document.getElementById('btnAnimar').textContent = '▶ Animar'; }
+  marcarSujo();
+});
+['axCapa', 'axEspada', 'axChapeu', 'axOrelhas', 'axCabelo', 'axBarba', 'axGravata', 'axPaleto', 'axCalca', 'axSapato', 'axNota', 'axCartao', 'axCelular', 'axSacola', 'axEnvelope', 'axDocumento'].forEach(id => document.getElementById(id).addEventListener('change', e => {
+  modelo.anexos[id.replace('ax', '').toLowerCase()] = e.target.checked; marcarSujo();
+}));
+
+// Cenário de fundo
+const selCenario = document.getElementById('cenario');
+CENARIOS.forEach(c => { const o = document.createElement('option'); o.value = c.id; o.textContent = c.label; selCenario.append(o); });
+selCenario.addEventListener('change', e => { modelo.cenario = e.target.value; marcarSujo(); });
+
+// ----- Arrastar mãos/pés com o mouse (IK) ------------------------------
+let arrastando = null;
+function pontoNoCanvas(ev) {
+  const r = tela.getBoundingClientRect();
+  const cx = (ev.clientX - r.left) * (tela.width / r.width);
+  const cy = (ev.clientY - r.top) * (tela.height / r.height);
+  // desfaz o zoom aplicado no render
+  return { x: (cx - tela.width / 2) / zoom + tela.width / 2, y: (cy - tela.height / 2) / zoom + tela.height / 2 };
+}
+function efetuadorMaisProximo(p) {
+  const alvos = { maoE: 'bracoInfE', maoD: 'bracoInfD', peE: 'pernaInfE', peD: 'pernaInfD' };
+  let melhor = null, dmin = 26;
+  for (const [cad, osso] of Object.entries(alvos)) {
+    const b = skAtual.get(osso);
+    const d = Math.hypot(p.x - b.ex, p.y - b.ey);
+    if (d < dmin) { dmin = d; melhor = cad; }
+  }
+  return melhor;
+}
+tela.addEventListener('pointerdown', ev => {
+  const p = pontoNoCanvas(ev); arrastando = efetuadorMaisProximo(p);
+  if (arrastando) tela.setPointerCapture(ev.pointerId);
+});
+tela.addEventListener('pointermove', ev => {
+  if (!arrastando) return;
+  const p = pontoNoCanvas(ev);
+  resolverIK(skAtual, arrastando, p.x, p.y);
+  // grava a pose resolvida das pernas de volta no modelo (para persistir)
+  if (arrastando === 'peE') modelo.anguloPernaE = clamp(skAtual.get('pernaSupE').angle - 186, -45, 45);
+  if (arrastando === 'peD') modelo.anguloPernaD = clamp(skAtual.get('pernaSupD').angle - 174, -45, 45);
+  marcarSujo();
+});
+tela.addEventListener('pointerup', () => { arrastando = null; sincronizarUI(); });
+tela.addEventListener('wheel', ev => { ev.preventDefault(); zoom = clamp(zoom * (ev.deltaY < 0 ? 1.1 : 0.9), 0.4, 3); marcarSujo(); }, { passive: false });
+
+// ----- EVOLUIR: gera 3 crias, mostra ninhada, seleção manual -----------
+const ninhada = document.getElementById('ninhada');
+let candidatos = [];
+document.getElementById('btnEvoluir').addEventListener('click', () => {
+  candidatos = [clonar(modelo), gerarCria(modelo), gerarCria(modelo), gerarCria(modelo)];
+  const rotulos = ['Pai (atual)', 'Cria 1', 'Cria 2', 'Cria 3'];
+  ninhada.innerHTML = '';
+  candidatos.forEach((cand, i) => {
+    const card = document.createElement('div');
+    card.className = 'cria' + (i === 0 ? ' pai' : '');
+    const cv = document.createElement('canvas'); cv.width = 130; cv.height = 130;
+    const lb = document.createElement('span'); lb.textContent = rotulos[i];
+    card.append(cv, lb); ninhada.append(card);
+    renderMini(cv, cand);
+    card.addEventListener('click', () => escolher(cand));
+  });
+  ninhada.classList.add('aberta');
+});
+function escolher(cand) {
+  modelo = cand;
+  modelo.geracao++;
+  ninhada.classList.remove('aberta');
+  // A cada 5 gerações, salva automaticamente o melhor (o escolhido) modelo.
+  if (modelo.geracao % 5 === 0) {
+    salvarModelo(modelo, 'Auto Gen ' + modelo.geracao);
+    montarPresets();
+    console.log('[auto-save] melhor modelo salvo na geração ' + modelo.geracao);
+  }
+  sincronizarUI(); montarPresets(); marcarSujo();
+}
+
+// ----- SALVAR + PRESETS -------------------------------------------------
+document.getElementById('btnSalvar').addEventListener('click', () => {
+  const nome = prompt('Nome do preset:', modelo.nome || 'Meu modelo');
+  if (nome === null) return;
+  modelo.nome = nome; salvarModelo(modelo, nome); montarPresets();
+});
+function montarPresets() {
+  const cont = document.getElementById('listaPresets');
+  cont.innerHTML = '';
+  const itens = [
+    ...PRESETS_FABRICA.map(p => ({ modelo: clonar(p), rotulo: p.nome })),
+    ...lerSalvos().map(m => ({ modelo: clonar(m), rotulo: m.nome || 'Salvo' })),
+  ];
+  itens.forEach(({ modelo: m, rotulo }) => {
+    const card = document.createElement('div'); card.className = 'preset';
+    const cv = document.createElement('canvas'); cv.width = 80; cv.height = 80;
+    const lb = document.createElement('span'); lb.textContent = rotulo;
+    card.append(cv, lb); cont.append(card);
+    renderMini(cv, m);
+    card.addEventListener('click', () => { modelo = clonar(m); sincronizarUI(); marcarSujo(); });
+  });
+}
+
+// ----- EXPORTAR SVG -----------------------------------------------------
+function gerarSVG() {
+  const sk = construir(modelo).fk(0, 0);
+  const r = modelo.dna.tamanhoCabeca;
+  const bb = sk.getBoundingBox(r);
+  const m = 20;
+  const W = (bb.largura + m * 2).toFixed(1), H = (bb.altura + m * 2).toFixed(1);
+  const T = (x, y) => [(x - bb.minX + m).toFixed(1), (y - bb.minY + m).toFixed(1)];
+  let el = '';
+  // capa (atrás)
+  acessoriosDe(modelo).filter(a => a.tras).forEach(a => el += a.obj.svg(deslocar(sk, bb, m), r));
+  // ossos do CORPO como <line> (sem braços — vão por cima do paletó)
+  const cor = modelo.corTraco;
+  const BRACOS = ['bracoSupE', 'bracoInfE', 'bracoSupD', 'bracoInfD'];
+  const osso = (b) => { const [x1, y1] = T(b.x, b.y), [x2, y2] = T(b.ex, b.ey); return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${cor}" stroke-width="${b.thickness.toFixed(1)}" stroke-linecap="round"/>`; };
+  for (const nome of sk.ordem) {
+    const b = sk.get(nome);
+    if (b.length <= 0 || nome === 'cabeca' || BRACOS.includes(nome)) continue;
+    el += osso(b);
+  }
+  // cabeça como <circle>
+  const c = fim(sk.get('cabeca')); const [cx, cy] = T(c.x, c.y);
+  el += `<circle cx="${cx}" cy="${cy}" r="${r.toFixed(1)}" fill="#fff" stroke="${cor}" stroke-width="${(sk.get('tronco').thickness * 0.6).toFixed(1)}"/>`;
+  // rosto (expressão)
+  const rotR = (sk.get('cabeca').worldAngle + 90) * D2R;
+  el += rostoSVG(+cx, +cy, rotR, construirRosto(r, modelo.expressao || 'neutro', cor, Math.max(3, sk.get('tronco').thickness)));
+  // acessórios da frente que ficam ATRÁS dos braços (paletó, gravata, cabelo)
+  acessoriosDe(modelo).filter(a => !a.tras && !a.sobreBracos).forEach(a => el += a.obj.svg(deslocar(sk, bb, m), r));
+  // braços por cima do paletó
+  for (const nome of BRACOS) el += osso(sk.get(nome));
+  // acessórios sobre os braços (espada)
+  acessoriosDe(modelo).filter(a => !a.tras && a.sobreBracos).forEach(a => el += a.obj.svg(deslocar(sk, bb, m), r));
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${el}</svg>`;
+}
+// Devolve um esqueleto com coords já deslocadas (para os SVGs dos acessórios).
+function deslocar(sk, bb, m) {
+  const d = new Stickman();
+  for (const nome of sk.ordem) {
+    const b = sk.get(nome); const nb = new Bone(nome, { parent: b.parent, length: b.length, angle: b.angle, thickness: b.thickness });
+    nb.x = b.x - bb.minX + m; nb.y = b.y - bb.minY + m; nb.ex = b.ex - bb.minX + m; nb.ey = b.ey - bb.minY + m; nb.worldAngle = b.worldAngle;
+    d.bones.set(nome, nb);
+  }
+  d.ordem = sk.ordem.slice();
+  return d;
+}
+function baixar(nomeArq, conteudo, tipo) {
+  const blob = conteudo instanceof Blob ? conteudo : new Blob([conteudo], { type: tipo });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nomeArq;
+  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+document.getElementById('btnSVG').addEventListener('click', () => {
+  baixar((modelo.nome || 'stickman') + '.svg', gerarSVG(), 'image/svg+xml');
+  // também guarda o JSON do modelo junto (útil p/ reimportar)
+  console.log('JSON do modelo:', JSON.stringify(modelo));
+});
+
+// ----- EXPORTAR PNG (fundo transparente) --------------------------------
+document.getElementById('btnPNG').addEventListener('click', () => {
+  const sk = construir(modelo).fk(0, 0);
+  const r = modelo.dna.tamanhoCabeca, bb = sk.getBoundingBox(r), m = 24;
+  const off = document.createElement('canvas');
+  off.width = Math.ceil(bb.largura + m * 2); off.height = Math.ceil(bb.altura + m * 2);
+  const octx = off.getContext('2d');           // NÃO preenche fundo → transparente
+  octx.translate(-bb.minX + m, -bb.minY + m);
+  desenharStickman(octx, sk, modelo, r, false);
+  baixar((modelo.nome || 'stickman') + '.png', dataURLparaBlob(off.toDataURL('image/png')), 'image/png');
+});
+function dataURLparaBlob(url) {
+  const [cab, b64] = url.split(','); const bin = atob(b64);
+  const arr = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], { type: cab.match(/:(.*?);/)[1] });
+}
+
+// ----- Também exporta JSON pelo botão Salvar (atalho) -------------------
+// (o botão Salvar grava no localStorage; SVG/PNG baixam arquivos)
+
+// ----- ANIMAÇÃO por keyframes -------------------------------------------
+const fita = document.getElementById('fitaFrames');
+function atualizarFita() {
+  document.getElementById('vFrames').textContent = keyframes.length;
+  fita.innerHTML = '';
+  keyframes.forEach((kf, i) => {
+    const cv = document.createElement('canvas'); cv.width = 40; cv.height = 40;
+    cv.title = `Frame ${i + 1} · ${kf.expr} (clique carrega · botão direito remove)`;
+    cv.style.cssText = 'background:#fff;border-radius:5px;border:1px solid var(--borda);cursor:pointer';
+    // miniatura da pose COM a expressão daquele keyframe
+    const mm = Object.assign({}, modelo, { expressao: kf.expr });
+    const skm = construirPose(mm, kf.pose).fk(0, 0);
+    const r = mm.dna.tamanhoCabeca, bb = skm.getBoundingBox(r), c = cv.getContext('2d');
+    const s = Math.min(34 / (bb.largura || 1), 34 / (bb.altura || 1));
+    c.translate(20, 20); c.scale(s, s); c.translate(-(bb.minX + bb.largura / 2), -(bb.minY + bb.altura / 2));
+    desenharStickman(c, skm, mm, r, false);
+    cv.addEventListener('click', () => { aplicarQuadro(kf); });
+    cv.addEventListener('contextmenu', (e) => { e.preventDefault(); keyframes.splice(i, 1); atualizarFita(); });
+    fita.append(cv);
+  });
+}
+// Carrega um keyframe (pose + expressão) no modelo atual para edição.
+function aplicarQuadro(kf) {
+  animando = false; document.getElementById('btnAnimar').textContent = '▶ Animar';
+  modelo.expressao = kf.expr;
+  skAtual = construirPose(modelo, kf.pose).fk(ORIGEM.x, ORIGEM.y);
+  if (kf.pose.pernaSupE != null) modelo.anguloPernaE = clamp(kf.pose.pernaSupE - 186, -45, 45);
+  if (kf.pose.pernaSupD != null) modelo.anguloPernaD = clamp(kf.pose.pernaSupD - 174, -45, 45);
+  sincronizarUI(); marcarSujo();
+}
+document.getElementById('btnCapturar').addEventListener('click', () => {
+  if (!skAtual) render(0);
+  keyframes.push({ pose: poseAtual(), expr: modelo.expressao || 'neutro' }); atualizarFita(); marcarSujo();
+});
+document.getElementById('btnAnimar').addEventListener('click', (e) => {
+  if (keyframes.length < 2) { alert('Capture ao menos 2 keyframes para animar.'); return; }
+  animando = !animando;
+  e.target.textContent = animando ? '⏸ Parar' : '▶ Animar';
+  animInicio = performance.now(); marcarSujo();
+});
+document.getElementById('sDur').addEventListener('input', (e) => {
+  durMs = parseInt(e.target.value); document.getElementById('vDur').textContent = durMs;
+});
+document.getElementById('btnLimparFrames').addEventListener('click', () => {
+  keyframes = []; animando = false; document.getElementById('btnAnimar').textContent = '▶ Animar';
+  atualizarFita(); marcarSujo();
+});
+
+// ----- Inicialização ----------------------------------------------------
+montarPresets();
+sincronizarUI();
+atualizarFita();
+requestAnimationFrame(loop);
+</script>

@@ -1,0 +1,8 @@
+# Motor padrão (online, leve):
+edge-tts>=7.0
+
+# Motor local/offline com clonagem de voz (opcional; pesado — traz PyTorch):
+#   pip install coqui-tts
+# Obs.: se o build de 'docopt' falhar (setuptools novo), use um venv ou:
+#   pip install "setuptools<66" wheel && pip install coqui-tts
+# coqui-tts>=0.27

@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stickman Studio — Surto Financeiro</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='7' r='4' fill='none' stroke='%23111' stroke-width='2'/%3E%3Cpath d='M16 11 V21 M16 14 L10 18 M16 14 L22 18 M16 21 L11 30 M16 21 L21 30' stroke='%23111' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <h1>🕺 Stickman Studio</h1>
+      <span class="sub">Anderson Patrimônio Armando Pecunia · canal Surto Financeiro</span>
+    </header>
+
+    <main class="layout">
+      <!-- Coluna esquerda: preview -->
+      <section class="panel preview-panel">
+        <h2>Pré-visualização</h2>
+        <div id="stage" class="stage"></div>
+        <div class="preview-opts">
+          <label>
+            Fundo
+            <select id="bgSelect"></select>
+          </label>
+          <label>
+            Cor do traço
+            <input type="color" id="colorInput" value="#111111" />
+          </label>
+        </div>
+        <div class="slider-row" style="margin-top:12px">
+          <label for="surtoRange">💥 Efeito Surto</label>
+          <input type="range" id="surtoRange" min="0" max="10" step="1" value="0" />
+          <span class="val" id="surtoVal">0</span>
+        </div>
+
+        <h2 style="margin-top:20px">Personagem</h2>
+        <div class="row">
+          <label class="col">
+            Personagem ativo
+            <select id="charSelect"></select>
+          </label>
+        </div>
+        <div id="charFields" class="char-fields"></div>
+        <div class="row">
+          <label class="col">
+            Objeto na mão
+            <select id="propSelect"></select>
+          </label>
+        </div>
+        <div class="row">
+          <label class="col">
+            Vista
+            <select id="viewSelect">
+              <option value="frente">Frente</option>
+              <option value="lado">Lado (perfil)</option>
+            </select>
+          </label>
+          <label class="col">
+            Direção
+            <select id="facingSelect">
+              <option value="dir">➡ Direita</option>
+              <option value="esq">⬅ Esquerda</option>
+            </select>
+          </label>
+        </div>
+        <label class="check-row">
+          <input type="checkbox" id="showFace" checked />
+          Mostrar rosto
+        </label>
+        <label class="check-row">
+          <input type="checkbox" id="earsToggle" />
+          Orelhas
+        </label>
+        <div class="row">
+          <label class="col">
+            Acabamento do traço
+            <select id="finishSelect"></select>
+          </label>
+        </div>
+        <label class="check-row">
+          <input type="checkbox" id="taperToggle" checked />
+          Traço orgânico (peso variável)
+        </label>
+        <label class="check-row">
+          <input type="checkbox" id="tieToggle" />
+          Gravata
+          <input type="color" id="tieColor" value="#c0392b" style="height:26px;width:40px;margin-left:4px" />
+        </label>
+        <label class="check-row">
+          <input type="checkbox" id="hairToggle" />
+          Cabelo
+          <input type="color" id="hairColor" value="#20140a" style="height:26px;width:40px;margin-left:4px" />
+        </label>
+        <div class="row">
+          <label class="col">
+            Estilo de cabelo
+            <select id="hairStyle"></select>
+          </label>
+          <label class="col">
+            Roupa
+            <select id="outfitSelect"></select>
+          </label>
+          <input type="color" id="outfitColor" value="#2c3e50" style="height:36px;width:40px;align-self:flex-end" title="Cor da roupa" />
+        </div>
+        <div class="row">
+          <input type="text" id="charName" placeholder="Nome do novo personagem" />
+          <button id="saveChar" class="btn">Salvar</button>
+        </div>
+        <div class="row">
+          <button id="resetChar" class="btn ghost small">Restaurar</button>
+          <button id="delChar" class="btn ghost small">Excluir</button>
+          <button id="exportCharsJson" class="btn ghost small">Exportar (JSON)</button>
+          <label class="btn ghost small file-label">
+            Importar
+            <input type="file" id="importCharsJson" accept="application/json" hidden />
+          </label>
+        </div>
+      </section>
+
+      <!-- Coluna central: editor de pose -->
+      <section class="panel editor-panel">
+        <h2>Editor de pose</h2>
+        <div class="row">
+          <label class="col">
+            Expressão do rosto
+            <select id="expressionSelect"></select>
+          </label>
+        </div>
+        <div id="sliders" class="sliders"></div>
+        <div class="row">
+          <button id="resetPose" class="btn ghost">Zerar ângulos</button>
+        </div>
+
+        <h3>Salvar pose atual</h3>
+        <div class="row">
+          <input type="text" id="poseName" placeholder="Nome da nova pose" />
+          <button id="savePose" class="btn">Salvar</button>
+        </div>
+
+        <h2 style="margin-top:22px">💬 Diálogo (até 4 personagens)</h2>
+        <div id="dlgCast"></div>
+        <div class="row">
+          <label class="col">
+            Cenário do diálogo
+            <select id="dlgBg"></select>
+          </label>
+          <label class="col">
+            Título do diálogo
+            <input type="text" id="dlgTitle" placeholder="(sem título)" />
+          </label>
+        </div>
+        <p class="hint">Uma fala por linha, no formato <b>A:</b>, <b>B:</b>, <b>C:</b> ou <b>D: texto</b>. Ajuste a posição de cada personagem no elenco (eles viram para o centro automaticamente).</p>
+        <textarea id="dlgScript" class="ai-prompt" rows="5" placeholder="A: Ana, não sobra nada no fim do mês?
+B: É que eu pago todo mundo antes de pagar a mim mesma.
+A: Separe a reserva assim que o salário cai.
+B: Fechou! Bora começar hoje."></textarea>
+        <div class="row">
+          <label class="col" style="max-width:120px">
+            Quadros/fala
+            <input type="number" id="dlgFrames" value="40" min="8" max="200" />
+          </label>
+          <button id="dlgPlay" class="btn">▶ Pré-visualizar</button>
+          <button id="dlgStop" class="btn ghost">■ Parar</button>
+        </div>
+        <div class="row wrap">
+          <button id="dlgWebm" class="btn">Vídeo .webm</button>
+          <button id="dlgPng" class="btn">PNG (zip)</button>
+          <button id="dlgSrt" class="btn ghost">Legendas .srt</button>
+        </div>
+        <p id="dlgStatus" class="status"></p>
+      </section>
+
+      <!-- Coluna direita: biblioteca + animação + export -->
+      <section class="panel side-panel">
+        <h2>🤖 Diretor de IA</h2>
+        <textarea id="aiPrompt" class="ai-prompt" rows="2" placeholder="Descreva a cena/vídeo... ex: boneco surtando com as dívidas do cartão"></textarea>
+        <div class="row">
+          <button id="genLocal" class="btn">Gerar roteiro</button>
+          <button id="genAI" class="btn ghost">Gerar com IA</button>
+        </div>
+        <label class="col" style="margin-top:8px">
+          Título na tela
+          <input type="text" id="titleInput" placeholder="(sem título)" />
+        </label>
+        <details class="ai-config">
+          <summary>Config IA (Hermes / OpenAI-compat.)</summary>
+          <input type="text" id="aiEndpoint" placeholder="Endpoint, ex: https://openrouter.ai/api/v1/chat/completions" />
+          <input type="text" id="aiModel" placeholder="Modelo, ex: nousresearch/hermes-3-llama-3.1-70b" />
+          <input type="password" id="aiKey" placeholder="API key (deixe vazio p/ Ollama local)" />
+          <button id="aiSave" class="btn ghost small">Salvar config</button>
+          <p class="hint">Compatível com OpenRouter/Together (servindo Hermes) ou Ollama local em <code>http://localhost:11434/v1/chat/completions</code>. Roda no seu navegador; a chave fica só no localStorage.</p>
+        </details>
+
+        <h2>Biblioteca de poses</h2>
+        <ul id="poseList" class="pose-list"></ul>
+        <div class="row">
+          <button id="exportPosesJson" class="btn ghost small">Exportar poses (JSON)</button>
+          <label class="btn ghost small file-label">
+            Importar JSON
+            <input type="file" id="importPosesJson" accept="application/json" hidden />
+          </label>
+        </div>
+
+        <h2>Animações prontas</h2>
+        <div class="row">
+          <label class="col">
+            Animação
+            <select id="animSelect"></select>
+          </label>
+          <button id="loadAnim" class="btn">Carregar</button>
+        </div>
+        <div class="row">
+          <input type="text" id="animName" placeholder="Salvar timeline atual como..." />
+          <button id="saveAnim" class="btn">Salvar</button>
+        </div>
+        <div class="row">
+          <button id="delAnim" class="btn ghost small">Excluir</button>
+          <button id="exportAnimsJson" class="btn ghost small">Exportar (JSON)</button>
+          <label class="btn ghost small file-label">
+            Importar
+            <input type="file" id="importAnimsJson" accept="application/json" hidden />
+          </label>
+        </div>
+
+        <h2>Animação (quadros-chave)</h2>
+        <p class="hint">
+          Monte a pose no editor e clique em <b>+ Adicionar quadro-chave</b>. A
+          animação interpola cada trecho entre quadros consecutivos.
+        </p>
+        <ol id="timeline" class="timeline"></ol>
+        <div class="row">
+          <button id="addKeyframe" class="btn">+ Adicionar quadro-chave</button>
+          <button id="clearTimeline" class="btn ghost small">Limpar</button>
+        </div>
+        <div class="row">
+          <label class="col">
+            FPS
+            <input type="number" id="fps" value="12" min="1" max="60" />
+          </label>
+          <label class="check-row" style="flex:1">
+            <input type="checkbox" id="loopAnim" checked />
+            Repetir (loop)
+          </label>
+        </div>
+        <div class="row">
+          <button id="playAnim" class="btn">▶ Pré-visualizar</button>
+          <button id="stopAnim" class="btn ghost">■ Parar</button>
+        </div>
+
+        <h2>Exportar</h2>
+        <div class="row wrap">
+          <button id="exportSvg" class="btn">SVG (pose atual)</button>
+          <button id="exportThumb" class="btn">Thumbnail PNG (2x)</button>
+          <button id="exportPng" class="btn">PNG sequência (zip)</button>
+          <button id="exportWebm" class="btn">Vídeo .webm</button>
+          <button id="exportSrt" class="btn ghost">Legendas .srt</button>
+        </div>
+        <div class="row wrap">
+          <button id="saveProject" class="btn ghost small">Salvar projeto (JSON)</button>
+          <label class="btn ghost small file-label">
+            Abrir projeto
+            <input type="file" id="loadProject" accept="application/json" hidden />
+          </label>
+        </div>
+        <p id="status" class="status"></p>
+      </section>
+    </main>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
